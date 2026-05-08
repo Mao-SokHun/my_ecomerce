@@ -11,3 +11,4 @@ shopdb-database/
 .env.*
 !.env.example
 !.env.local.example
+render.yaml
