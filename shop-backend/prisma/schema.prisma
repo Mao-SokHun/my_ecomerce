@@ -1,0 +1,432 @@
+// Prisma schema — PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  phone         String?
+  avatar        String?   @db.Text
+  role          Role      @default(USER)
+  isActive      Boolean   @default(true)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  addresses     Address[]
+  orders        Order[]
+  reviews       Review[]
+  cart          Cart?
+  wishlist      Wishlist[]
+  sellerProfile SellerProfile?
+
+  @@map("users")
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  phone      String
+  provinceId String?
+  districtId String?
+  communeId  String?
+  villageId  String?
+  province   String?
+  district   String?
+  commune    String?
+  village    String?
+  roadNumber String?
+  street     String?
+  city       String?
+  state      String?
+  country    String   @default("KH")
+  zipCode    String?
+  note       String?  @db.Text
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@map("addresses")
+  @@index([province, district, commune, village])
+}
+
+model CambodiaProvince {
+  id        String             @id @default(cuid())
+  nameKm    String             @unique
+  nameEn    String?
+  nameZh    String?
+  code      String?            @unique
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  districts CambodiaDistrict[]
+
+  @@map("kh_provinces")
+}
+
+model CambodiaDistrict {
+  id         String            @id @default(cuid())
+  provinceId String
+  nameKm     String
+  nameEn     String?
+  nameZh     String?
+  code       String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  province   CambodiaProvince  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  communes   CambodiaCommune[]
+
+  @@unique([provinceId, nameKm])
+  @@map("kh_districts")
+}
+
+model CambodiaCommune {
+  id         String            @id @default(cuid())
+  districtId String
+  nameKm     String
+  nameEn     String?
+  nameZh     String?
+  code       String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  district   CambodiaDistrict  @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  villages   CambodiaVillage[]
+
+  @@unique([districtId, nameKm])
+  @@map("kh_communes")
+}
+
+model CambodiaVillage {
+  id         String            @id @default(cuid())
+  communeId  String
+  nameKm     String
+  nameEn     String?
+  nameZh     String?
+  code       String?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  commune    CambodiaCommune   @relation(fields: [communeId], references: [id], onDelete: Cascade)
+
+  @@unique([communeId, nameKm])
+  @@map("kh_villages")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?    @db.Text
+  image       String?    @db.Text
+  parentId    String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  deletedAt   DateTime?
+  deletedBy   String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  description   String         @db.Text
+  shortDesc     String?        @db.Text
+  price         Float
+  comparePrice  Float?
+  costPrice     Float?
+  sku           String?        @unique
+  barcode       String?
+  stock         Int            @default(0)
+  lowStockAlert Int            @default(5)
+  weight        Float?
+  dimensions    String?
+  images        Json           @default("[]")
+  thumbnail     String?        @db.Text
+  categoryId    String
+  brand         String?
+  tags          Json           @default("[]")
+  isFeatured    Boolean        @default(false)
+  isActive      Boolean        @default(true)
+  metaTitle     String?
+  metaDesc      String?        @db.Text
+  rating        Float          @default(0)
+  reviewCount   Int            @default(0)
+  soldCount     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  category      Category       @relation(fields: [categoryId], references: [id])
+  variants      ProductVariant[]
+  reviews       Review[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  wishlist      Wishlist[]
+  sellerId      String?
+  seller        SellerProfile? @relation(fields: [sellerId], references: [id])
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  name       String
+  value      String
+  price      Float?
+  stock      Int      @default(0)
+  sku        String?
+  image      String?  @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  variantId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, variantId])
+  @@map("cart_items")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  userId          String
+  addressId       String?
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  paymentIntentId String?
+  khqrRef         String?       @unique
+  khqrPayload     String?       @db.Text
+  khqrQrUrl       String?       @db.Text
+  khqrExpiresAt   DateTime?
+  // Courier at checkout: VET | JNT
+  shippingCarrier String?
+  subtotal        Float
+  discount        Float         @default(0)
+  shippingCost    Float         @default(0)
+  tax             Float         @default(0)
+  total           Float
+  notes           String?       @db.Text
+  shippingAddress Json?
+  trackingNumber  String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  isArchivedByUser Boolean      @default(false)
+  archivedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id])
+  address         Address?      @relation(fields: [addressId], references: [id])
+  items           OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  productId   String
+  name        String
+  image       String?  @db.Text
+  price       Float
+  quantity    Int
+  variant     String?
+  createdAt   DateTime @default(now())
+
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  userId       String
+  productId    String
+  rating       Int
+  title        String?
+  comment      String   @db.Text
+  images       Json     @default("[]")
+  isVerified   Boolean  @default(false)
+  isApproved   Boolean  @default(true)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("reviews")
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@map("wishlists")
+}
+
+model Coupon {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  description  String?   @db.Text
+  discountType String
+  discount     Float
+  minOrder     Float?
+  maxDiscount  Float?
+  usageLimit   Int?
+  usedCount    Int       @default(0)
+  isActive     Boolean   @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("coupons")
+}
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  sponsorName String
+  imageUrl    String?  @db.Text
+  linkUrl     String?  @db.Text
+  slot        String
+  status      AdStatus @default(DRAFT)
+  startAt     DateTime?
+  endAt       DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("advertisements")
+}
+
+model SellerProfile {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  storeName       String
+  storeSlug       String       @unique
+  description     String?      @db.Text
+  phone           String?
+  address         String?      @db.Text
+  status          SellerStatus @default(PENDING)
+  commissionRate  Float        @default(10)
+  payoutMethod    String?
+  payoutAccount   String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products        Product[]
+
+  @@map("seller_profiles")
+}
+
+model SiteSettings {
+  id           String   @id @default("default")
+  siteName     String   @default("SH-Shop")
+  shippingFee  Float    @default(2.0)
+  shippingFeeVet Float  @default(2.0)
+  shippingFeeJnt Float  @default(2.0)
+  heroImages   Json     @default("[]")
+  footerInfo   Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("site_settings")
+}

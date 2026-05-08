@@ -1,0 +1,3 @@
+-- Legacy placeholder migration.
+-- This file was missing in the workspace and is kept as a no-op
+-- to preserve Prisma migration history consistency.

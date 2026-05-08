@@ -1,0 +1,18 @@
+{
+  "name": "sh-shop-workspace",
+  "private": true,
+  "description": "Convenience scripts from repo root. Apps: shop-frontend (Next.js), shop-backend (Express).",
+  "scripts": {
+    "dev": "echo 'Usage: npm run dev:frontend or npm run dev:backend'",
+    "dev:all": "npm run dev:backend & npm run dev:frontend",
+    "dev:frontend": "npm run dev --prefix shop-frontend",
+    "dev:backend": "npm run dev --prefix shop-backend",
+    "dev:clean": "npm run dev:clean --prefix shop-frontend",
+    "dev:turbo": "npm run dev:turbo --prefix shop-frontend",
+    "build": "npm run build --prefix shop-frontend",
+    "start": "npm run start --prefix shop-frontend",
+    "lint": "npm run lint --prefix shop-frontend",
+    "docker:db": "docker compose up -d postgres",
+    "docker:db:down": "docker compose down"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "hosting": {
+    "source": "shop-frontend",
+    "frameworksBackend": {
+      "region": "asia-southeast1"
+    }
+  }
+}

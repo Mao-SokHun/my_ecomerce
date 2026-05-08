@@ -1,0 +1,79 @@
+# Render Blueprint: PostgreSQL + API + Next.js frontend
+# After first deploy: set FRONTEND_URL (backend) and NEXT_PUBLIC_API_URL (frontend) to your public URLs.
+# NEXT_PUBLIC_API_URL example: https://sh-shop-backend.onrender.com/api
+
+databases:
+  - name: sh-shop-postgres
+    databaseName: shopdb
+    plan: free
+
+services:
+  - type: web
+    name: sh-shop-backend
+    runtime: node
+    rootDir: shop-backend
+    plan: free
+    buildCommand: npm install && npx prisma generate && npm run build
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_PUBLIC_URL
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sh-shop-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_PHONE
+        sync: false
+
+  - type: web
+    name: sh-shop-frontend
+    runtime: node
+    rootDir: shop-frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Public API base (browser). Example: https://<sh-shop-backend-host>/api
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      # Server-side rewrites & RSC: same host as API without /api path, e.g. https://<sh-shop-backend-host>
+      - key: BACKEND_PROXY_TARGET
+        sync: false
+      - key: INTERNAL_API_URL
+        sync: false
