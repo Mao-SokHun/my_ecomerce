@@ -6,9 +6,7 @@ import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 import { sendEmail, sendTelegramMessage } from '../lib/notifier';
-
-/** Letters from any script + spaces, hyphen, apostrophe, period (Khmer/Latin names). Hyphen first so it is not parsed as a range. */
-const DISPLAY_NAME_PATTERN = /^[-\p{L}\p{M}\s'.]+$/u;
+import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '../lib/displayName';
 
 const normalizePhoneDigits = (raw: string): string => raw.replace(/\D/g, '');
 const forgotPasswordCodes = new Map<string, { code: string; expiresAt: number }>();
@@ -52,6 +50,17 @@ const getRequestIp = (req: Request): string => {
   if (typeof xfwd === 'string' && xfwd.trim()) return xfwd.split(',')[0].trim();
   if (Array.isArray(xfwd) && xfwd[0]) return String(xfwd[0]).trim();
   return req.ip || req.socket?.remoteAddress || 'unknown';
+};
+
+/** Optional lat/lng from browser Geolocation (client-supplied; not persisted). */
+const readOptionalClientGeo = (req: Request): { lat: number; lng: number } | null => {
+  const b = req.body as Record<string, unknown> | null | undefined;
+  if (!b || typeof b !== 'object') return null;
+  const lat = Number(b.clientLatitude);
+  const lng = Number(b.clientLongitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
 };
 
 /** Short display ID for Telegram: U + 9 digits, stable per DB id (not the raw cuid). */
@@ -132,7 +141,11 @@ const notifyTelegramAuthEvent = async (
   const title = event === 'REGISTER' ? '🆕 អ្នកប្រើប្រាស់បានចុះឈ្មោះ' : '🔐 អ្នកប្រើប្រាស់បានចូលគណនី';
   const ip = getRequestIp(req);
   const geo = await lookupIpGeo(ip);
+  const clientGeo = readOptionalClientGeo(req);
   const ua = String(req.headers['user-agent'] || 'unknown').slice(0, 500);
+  const mapLink = clientGeo
+    ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(clientGeo.lat))}&mlon=${encodeURIComponent(String(clientGeo.lng))}&zoom=16`
+    : '';
   const text = [
     title,
     `ឈ្មោះ: ${user.name || 'មិនមាន'}`,
@@ -140,9 +153,16 @@ const notifyTelegramAuthEvent = async (
     `ទូរស័ព្ទ: ${user.phone || 'មិនមាន'}`,
     `IP Address: ${ip}`,
     `ទីតាំង (ប៉ាន់ប្រមាណតាម IP): ${geo || 'មិនអាចស្គាល់ / មិនបានសួរ'}`,
+    ...(clientGeo
+      ? [
+          `ទីតាំង (ពីកម្មវិធីរុករក — អ្នកបានយល់ព្រមអនុញ្ញាត): ${clientGeo.lat.toFixed(6)}, ${clientGeo.lng.toFixed(6)}`,
+          `  ↳ ផែនទី: ${mapLink}`,
+          `  ↳ ព័ត៌មាននេះជាជំនួយប៉ុណ្ណោះ អាចមិនត្រូវនឹងកន្លែងពិតរបស់អ្នកគ្រប់ពេល។`,
+        ]
+      : []),
     `ឧបករណ៍ (ប៉ាន់ប្រមាណតាម User-Agent): ${summarizeDeviceFromUserAgent(ua)}`,
     `កម្មវិធីរុករក (User-Agent ពេញ): ${ua}`,
-    `  ↳ ជាព័ត៌មាន browser + OS ដែលកម្មវិធីផ្ញើមក (មិនមែន GPS)។ អាចក្លែងបន្លំបាន កុំយកជាភស្តុតាងតែមួយ។`,
+    `  ↳ ជាព័ត៌មានកម្មវិធីរុករក និងប្រព័ន្ធ ដែលកម្មវិធីផ្ញើមក (មិនមែនទីតាំង GPS)។ សូមប្រើជាឯកសារជំនួយ មិនមែនភស្តុតាងតែមួយគត់ទេ។`,
     `User ID: ${formatPublicUserId(user.id)}`,
     `ថ្ងៃ/ម៉ោង: ${formatDateTime24(new Date())}`,
   ].join('\n');
@@ -158,7 +178,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       throw new AppError('Name, phone and password are required', 400);
     }
 
-    if (!DISPLAY_NAME_PATTERN.test(String(name).trim())) {
+    const displayName = normalizeDisplayName(String(name));
+    if (!displayName || !DISPLAY_NAME_PATTERN.test(displayName)) {
       throw new AppError(
         'Name may only include letters (any script), spaces, hyphens (-), apostrophes, and periods',
         400
@@ -195,7 +216,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name: String(name).trim(), email: emailStr, phone: phoneDigits, password: hashedPassword },
+      data: { name: displayName, email: emailStr, phone: phoneDigits, password: hashedPassword },
       select: { id: true, name: true, email: true, phone: true, role: true, avatar: true, createdAt: true },
     });
 
@@ -365,6 +386,7 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     const avatar = (data?.picture?.data?.url as string | undefined) || null;
 
     let user = await prisma.user.findUnique({ where: { email } });
+    const isNew = !user;
     if (!user) {
       const randomPassword = await bcrypt.hash(`fb_${data.id}_${Date.now()}`, 8);
       user = await prisma.user.create({
@@ -382,6 +404,14 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     }
 
     const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
+    notifyTelegramAuthEvent(
+      req,
+      { id: user.id, name: user.name, email: user.email, phone: user.phone },
+      isNew ? 'REGISTER' : 'LOGIN'
+    ).catch((error) => {
+      console.error('[Auth Notify] Facebook Telegram notification failed:', error);
+    });
+
     const { password: _, ...userWithoutPassword } = user;
     void _;
 
@@ -429,15 +459,15 @@ export const updateProfile = async (
     const updateData: { name?: string; phone?: string; avatar?: string } = {};
 
     if (typeof name !== 'undefined') {
-      const trimmedName = String(name).trim();
-      if (!trimmedName) throw new AppError('Name is required', 400);
-      if (!DISPLAY_NAME_PATTERN.test(trimmedName)) {
+      const displayName = normalizeDisplayName(String(name));
+      if (!displayName) throw new AppError('Name is required', 400);
+      if (!DISPLAY_NAME_PATTERN.test(displayName)) {
         throw new AppError(
           'Name may only include letters (any script), spaces, hyphens (-), apostrophes, and periods',
           400
         );
       }
-      updateData.name = trimmedName;
+      updateData.name = displayName;
     }
 
     if (typeof phone !== 'undefined') {

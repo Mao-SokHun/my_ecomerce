@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { CAMBODIA_LOCATIONS } from '../src/data/cambodiaLocations';
 import { PROVINCE_EN_TO_ZH } from '../src/data/cambodiaProvinceZh';
-import { delayMs, enPlaceNameToZh, flushZhCache } from '../src/lib/translateEnToZh';
+import { delayMs, enPlaceNameToZh, flushZhCache, isEnPlaceNameCached } from '../src/lib/translateEnToZh';
 import fs from 'fs';
 const { cambodia_gazetterr } = require('cambodia-gazetteer');
 
@@ -162,7 +162,7 @@ const toHierarchyFromSqlData = (sqlData: CambodiaSqlData): typeof CAMBODIA_LOCAT
 };
 
 const prefetchSqlLocationZh = async (data: CambodiaSqlData): Promise<void> => {
-  if (process.env.CAMBODIA_SKIP_ZH_PREFETCH === '1') return;
+  if (process.env.CAMBODIA_SKIP_ZH_PREFETCH === '1' || process.env.CAMBODIA_SKIP_TRANSLATION === '1') return;
 
   const keys = new Set<string>();
   const addPair = (en: string, km: string) => keys.add(JSON.stringify([en, km]));
@@ -177,20 +177,31 @@ const prefetchSqlLocationZh = async (data: CambodiaSqlData): Promise<void> => {
     addPair(v.nameEn?.trim() || '', v.nameKh?.trim() || '');
   }
 
-  console.log(`Prefetching Chinese (zh-CN) labels for ${keys.size} unique place-name pairs (first run may take several minutes)...`);
+  console.log(`Prefetching Chinese (zh-CN) labels for ${keys.size} unique place-name pairs...`);
   let n = 0;
+  let misses = 0;
   for (const k of keys) {
     const [en, km] = JSON.parse(k) as [string, string];
-    await enPlaceNameToZh(en, km || null);
+    const kmStr = km || '';
+    const hadCache = isEnPlaceNameCached(en, kmStr);
+    await enPlaceNameToZh(en, kmStr || null);
+    if (!hadCache) misses += 1;
     n += 1;
     if (n % 500 === 0) console.log(`  ... ${n}/${keys.size}`);
-    await delayMs(25);
+    // Only throttle real network calls; warm cache (e.g. committed cambodia_location_zh_cache.json) stays fast.
+    if (!hadCache) await delayMs(20);
   }
+  console.log(`  Prefetch done (${misses} new translations, ${keys.size - misses} from cache).`);
   flushZhCache();
 };
 
 async function main() {
   console.log('🌱 Seeding database...');
+  if (process.env.CAMBODIA_SKIP_TRANSLATION === '1') {
+    console.log('  CAMBODIA_SKIP_TRANSLATION=1 — skipping remote Chinese labels (nameZh empty; seed is fast).');
+  } else if (process.env.CAMBODIA_SKIP_ZH_PREFETCH === '1') {
+    console.log('  CAMBODIA_SKIP_ZH_PREFETCH=1 — skipping Chinese prefetch pass (still translates per row from cache/API).');
+  }
 
   // Source priority: user SQL dump -> npm gazetteer -> local fallback.
   const sqlData = loadCambodiaSqlData();

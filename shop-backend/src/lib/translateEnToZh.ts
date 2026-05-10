@@ -75,11 +75,22 @@ function cacheKey(en: string, km?: string): string {
   return JSON.stringify([en.trim(), km?.trim() || '']);
 }
 
+/** True if this pair is already in the in-memory translation cache (disk cache is loaded at startup). */
+export function isEnPlaceNameCached(en: string, nameKh?: string | null): boolean {
+  const e = en.trim();
+  const km = nameKh?.trim() || '';
+  const key = cacheKey(e, km || undefined);
+  return Boolean(key && memoryCache[key]);
+}
+
 /**
  * English / Khmer place name → Simplified Chinese (no Latin in result when possible).
  * Cached by (en, optional kh) pair.
  */
 export async function enPlaceNameToZh(en: string, nameKh?: string | null): Promise<string> {
+  if (process.env.CAMBODIA_SKIP_TRANSLATION === '1') {
+    return '';
+  }
   const e = en.trim();
   const km = nameKh?.trim() || '';
   const key = cacheKey(e, km || undefined);

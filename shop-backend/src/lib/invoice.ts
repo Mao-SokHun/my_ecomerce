@@ -98,9 +98,9 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
     paymentLabelCard?: string;
     paymentLabelBakong?: string;
   };
-  const shopName = invoiceCfg.shopName || settings?.siteName || 'ShopHub';
-  const supportEmail = invoiceCfg.supportEmail || 'support@shophub.com';
-  const supportPhone = invoiceCfg.supportPhone || '+1 (555) 000-1000';
+  const shopName = invoiceCfg.shopName || settings?.siteName || 'SH-Shop';
+  const supportEmail = invoiceCfg.supportEmail || 'sokhunmao390@gmail.com';
+  const supportPhone = invoiceCfg.supportPhone || '0974944390 / 0885459115';
   const shopAddress = invoiceCfg.shopAddress || 'N/A';
   const footerNote = invoiceCfg.footerNote || '';
 
