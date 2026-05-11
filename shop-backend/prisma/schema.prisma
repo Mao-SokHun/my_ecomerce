@@ -163,14 +163,13 @@ model CambodiaDistrict {
   nameKm     String
   nameEn     String?
   nameZh     String?
-  code       String?
+  code       String?           @unique
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
   province   CambodiaProvince  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
   communes   CambodiaCommune[]
 
-  @@unique([provinceId, nameKm])
   @@map("kh_districts")
 }
 
@@ -180,14 +179,13 @@ model CambodiaCommune {
   nameKm     String
   nameEn     String?
   nameZh     String?
-  code       String?
+  code       String?           @unique
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
   district   CambodiaDistrict  @relation(fields: [districtId], references: [id], onDelete: Cascade)
   villages   CambodiaVillage[]
 
-  @@unique([districtId, nameKm])
   @@map("kh_communes")
 }
 
@@ -197,13 +195,12 @@ model CambodiaVillage {
   nameKm     String
   nameEn     String?
   nameZh     String?
-  code       String?
+  code       String?           @unique
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
   commune    CambodiaCommune   @relation(fields: [communeId], references: [id], onDelete: Cascade)
 
-  @@unique([communeId, nameKm])
   @@map("kh_villages")
 }
 

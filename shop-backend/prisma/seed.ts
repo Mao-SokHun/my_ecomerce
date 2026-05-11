@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { CAMBODIA_LOCATIONS } from '../src/data/cambodiaLocations';
@@ -45,6 +47,10 @@ type SqlProvince = { code: string; nameEn: string; nameKh: string };
 type SqlDistrict = { code: string; provinceCode: string; nameEn: string; nameKh: string };
 type SqlCommune = { code: string; districtCode: string; nameEn: string; nameKh: string };
 type SqlVillage = { code: string; communeCode: string; nameEn: string; nameKh: string };
+type ProvinceSeedRow = { nameKm: string; nameEn: string | null; nameZh: string | null; code: string };
+type DistrictSeedRow = ProvinceSeedRow & { provinceId: string };
+type CommuneSeedRow = ProvinceSeedRow & { districtId: string };
+type VillageSeedRow = ProvinceSeedRow & { communeId: string };
 type CambodiaSqlData = {
   provinces: SqlProvince[];
   districts: SqlDistrict[];
@@ -54,7 +60,9 @@ type CambodiaSqlData = {
 
 const DEFAULT_SQL_PATHS = [
   'D:\\Business Sytem Online Shopping\\cambodia_map.sql',
+  'D:\\Business Sytem Online Shopping\\cambodia.sql',
   'C:\\Users\\LyhourMao\\Downloads\\Telegram Desktop\\cambodia_map.sql',
+  'C:\\Users\\LyhourMao\\Downloads\\Telegram Desktop\\cambodia.sql',
 ];
 
 const parseSqlRows = (sql: string, table: string): string[][] => {
@@ -120,6 +128,43 @@ const loadCambodiaSqlData = (): CambodiaSqlData | null => {
   if (!sqlPath || !fs.existsSync(sqlPath)) return null;
 
   const rawSql = fs.readFileSync(sqlPath, 'utf8');
+  const trim = (value?: string) => String(value || '').trim();
+  const isActive = (value?: string) => value === undefined || value === '' || value === '1';
+  const padCode = (value: string | undefined, length: number) => trim(value).padStart(length, '0');
+
+  const modernProvinces = parseSqlRows(rawSql, 'provinces');
+  const modernDistricts = parseSqlRows(rawSql, 'districts');
+  const modernCommunes = parseSqlRows(rawSql, 'communes');
+  const modernVillages = parseSqlRows(rawSql, 'villages');
+
+  if (modernProvinces.length > 0 && modernDistricts.length > 0 && modernCommunes.length > 0 && modernVillages.length > 0) {
+    console.log(`  Using Cambodia location source: ${sqlPath}`);
+    const provinces: SqlProvince[] = modernProvinces.map((cols) => ({
+        code: padCode(cols[0], 2),
+        nameEn: trim(cols[1]),
+        nameKh: trim(cols[2]),
+      }));
+    const districts: SqlDistrict[] = modernDistricts.map((cols) => ({
+        code: padCode(cols[0], 4),
+        provinceCode: padCode(cols[1], 2),
+        nameEn: trim(cols[2]),
+        nameKh: trim(cols[3]),
+      }));
+    const communes: SqlCommune[] = modernCommunes.map((cols) => ({
+        code: padCode(cols[0], 6),
+        districtCode: padCode(cols[1], 4),
+        nameEn: trim(cols[2]),
+        nameKh: trim(cols[3]),
+      }));
+    const villages: SqlVillage[] = modernVillages.map((cols) => ({
+        code: padCode(cols[0], 8),
+        communeCode: padCode(cols[1], 6),
+        nameEn: trim(cols[2]),
+        nameKh: trim(cols[3]),
+      }));
+
+    return { provinces, districts, communes, villages };
+  }
 
   const provinces: SqlProvince[] = parseSqlRows(rawSql, 'sys_provinces').map((cols) => ({
     code: cols[0] || '',
@@ -228,6 +273,212 @@ const prefetchSqlLocationZh = async (data: CambodiaSqlData): Promise<void> => {
   flushZhCache();
 };
 
+const LOCATION_BATCH_SIZE = Math.max(1, Number(process.env.CAMBODIA_LOCATION_BATCH_SIZE || 500) || 500);
+
+const chunkArray = <T>(items: T[], size = LOCATION_BATCH_SIZE): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+};
+
+const nullableTrim = (value?: string | null): string | null => {
+  const trimmed = value?.trim() || '';
+  return trimmed || null;
+};
+
+const requiredTrim = (value?: string | null): string => value?.trim() || '';
+
+const uniqueByAny = <T>(label: string, items: T[], getKeys: (item: T) => string[]): T[] => {
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  let skipped = 0;
+
+  for (const item of items) {
+    const keys = getKeys(item).filter(Boolean);
+    if (keys.some((key) => seen.has(key))) {
+      skipped += 1;
+      continue;
+    }
+
+    for (const key of keys) seen.add(key);
+    unique.push(item);
+  }
+
+  if (skipped > 0) {
+    console.log(`  ${label}: skipped ${skipped} duplicate rows from source data`);
+  }
+
+  return unique;
+};
+
+const createRowsInBatches = async <TData, TRow extends { id: string; code: string | null }>(
+  label: string,
+  data: TData[],
+  createBatch: (batch: TData[]) => Promise<TRow[]>
+): Promise<Map<string, string>> => {
+  const idByCode = new Map<string, string>();
+  let done = 0;
+
+  for (const batch of chunkArray(data)) {
+    const rows = await withConnectionRetry(`${label} ${done + 1}-${done + batch.length}`, () => createBatch(batch));
+    for (const row of rows) {
+      if (row.code) idByCode.set(row.code, row.id);
+    }
+    done += batch.length;
+    console.log(`  ${label}: ${done}/${data.length}`);
+  }
+
+  return idByCode;
+};
+
+const mapIdsByCode = (rows: Array<{ id: string; code: string | null }>): Map<string, string> => {
+  const idByCode = new Map<string, string>();
+  for (const row of rows) {
+    const code = row.code?.trim();
+    if (code) idByCode.set(code, row.id);
+  }
+  return idByCode;
+};
+
+const seedSqlCambodiaLocations = async (sqlData: CambodiaSqlData): Promise<void> => {
+  await prefetchSqlLocationZh(sqlData);
+
+  const provinceRows: ProvinceSeedRow[] = [];
+  for (const province of sqlData.provinces) {
+    const nameKm = requiredTrim(province.nameKh);
+    const code = requiredTrim(province.code);
+    if (!nameKm || !code) continue;
+
+    const nameEn = nullableTrim(province.nameEn);
+    const nameZh = (nameEn && PROVINCE_EN_TO_ZH[nameEn]) || (await enPlaceNameToZh(nameEn || '', nameKm));
+    provinceRows.push({
+      nameKm,
+      nameEn,
+      nameZh: nameZh || null,
+      code,
+    });
+  }
+
+  const uniqueProvinceRows = uniqueByAny('provinces', provinceRows, (row) => [
+    `nameKm:${row.nameKm}`,
+    `code:${row.code}`,
+  ]);
+  await createRowsInBatches('provinces', uniqueProvinceRows, (data) =>
+    prisma.cambodiaProvince.createManyAndReturn({
+      data,
+      select: { id: true, code: true },
+    })
+  );
+  const provinceIdByCode = mapIdsByCode(
+    await prisma.cambodiaProvince.findMany({ select: { id: true, code: true } })
+  );
+
+  const districtRows: DistrictSeedRow[] = [];
+  let skippedDistrictsWithoutProvince = 0;
+  for (const district of sqlData.districts) {
+    const provinceId = provinceIdByCode.get(requiredTrim(district.provinceCode));
+    const nameKm = requiredTrim(district.nameKh);
+    const code = requiredTrim(district.code);
+    if (!provinceId || !nameKm || !code) {
+      skippedDistrictsWithoutProvince += 1;
+      continue;
+    }
+
+    const nameEn = nullableTrim(district.nameEn);
+    districtRows.push({
+      provinceId,
+      nameKm,
+      nameEn,
+      nameZh: (await enPlaceNameToZh(nameEn || '', nameKm)) || null,
+      code,
+    });
+  }
+  if (skippedDistrictsWithoutProvince > 0) {
+    console.log(`  districts: skipped ${skippedDistrictsWithoutProvince} rows with missing province parent`);
+  }
+
+  const uniqueDistrictRows = uniqueByAny('districts', districtRows, (row) => [`code:${row.code}`]);
+  await createRowsInBatches('districts', uniqueDistrictRows, (data) =>
+    prisma.cambodiaDistrict.createManyAndReturn({
+      data,
+      select: { id: true, code: true },
+    })
+  );
+  const districtIdByCode = mapIdsByCode(
+    await prisma.cambodiaDistrict.findMany({ select: { id: true, code: true } })
+  );
+
+  const communeRows: CommuneSeedRow[] = [];
+  let skippedCommunesWithoutDistrict = 0;
+  for (const commune of sqlData.communes) {
+    const districtId = districtIdByCode.get(requiredTrim(commune.districtCode));
+    const nameKm = requiredTrim(commune.nameKh);
+    const code = requiredTrim(commune.code);
+    if (!districtId || !nameKm || !code) {
+      skippedCommunesWithoutDistrict += 1;
+      continue;
+    }
+
+    const nameEn = nullableTrim(commune.nameEn);
+    communeRows.push({
+      districtId,
+      nameKm,
+      nameEn,
+      nameZh: (await enPlaceNameToZh(nameEn || '', nameKm)) || null,
+      code,
+    });
+  }
+  if (skippedCommunesWithoutDistrict > 0) {
+    console.log(`  communes: skipped ${skippedCommunesWithoutDistrict} rows with missing district parent`);
+  }
+
+  const uniqueCommuneRows = uniqueByAny('communes', communeRows, (row) => [`code:${row.code}`]);
+  await createRowsInBatches('communes', uniqueCommuneRows, (data) =>
+    prisma.cambodiaCommune.createManyAndReturn({
+      data,
+      select: { id: true, code: true },
+    })
+  );
+  const communeIdByCode = mapIdsByCode(
+    await prisma.cambodiaCommune.findMany({ select: { id: true, code: true } })
+  );
+
+  const villageRows: VillageSeedRow[] = [];
+  let skippedVillagesWithoutCommune = 0;
+  for (const village of sqlData.villages) {
+    const communeId = communeIdByCode.get(requiredTrim(village.communeCode));
+    const nameKm = requiredTrim(village.nameKh);
+    const code = requiredTrim(village.code);
+    if (!communeId || !nameKm || !code) {
+      skippedVillagesWithoutCommune += 1;
+      continue;
+    }
+
+    const nameEn = nullableTrim(village.nameEn);
+    villageRows.push({
+      communeId,
+      nameKm,
+      nameEn,
+      nameZh: (await enPlaceNameToZh(nameEn || '', nameKm)) || null,
+      code,
+    });
+  }
+  if (skippedVillagesWithoutCommune > 0) {
+    console.log(`  villages: skipped ${skippedVillagesWithoutCommune} rows with missing commune parent`);
+  }
+
+  const uniqueVillageRows = uniqueByAny('villages', villageRows, (row) => [`code:${row.code}`]);
+  await createRowsInBatches('villages', uniqueVillageRows, (data) =>
+    prisma.cambodiaVillage.createManyAndReturn({
+      data,
+      select: { id: true, code: true },
+    })
+  );
+  flushZhCache();
+};
+
 async function main() {
   console.log('🌱 Seeding database...');
   if (process.env.CAMBODIA_SKIP_TRANSLATION === '1') {
@@ -270,108 +521,7 @@ async function main() {
   });
 
   if (sqlData && sqlData.provinces.length > 0) {
-    await prefetchSqlLocationZh(sqlData);
-
-    const provinceIdByCode = new Map<string, string>();
-    for (const province of sqlData.provinces) {
-      if (!province.nameKh) continue;
-      const enP = province.nameEn?.trim() || '';
-      const zhP = (enP && PROVINCE_EN_TO_ZH[enP]) || (await enPlaceNameToZh(enP, province.nameKh));
-      const p = await withConnectionRetry(`province ${province.code}`, () =>
-        prisma.cambodiaProvince.upsert({
-        where: { nameKm: province.nameKh.trim() },
-        update: {
-          nameEn: enP || null,
-          nameZh: zhP || null,
-          code: province.code?.trim() || null,
-        },
-        create: {
-          nameKm: province.nameKh.trim(),
-          nameEn: enP || null,
-          nameZh: zhP || null,
-          code: province.code?.trim() || null,
-        },
-      })
-      );
-      provinceIdByCode.set(province.code, p.id);
-    }
-
-    const districtIdByCode = new Map<string, string>();
-    for (const district of sqlData.districts) {
-      const provinceId = provinceIdByCode.get(district.provinceCode);
-      if (!provinceId || !district.nameKh) continue;
-      const enD = district.nameEn?.trim() || '';
-      const zhD = await enPlaceNameToZh(enD, district.nameKh);
-      const d = await withConnectionRetry(`district ${district.code}`, () =>
-        prisma.cambodiaDistrict.upsert({
-        where: { provinceId_nameKm: { provinceId, nameKm: district.nameKh.trim() } },
-        update: {
-          nameEn: enD || null,
-          nameZh: zhD || null,
-          code: district.code?.trim() || null,
-        },
-        create: {
-          provinceId,
-          nameKm: district.nameKh.trim(),
-          nameEn: enD || null,
-          nameZh: zhD || null,
-          code: district.code?.trim() || null,
-        },
-      })
-      );
-      districtIdByCode.set(district.code, d.id);
-    }
-
-    const communeIdByCode = new Map<string, string>();
-    for (const commune of sqlData.communes) {
-      const districtId = districtIdByCode.get(commune.districtCode);
-      if (!districtId || !commune.nameKh) continue;
-      const enC = commune.nameEn?.trim() || '';
-      const zhC = await enPlaceNameToZh(enC, commune.nameKh);
-      const c = await withConnectionRetry(`commune ${commune.code}`, () =>
-        prisma.cambodiaCommune.upsert({
-        where: { districtId_nameKm: { districtId, nameKm: commune.nameKh.trim() } },
-        update: {
-          nameEn: enC || null,
-          nameZh: zhC || null,
-          code: commune.code?.trim() || null,
-        },
-        create: {
-          districtId,
-          nameKm: commune.nameKh.trim(),
-          nameEn: enC || null,
-          nameZh: zhC || null,
-          code: commune.code?.trim() || null,
-        },
-      })
-      );
-      communeIdByCode.set(commune.code, c.id);
-    }
-
-    for (const village of sqlData.villages) {
-      const communeId = communeIdByCode.get(village.communeCode);
-      if (!communeId || !village.nameKh) continue;
-      const enV = village.nameEn?.trim() || '';
-      const zhV = await enPlaceNameToZh(enV, village.nameKh);
-      await withConnectionRetry(`village ${village.code}`, () =>
-        prisma.cambodiaVillage.upsert({
-        where: { communeId_nameKm: { communeId, nameKm: village.nameKh.trim() } },
-        update: {
-          nameEn: enV || null,
-          nameZh: zhV || null,
-          code: village.code?.trim() || null,
-        },
-        create: {
-          communeId,
-          nameKm: village.nameKh.trim(),
-          nameEn: enV || null,
-          nameZh: zhV || null,
-          code: village.code?.trim() || null,
-        },
-      })
-      );
-    }
-    flushZhCache();
+    await seedSqlCambodiaLocations(sqlData);
   } else {
     // Fallback hierarchy seeding
     for (const provinceItem of fullCambodiaLocations) {
@@ -382,34 +532,41 @@ async function main() {
       });
 
       for (const districtItem of provinceItem.districts) {
-        const district = await prisma.cambodiaDistrict.upsert({
-          where: { provinceId_nameKm: { provinceId: province.id, nameKm: districtItem.district } },
-          update: {},
-          create: {
+        const district =
+          (await prisma.cambodiaDistrict.findFirst({
+            where: { provinceId: province.id, nameKm: districtItem.district },
+          })) ||
+          (await prisma.cambodiaDistrict.create({
+            data: {
             provinceId: province.id,
             nameKm: districtItem.district,
           },
-        });
+          }));
 
         for (const communeItem of districtItem.communes) {
-          const commune = await prisma.cambodiaCommune.upsert({
-            where: { districtId_nameKm: { districtId: district.id, nameKm: communeItem.commune } },
-            update: {},
-            create: {
+          const commune =
+            (await prisma.cambodiaCommune.findFirst({
+              where: { districtId: district.id, nameKm: communeItem.commune },
+            })) ||
+            (await prisma.cambodiaCommune.create({
+              data: {
               districtId: district.id,
               nameKm: communeItem.commune,
             },
-          });
+            }));
 
           for (const village of communeItem.villages) {
-            await prisma.cambodiaVillage.upsert({
-              where: { communeId_nameKm: { communeId: commune.id, nameKm: village } },
-              update: {},
-              create: {
+            const existingVillage = await prisma.cambodiaVillage.findFirst({
+              where: { communeId: commune.id, nameKm: village },
+            });
+            if (!existingVillage) {
+              await prisma.cambodiaVillage.create({
+                data: {
                 communeId: commune.id,
                 nameKm: village,
               },
-            });
+              });
+            }
           }
         }
       }
