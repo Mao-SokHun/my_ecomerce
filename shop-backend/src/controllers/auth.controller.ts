@@ -10,6 +10,49 @@ import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '../lib/displayName';
 
 const normalizePhoneDigits = (raw: string): string => raw.replace(/\D/g, '');
 const forgotPasswordCodes = new Map<string, { code: string; expiresAt: number }>();
+const MAX_FORGOT_PASSWORD_ENTRIES = 2500;
+
+const storeForgotPasswordCode = (email: string, entry: { code: string; expiresAt: number }) => {
+  forgotPasswordCodes.set(email, entry);
+  if (forgotPasswordCodes.size <= MAX_FORGOT_PASSWORD_ENTRIES) return;
+  const target = Math.floor(MAX_FORGOT_PASSWORD_ENTRIES * 0.6);
+  while (forgotPasswordCodes.size > target) {
+    const first = forgotPasswordCodes.keys().next().value as string | undefined;
+    if (first === undefined) break;
+    forgotPasswordCodes.delete(first);
+  }
+};
+
+const MAX_AVATAR_URL_LEN = 2048;
+
+/** Allow empty, same-origin upload paths, or http(s) image URLs only. */
+const sanitizeAvatarUrl = (raw: string): string => {
+  const s = raw.trim();
+  if (!s) return '';
+  if (s.length > MAX_AVATAR_URL_LEN) {
+    throw new AppError('Avatar URL is too long', 400);
+  }
+  const low = s.toLowerCase();
+  if (low.startsWith('javascript:') || low.startsWith('data:') || low.startsWith('vbscript:')) {
+    throw new AppError('Invalid avatar URL', 400);
+  }
+  if (s.startsWith('/uploads/')) {
+    if (s.includes('..') || /\s/.test(s)) {
+      throw new AppError('Invalid avatar path', 400);
+    }
+    return s;
+  }
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+      throw new AppError('Avatar must use http or https', 400);
+    }
+    return s;
+  } catch (e) {
+    if (e instanceof AppError) throw e;
+    throw new AppError('Avatar must be a valid URL or start with /uploads/', 400);
+  }
+};
 
 const signToken = (payload: { id: string; email: string; role: string; name: string }) => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
@@ -143,9 +186,6 @@ const notifyTelegramAuthEvent = async (
   const geo = await lookupIpGeo(ip);
   const clientGeo = readOptionalClientGeo(req);
   const ua = String(req.headers['user-agent'] || 'unknown').slice(0, 500);
-  const mapLink = clientGeo
-    ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(clientGeo.lat))}&mlon=${encodeURIComponent(String(clientGeo.lng))}&zoom=16`
-    : '';
   const text = [
     title,
     `ឈ្មោះ: ${user.name || 'មិនមាន'}`,
@@ -156,7 +196,6 @@ const notifyTelegramAuthEvent = async (
     ...(clientGeo
       ? [
           `ទីតាំង (ពីកម្មវិធីរុករក — អ្នកបានយល់ព្រមអនុញ្ញាត): ${clientGeo.lat.toFixed(6)}, ${clientGeo.lng.toFixed(6)}`,
-          `  ↳ ផែនទី: ${mapLink}`,
           `  ↳ ព័ត៌មាននេះជាជំនួយប៉ុណ្ណោះ អាចមិនត្រូវនឹងកន្លែងពិតរបស់អ្នកគ្រប់ពេល។`,
         ]
       : []),
@@ -254,7 +293,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     });
 
     if (!user) {
-      throw new AppError('Phone/email is incorrect', 401);
+      throw new AppError('Invalid phone, email, or password', 401);
     }
 
     if (!user.isActive) {
@@ -263,7 +302,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new AppError('Password is incorrect', 401);
+      throw new AppError('Invalid phone, email, or password', 401);
     }
 
     const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
@@ -388,7 +427,7 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     let user = await prisma.user.findUnique({ where: { email } });
     const isNew = !user;
     if (!user) {
-      const randomPassword = await bcrypt.hash(`fb_${data.id}_${Date.now()}`, 8);
+      const randomPassword = await bcrypt.hash(`fb_${data.id}_${Date.now()}`, 12);
       user = await prisma.user.create({
         data: {
           email,
@@ -479,7 +518,7 @@ export const updateProfile = async (
     }
 
     if (typeof avatar !== 'undefined') {
-      updateData.avatar = String(avatar).trim();
+      updateData.avatar = sanitizeAvatarUrl(String(avatar));
     }
 
     await prisma.user.update({
@@ -552,20 +591,26 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
     if (!email) throw new AppError('Email is required', 400);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new AppError('Invalid email format', 400);
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new AppError('Email not found', 404);
+    if (user) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
+      await sendEmail({
+        to: email,
+        subject: 'Your password reset code',
+        text: `Your verification code is ${code}. It expires in 10 minutes.`,
+        html: `<p>Your verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
+      }).catch((err) => console.error('[Auth] Password reset email failed:', err));
+    }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    forgotPasswordCodes.set(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-
-    await sendEmail({
-      to: email,
-      subject: 'Your password reset code',
-      text: `Your verification code is ${code}. It expires in 10 minutes.`,
-      html: `<p>Your verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
+    res.json({
+      success: true,
+      message: 'If an account exists for this email, a verification code has been sent.',
     });
-
-    res.json({ success: true, message: 'Verification code sent to email' });
   } catch (error) {
     next(error);
   }

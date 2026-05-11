@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '@/types';
 import { authApi } from '@/lib/api';
+import { getOptionalBrowserGeolocation } from '@/lib/geolocation';
 
 interface AuthState {
   user: User | null;
@@ -31,7 +32,12 @@ export const useAuthStore = create<AuthState>()(
       login: async (identifier, password) => {
         set({ isLoading: true });
         try {
-          const { data } = await authApi.login({ identifier, password });
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.login({
+            identifier,
+            password,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
           const { user, token } = data.data;
           localStorage.setItem('token', token);
           set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
@@ -50,7 +56,11 @@ export const useAuthStore = create<AuthState>()(
       loginWithFacebook: async (accessToken) => {
         set({ isLoading: true });
         try {
-          const { data } = await authApi.facebookLogin(accessToken);
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.facebookLogin({
+            accessToken,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
           const { user, token } = data.data;
           localStorage.setItem('token', token);
           set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
@@ -69,7 +79,11 @@ export const useAuthStore = create<AuthState>()(
       loginWithGoogle: async (credential) => {
         set({ isLoading: true });
         try {
-          const { data } = await authApi.googleLogin(credential);
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.googleLogin({
+            credential,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
           const { user, token } = data.data;
           localStorage.setItem('token', token);
           set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
@@ -88,7 +102,14 @@ export const useAuthStore = create<AuthState>()(
       register: async (name, email, phone, password) => {
         set({ isLoading: true });
         try {
-          const { data } = await authApi.register({ name, email, phone, password });
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.register({
+            name,
+            email,
+            phone,
+            password,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
           const { user, token } = data.data;
           localStorage.setItem('token', token);
           set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });

@@ -73,7 +73,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     return (
       <Link
         href={`/products/${product.slug}`}
-        className="group flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"
+        className="group flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors duration-200 ease-smooth-out"
       >
         <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
           {product.thumbnail && (
@@ -90,8 +90,8 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.01 }}
-      className="group relative h-full card hover:shadow-2xl transition-all duration-500 cursor-pointer"
+      whileHover={{ y: -4, scale: 1.01 }}
+      className="group relative h-full card hover:shadow-2xl transition-all duration-200 ease-smooth-out cursor-pointer motion-reduce:transition-none"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
       {/* Image */}
@@ -101,7 +101,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             src={product.thumbnail}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="object-cover transition-transform duration-200 ease-smooth-out group-hover:scale-105 motion-reduce:transition-none"
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           />
         ) : (
@@ -124,13 +124,13 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         </div>
 
         {/* Visual hover tint only — must not capture taps while invisible (mobile) */}
-        <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/10 transition-all duration-300" />
-        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0 z-10">
+        <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/10 transition-colors duration-200 ease-smooth-out" />
+        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-smooth-out translate-x-2 group-hover:translate-x-0 z-10 motion-reduce:transition-none">
           <motion.button
             whileHover={{ scale: 1.15, rotate: 5 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleWishlist}
-            className={`w-10 h-10 rounded-2xl shadow-xl flex items-center justify-center transition-all ${
+            className={`w-10 h-10 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 ease-smooth-out ${
               isWishlisted
                 ? 'bg-red-500 text-white'
                 : 'glass text-gray-600 dark:text-gray-300 hover:text-red-500'
@@ -142,20 +142,20 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             whileHover={{ scale: 1.15, rotate: -5 }}
             whileTap={{ scale: 0.9 }}
             onClick={(e) => { e.stopPropagation(); router.push(`/products/${product.slug}`); }}
-            className="w-10 h-10 glass rounded-2xl shadow-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-all"
+            className="w-10 h-10 glass rounded-2xl shadow-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-all duration-200 ease-smooth-out"
           >
             <Eye className="w-4.5 h-4.5" />
           </motion.button>
         </div>
 
         {/* Quick add — hidden from pointer events until hover (touch: passes through to card) */}
-        <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0 z-10">
+        <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-smooth-out translate-y-2 group-hover:translate-y-0 z-10 motion-reduce:transition-none">
           <button
             onClick={handleAddToCart}
             disabled={isAddingToCart || product.stock === 0}
             className="w-full btn-primary py-3 active:scale-[0.98] group/btn"
           >
-            <ShoppingCart className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform mr-1" />
+            <ShoppingCart className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform duration-200 ease-smooth-out mr-1" />
             {isAddingToCart ? t(language, 'adding') : product.stock === 0 ? t(language, 'outOfStock') : t(language, 'addToCart')}
           </button>
         </div>
@@ -166,7 +166,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         {product.brand && (
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{product.brand}</p>
         )}
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-primary-600 transition-colors">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 ease-smooth-out">
           {product.name}
         </h3>
 

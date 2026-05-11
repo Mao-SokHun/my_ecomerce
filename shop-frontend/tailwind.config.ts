@@ -45,6 +45,13 @@ const config: Config = {
       borderRadius: {
         '4xl': '2rem',
       },
+      transitionTimingFunction: {
+        'smooth-out': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'smooth-in-out': 'cubic-bezier(0.45, 0, 0.55, 1)',
+      },
+      transitionDuration: {
+        '250': '250ms',
+      },
       boxShadow: {
         'glow': '0 0 20px rgba(99, 102, 241, 0.4)',
         'card': '0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06)',

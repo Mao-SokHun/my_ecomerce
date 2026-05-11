@@ -10,6 +10,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '@/lib/utils';
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,7 +36,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^[\p{L}\p{M}\s'.-]+$/u.test(form.name.trim())) {
+    const nameNorm = normalizeDisplayName(form.name);
+    if (!nameNorm || !DISPLAY_NAME_PATTERN.test(nameNorm)) {
       toast.error(t(language, 'invalidNameLettersOnly'));
       return;
     }
@@ -61,7 +63,7 @@ export default function RegisterPage() {
       return;
     }
     try {
-      await register(form.name.trim(), form.email.trim() || undefined, phoneDigits, form.password);
+      await register(nameNorm, form.email.trim() || undefined, phoneDigits, form.password);
       toast.success(t(language, 'accountCreatedWelcome'));
       router.push('/');
     } catch (error: unknown) {
@@ -180,8 +182,10 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-gray-400 mt-4">
           {t(language, 'byRegisteringAgree')}{' '}
-          <Link href="#" className="text-primary-600 hover:underline">{t(language, 'terms')}</Link> {t(language, 'and')}{' '}
-          <Link href="#" className="text-primary-600 hover:underline">{t(language, 'privacyPolicy')}</Link>
+          <Link href="/legal/terms" className="text-primary-600 hover:underline">{t(language, 'terms')}</Link> {t(language, 'and')}{' '}
+          <Link href="/legal/privacy" className="text-primary-600 hover:underline">
+            {t(language, 'privacyPolicy')}
+          </Link>
         </p>
 
         <p className="text-center text-sm text-gray-500 mt-4">

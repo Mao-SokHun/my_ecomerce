@@ -3,6 +3,8 @@
 import { Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AdminSettingsForm } from '../types';
+import { TRUST_BADGE_ICON_OPTIONS } from '@/lib/trustBadgeIcons';
+import { createEmptyTrustBadge } from '@/lib/trustBadgeDefaults';
 
 interface HomepageSettingsSectionProps {
   active: boolean;
@@ -219,6 +221,156 @@ export default function HomepageSettingsSection({
                   />
                 </div>
                 <button type="button" className="btn-secondary px-2" onClick={() => onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, promoCards: p.homepage.promoCards.filter((_, idx) => idx !== i) } }))}><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3 pt-2 border-t dark:border-gray-800">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Trust badges</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Row under the hero (Khmer / English / Chinese). Same icons as on the storefront.
+              </p>
+            </div>
+            <button
+              type="button"
+              className={addBtn}
+              onClick={() =>
+                onChangeForm((p) => ({
+                  ...p,
+                  homepage: {
+                    ...p.homepage,
+                    trustBadges: [...p.homepage.trustBadges, createEmptyTrustBadge()],
+                  },
+                }))
+              }
+            >
+              <Plus className="w-3.5 h-3.5" /> Add badge
+            </button>
+          </div>
+          {form.homepage.trustBadges.map((b, i) => (
+            <div
+              key={`trust-badge-${i}-${b.iconKey}`}
+              className="p-4 rounded-2xl border border-gray-200/70 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-surface-800 dark:to-surface-900 space-y-3"
+            >
+              <div className="flex flex-wrap items-end gap-2 justify-between">
+                <div className="flex-1 min-w-[180px]">
+                  <label className={fieldLabelCls}>Icon</label>
+                  <select
+                    className="input text-sm"
+                    value={b.iconKey}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, iconKey: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  >
+                    {TRUST_BADGE_ICON_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary px-2 shrink-0"
+                  aria-label="Remove badge"
+                  onClick={() =>
+                    onChangeForm((p) => ({
+                      ...p,
+                      homepage: {
+                        ...p.homepage,
+                        trustBadges: p.homepage.trustBadges.filter((_, idx) => idx !== i),
+                      },
+                    }))
+                  }
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Khmer</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <label className={fieldLabelCls}>Title</label>
+                  <input
+                    className="input text-sm"
+                    value={b.titleKm}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, titleKm: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabelCls}>Description</label>
+                  <input
+                    className="input text-sm"
+                    value={b.descKm}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, descKm: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">English</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <label className={fieldLabelCls}>Title</label>
+                  <input
+                    className="input text-sm"
+                    value={b.titleEn}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, titleEn: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabelCls}>Description</label>
+                  <input
+                    className="input text-sm"
+                    value={b.descEn}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, descEn: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">中文</p>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <label className={fieldLabelCls}>Title</label>
+                  <input
+                    className="input text-sm"
+                    value={b.titleZh}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, titleZh: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className={fieldLabelCls}>Description</label>
+                  <input
+                    className="input text-sm"
+                    value={b.descZh}
+                    onChange={(e) => {
+                      const arr = [...form.homepage.trustBadges];
+                      arr[i] = { ...b, descZh: e.target.value };
+                      onChangeForm((p) => ({ ...p, homepage: { ...p.homepage, trustBadges: arr } }));
+                    }}
+                  />
+                </div>
               </div>
             </div>
           ))}

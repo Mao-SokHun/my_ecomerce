@@ -8,6 +8,39 @@ const { cambodia_gazetterr } = require('cambodia-gazetteer');
 
 const prisma = new PrismaClient();
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Render / cloud Postgres sometimes drops long sessions (57P01, etc.). */
+function isTransientConnectionError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  return (
+    msg.includes('57P01') ||
+    msg.includes('terminating connection due to administrator command') ||
+    msg.includes("Can't reach database server") ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('Socket closed') ||
+    msg.includes('Server has closed the connection') ||
+    msg.includes('Connection terminated unexpectedly')
+  );
+}
+
+async function withConnectionRetry<T>(label: string, fn: () => Promise<T>, attempts = 5): Promise<T> {
+  let last: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      if (!isTransientConnectionError(e) || i === attempts) throw e;
+      const waitMs = Math.min(10_000, 1500 * i);
+      console.warn(`⚠ ${label}: transient DB connection issue (${i}/${attempts}), retrying in ${waitMs}ms…`);
+      await sleep(waitMs);
+    }
+  }
+  throw last;
+}
+
 type SqlProvince = { code: string; nameEn: string; nameKh: string };
 type SqlDistrict = { code: string; provinceCode: string; nameEn: string; nameKh: string };
 type SqlCommune = { code: string; districtCode: string; nameEn: string; nameKh: string };
@@ -229,10 +262,12 @@ async function main() {
     sqlLocations.length > 0 ? sqlLocations : gazetteerLocations.length > 0 ? gazetteerLocations : CAMBODIA_LOCATIONS;
 
   // Reset location hierarchy to avoid stale/duplicate names between seed versions.
-  await prisma.cambodiaVillage.deleteMany({});
-  await prisma.cambodiaCommune.deleteMany({});
-  await prisma.cambodiaDistrict.deleteMany({});
-  await prisma.cambodiaProvince.deleteMany({});
+  await withConnectionRetry('clear Cambodia location tables', async () => {
+    await prisma.cambodiaVillage.deleteMany({});
+    await prisma.cambodiaCommune.deleteMany({});
+    await prisma.cambodiaDistrict.deleteMany({});
+    await prisma.cambodiaProvince.deleteMany({});
+  });
 
   if (sqlData && sqlData.provinces.length > 0) {
     await prefetchSqlLocationZh(sqlData);
@@ -242,7 +277,8 @@ async function main() {
       if (!province.nameKh) continue;
       const enP = province.nameEn?.trim() || '';
       const zhP = (enP && PROVINCE_EN_TO_ZH[enP]) || (await enPlaceNameToZh(enP, province.nameKh));
-      const p = await prisma.cambodiaProvince.upsert({
+      const p = await withConnectionRetry(`province ${province.code}`, () =>
+        prisma.cambodiaProvince.upsert({
         where: { nameKm: province.nameKh.trim() },
         update: {
           nameEn: enP || null,
@@ -255,7 +291,8 @@ async function main() {
           nameZh: zhP || null,
           code: province.code?.trim() || null,
         },
-      });
+      })
+      );
       provinceIdByCode.set(province.code, p.id);
     }
 
@@ -265,7 +302,8 @@ async function main() {
       if (!provinceId || !district.nameKh) continue;
       const enD = district.nameEn?.trim() || '';
       const zhD = await enPlaceNameToZh(enD, district.nameKh);
-      const d = await prisma.cambodiaDistrict.upsert({
+      const d = await withConnectionRetry(`district ${district.code}`, () =>
+        prisma.cambodiaDistrict.upsert({
         where: { provinceId_nameKm: { provinceId, nameKm: district.nameKh.trim() } },
         update: {
           nameEn: enD || null,
@@ -279,7 +317,8 @@ async function main() {
           nameZh: zhD || null,
           code: district.code?.trim() || null,
         },
-      });
+      })
+      );
       districtIdByCode.set(district.code, d.id);
     }
 
@@ -289,7 +328,8 @@ async function main() {
       if (!districtId || !commune.nameKh) continue;
       const enC = commune.nameEn?.trim() || '';
       const zhC = await enPlaceNameToZh(enC, commune.nameKh);
-      const c = await prisma.cambodiaCommune.upsert({
+      const c = await withConnectionRetry(`commune ${commune.code}`, () =>
+        prisma.cambodiaCommune.upsert({
         where: { districtId_nameKm: { districtId, nameKm: commune.nameKh.trim() } },
         update: {
           nameEn: enC || null,
@@ -303,7 +343,8 @@ async function main() {
           nameZh: zhC || null,
           code: commune.code?.trim() || null,
         },
-      });
+      })
+      );
       communeIdByCode.set(commune.code, c.id);
     }
 
@@ -312,7 +353,8 @@ async function main() {
       if (!communeId || !village.nameKh) continue;
       const enV = village.nameEn?.trim() || '';
       const zhV = await enPlaceNameToZh(enV, village.nameKh);
-      await prisma.cambodiaVillage.upsert({
+      await withConnectionRetry(`village ${village.code}`, () =>
+        prisma.cambodiaVillage.upsert({
         where: { communeId_nameKm: { communeId, nameKm: village.nameKh.trim() } },
         update: {
           nameEn: enV || null,
@@ -326,7 +368,8 @@ async function main() {
           nameZh: zhV || null,
           code: village.code?.trim() || null,
         },
-      });
+      })
+      );
     }
     flushZhCache();
   } else {

@@ -11,6 +11,12 @@
     font-display: swap;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   * {
     @apply border-gray-200 dark:border-gray-700;
   }
@@ -21,8 +27,11 @@
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
+    overflow-x: clip;
   }
+
   ::selection {
     @apply bg-primary-100 text-primary-900 dark:bg-primary-800 dark:text-primary-100;
   }
@@ -59,24 +68,29 @@
   }
 
   .focus-ring {
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 transition-shadow;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 transition-shadow duration-200 ease-smooth-out;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-600/20 hover:shadow-primary-600/30;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] rounded-2xl transition-all duration-200 ease-smooth-out disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-lg shadow-primary-600/20 hover:shadow-primary-600/30 motion-reduce:transition-none motion-reduce:active:scale-100;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 active:scale-[0.98] rounded-2xl transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-md;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 active:scale-[0.98] rounded-2xl transition-all duration-200 ease-smooth-out disabled:opacity-50 disabled:active:scale-100 shadow-sm hover:shadow-md motion-reduce:transition-none motion-reduce:active:scale-100;
   }
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200 disabled:opacity-50;
   }
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-3xl shadow-premium border border-gray-100/50 dark:border-gray-800/50 overflow-hidden transition-all duration-300;
+    @apply bg-white dark:bg-gray-900 rounded-3xl shadow-premium border border-gray-100/50 dark:border-gray-800/50 overflow-hidden transition-all duration-300 ease-smooth-out motion-reduce:transition-none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .card:hover {
+      @apply border-gray-200/80 dark:border-gray-700/80 shadow-card-hover -translate-y-px;
+    }
   }
   .input {
-    @apply w-full px-5 py-3 text-sm bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200;
+    @apply w-full px-5 py-3 text-sm bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-smooth-out motion-reduce:transition-none;
   }
   /* No letter-spacing tightening: breaks Khmer Unicode clusters (coeng, vowel reordering). */
   .section-title {
@@ -84,6 +98,6 @@
   }
 
   .page-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-3 sm:px-6 lg:px-8;
   }
 }

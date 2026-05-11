@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Toaster } from 'react-hot-toast';
 import { useThemeStore } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
@@ -9,6 +10,7 @@ import { CartDrawer } from './cart/CartDrawer';
 import SupportChatWidget from './chat/SupportChatWidget';
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const { isDark } = useThemeStore();
   const { fetchUser, isAuthenticated } = useAuthStore();
   const { fetchCart } = useCartStore();
@@ -24,6 +26,33 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchCart();
   }, [isAuthenticated, fetchCart]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const routesToPrefetch = [
+      '/',
+      '/products',
+      '/cart',
+      '/dashboard',
+      '/dashboard/orders',
+      '/dashboard/wishlist',
+      '/dashboard/addresses',
+    ];
+
+    const runPrefetch = () => {
+      routesToPrefetch.forEach((href) => router.prefetch(href));
+    };
+
+    const ric = window.requestIdleCallback;
+    if (typeof ric === 'function') {
+      const id = ric.call(window, runPrefetch, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
+    }
+
+    const timer = window.setTimeout(runPrefetch, 80);
+    return () => window.clearTimeout(timer);
+  }, [router]);
 
   useEffect(() => {
     const storageKey = '__next_chunk_reload_once';
@@ -74,6 +103,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             border: `1px solid ${isDark ? '#3f3f46' : '#e4e4e7'}`,
             boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
             fontSize: '14px',
+            transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           },
         }}
       />

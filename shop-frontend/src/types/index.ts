@@ -208,6 +208,17 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+/** Homepage trust strip — editable in Admin → Homepage (km/en/zh). */
+export interface TrustBadgeCard {
+  iconKey: string;
+  titleKm: string;
+  titleEn: string;
+  titleZh: string;
+  descKm: string;
+  descEn: string;
+  descZh: string;
+}
+
 export interface ProductFilters {
   search?: string;
   category?: string;

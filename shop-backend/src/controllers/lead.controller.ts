@@ -4,7 +4,7 @@ import prisma from '../lib/prisma';
 
 export const createLead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const email = String(req.body?.email || '').trim().toLowerCase();
+    const email = String(req.body?.email || '').trim().toLowerCase().slice(0, 254);
     const phoneRaw = String(req.body?.phone || '').trim();
     if (!email) {
       res.status(400).json({ success: false, message: 'Email is required' });
@@ -19,7 +19,7 @@ export const createLead = async (req: Request, res: Response, next: NextFunction
       res.json({ success: true, message: 'Already subscribed' });
       return;
     }
-    const phone = phoneRaw ? phoneRaw.replace(/\s+/g, '') : null;
+    const phone = phoneRaw ? phoneRaw.replace(/\s+/g, '').slice(0, 32) : null;
     const row = await prisma.lead.create({
       data: {
         email,

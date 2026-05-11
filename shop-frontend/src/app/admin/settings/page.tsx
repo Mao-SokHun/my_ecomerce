@@ -7,6 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import type { AdminSettingsForm, HeroSlide, PromoCard, SettingsSection, UILang } from './types';
+import type { TrustBadgeCard } from '@/types';
+import { DEFAULT_TRUST_BADGES } from '@/lib/trustBadgeDefaults';
 import SettingsSidebar from './components/SettingsSidebar';
 import SectionPager from './components/SectionPager';
 import CoreSettingsSection from './components/CoreSettingsSection';
@@ -14,20 +16,30 @@ import HeaderSettingsSection from './components/HeaderSettingsSection';
 import InvoiceSettingsSection from './components/InvoiceSettingsSection';
 import HomepageSettingsSection from './components/HomepageSettingsSection';
 import FooterSettingsSection from './components/FooterSettingsSection';
+import ContactSettingsSection from './components/ContactSettingsSection';
 import {
   Loader2,
   Save,
   Settings,
 } from 'lucide-react';
 
+/** Split legacy invoice supportPhone (e.g. "097 / 088") into footer phone lines. */
+function phonesFromSupportPhone(value: unknown): string[] {
+  const raw = typeof value === 'string' ? value : '';
+  if (!raw.trim()) return [];
+  const parts = raw.split(/\s*\/\s*/).map((x) => x.trim()).filter(Boolean);
+  return parts.length ? parts : [raw.trim()];
+}
+
 const adminSettingsI18n: Record<UILang, Record<string, string>> = {
   km: {
     globalConfigurations: 'ការកំណត់សកល',
     settingsSections: 'ផ្នែកការកំណត់',
     core: 'ការកំណត់មូលដ្ឋាន',
+    contact: 'ទំនាក់ទំនងហាង',
     header: 'Header',
     homepage: 'Homepage Ads',
-    footer: 'Footer និងទំនាក់ទំនង',
+    footer: 'Footer និងតំណ',
     invoice: 'ការកំណត់វិក្កយបត្រ',
     saveAll: 'រក្សាទុកការកំណត់ទាំងអស់',
     saving: 'កំពុងរក្សាទុក...',
@@ -39,9 +51,10 @@ const adminSettingsI18n: Record<UILang, Record<string, string>> = {
     globalConfigurations: 'Global Configurations',
     settingsSections: 'Settings Sections',
     core: 'Core Settings',
+    contact: 'Store contact',
     header: 'Header',
     homepage: 'Homepage Ads',
-    footer: 'Footer & Contact',
+    footer: 'Footer & links',
     invoice: 'Invoice Settings',
     saveAll: 'Save All Settings',
     saving: 'Saving...',
@@ -53,9 +66,10 @@ const adminSettingsI18n: Record<UILang, Record<string, string>> = {
     globalConfigurations: '全局配置',
     settingsSections: '设置分区',
     core: '核心设置',
+    contact: '店铺联系方式',
     header: '页眉',
     homepage: '首页广告',
-    footer: '页脚与联系信息',
+    footer: '页脚与链接',
     invoice: '发票设置',
     saveAll: '保存所有设置',
     saving: '保存中...',
@@ -79,13 +93,13 @@ const defaultForm = (): AdminSettingsForm => ({
     brandName: 'SH-Shop',
     brandDescription: 'Online shopping',
     address: 'Phnom Penh',
-    phones: ['+855 97 494 4390'],
-    email: 'info@sh-shop.com',
+    phones: ['0974944390', '0885459115'],
+    email: 'sokhunmao390@gmail.com',
     socialLinks: [{ name: 'Facebook', url: 'https://facebook.com' }],
     shopLinks: [{ label: 'All Products', href: '/products' }],
     accountLinks: [{ label: 'My Account', href: '/dashboard' }],
     legalLinks: [{ label: 'Privacy', href: '/legal/privacy' }],
-    paymentBadges: ['Visa', 'MC', 'Bakong'],
+    paymentBadges: ['Visa', 'Bakong'],
     copyright: 'All rights reserved.',
   },
   homepage: {
@@ -128,11 +142,12 @@ const defaultForm = (): AdminSettingsForm => ({
         gradientToColor: '#ea580c',
       },
     ],
+    trustBadges: [...DEFAULT_TRUST_BADGES],
   },
   invoice: {
     shopName: 'SH-Shop',
-    supportEmail: 'support@shophub.com',
-    supportPhone: '+855 97 494 4390',
+    supportEmail: 'sokhunmao390@gmail.com',
+    supportPhone: '0974944390 / 0885459115',
     shopAddress: 'Phnom Penh, Cambodia',
     footerNote: 'Thank you for your order.',
     paymentLabelCard: 'Paid by Visa / card',
@@ -140,7 +155,7 @@ const defaultForm = (): AdminSettingsForm => ({
   },
 });
 
-const SECTION_ORDER: SettingsSection[] = ['core', 'header', 'homepage', 'footer', 'invoice'];
+const SECTION_ORDER: SettingsSection[] = ['core', 'contact', 'header', 'homepage', 'footer', 'invoice'];
 const addBtn = 'btn-secondary text-xs px-3 py-1.5 inline-flex items-center gap-1 rounded-xl';
 const inputCls = 'input rounded-xl h-11 border-gray-200/80 dark:border-gray-700';
 const blockCls = 'rounded-[28px] border border-slate-200/70 dark:border-gray-800 bg-white/95 dark:bg-surface-900/90 backdrop-blur shadow-[0_18px_45px_-24px_rgba(15,23,42,0.35)] dark:shadow-[0_18px_45px_-24px_rgba(0,0,0,0.65)]';
@@ -210,6 +225,15 @@ export default function AdminSettingsPage() {
           invoice?: Partial<AdminSettingsForm['invoice']>;
         };
         const legacy = d.shippingFee ?? 2;
+        const rawFooterPhones = Array.isArray(layout.footer?.phones)
+          ? layout.footer!.phones.map((x) => String(x).trim()).filter(Boolean)
+          : [];
+        const mergedPhones =
+          rawFooterPhones.length > 0 ? rawFooterPhones : phonesFromSupportPhone(layout.invoice?.supportPhone);
+        const finalPhones = mergedPhones.length > 0 ? mergedPhones : base.footer.phones;
+        const mergedEmail = String(layout.footer?.email || layout.invoice?.supportEmail || base.footer.email || '')
+          .trim() || base.footer.email;
+        const supportPhoneLine = finalPhones.join(' / ');
         setForm({
           ...base,
           siteName: d.siteName || base.siteName,
@@ -220,7 +244,8 @@ export default function AdminSettingsPage() {
           footer: {
             ...base.footer,
             ...layout.footer,
-            phones: Array.isArray(layout.footer?.phones) ? layout.footer!.phones.filter(Boolean) : base.footer.phones,
+            email: mergedEmail,
+            phones: finalPhones,
             socialLinks: Array.isArray(layout.footer?.socialLinks) ? layout.footer!.socialLinks : base.footer.socialLinks,
             shopLinks: Array.isArray(layout.footer?.shopLinks) ? layout.footer!.shopLinks : base.footer.shopLinks,
             accountLinks: Array.isArray(layout.footer?.accountLinks) ? layout.footer!.accountLinks : base.footer.accountLinks,
@@ -230,8 +255,17 @@ export default function AdminSettingsPage() {
           homepage: {
             heroSlides: Array.isArray(layout.homepage?.heroSlides) ? layout.homepage!.heroSlides as HeroSlide[] : base.homepage.heroSlides,
             promoCards: Array.isArray(layout.homepage?.promoCards) ? layout.homepage!.promoCards as PromoCard[] : base.homepage.promoCards,
+            trustBadges:
+              layout.homepage != null && Array.isArray(layout.homepage.trustBadges)
+                ? (layout.homepage.trustBadges as TrustBadgeCard[])
+                : base.homepage.trustBadges,
           },
-          invoice: { ...base.invoice, ...layout.invoice },
+          invoice: {
+            ...base.invoice,
+            ...layout.invoice,
+            supportEmail: mergedEmail,
+            supportPhone: supportPhoneLine || base.invoice.supportPhone,
+          },
         });
       } catch {
         toast.error('Failed to load settings');
@@ -263,6 +297,9 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const contactEmail = form.footer.email.trim();
+      const contactPhones = form.footer.phones.map((p) => p.trim()).filter(Boolean);
+      const contactPhoneLine = contactPhones.join(' / ');
       await settingApi.update({
         siteName: form.siteName,
         // Keep legacy fee in sync for backward compatibility.
@@ -271,9 +308,9 @@ export default function AdminSettingsPage() {
         shippingFeeJnt: form.shippingFeeJnt,
         footerInfo: {
           header: { ...form.header, tagline: form.siteTagline },
-          footer: form.footer,
+          footer: { ...form.footer, email: contactEmail, phones: contactPhones },
           homepage: form.homepage,
-          invoice: form.invoice,
+          invoice: { ...form.invoice, supportEmail: contactEmail, supportPhone: contactPhoneLine },
         },
       });
       toast.success('Settings updated successfully');
@@ -344,7 +381,7 @@ export default function AdminSettingsPage() {
           {tx.globalConfigurations}
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Organize and manage store content by sections: shipping, header, homepage ads, footer contact, and invoice info.
+          Organize and manage store content by sections: shipping, store contact (email & phones), header, homepage ads, footer links, and invoice details.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="text-xs px-2.5 py-1 rounded-full bg-white/70 dark:bg-surface-800 border border-gray-200 dark:border-gray-700">Modern UI</span>
@@ -380,6 +417,18 @@ export default function AdminSettingsPage() {
           blockBodyCls={blockBodyCls}
           helperTextCls={helperTextCls}
           parseMoneyInput={parseMoneyInput}
+          onChangeForm={setForm}
+        />
+
+        <ContactSettingsSection
+          active={activeSection === 'contact'}
+          form={form}
+          blockCls={blockCls}
+          blockHeadCls={blockHeadCls}
+          blockBodyCls={blockBodyCls}
+          fieldLabelCls={fieldLabelCls}
+          addBtn={addBtn}
+          helperTextCls={helperTextCls}
           onChangeForm={setForm}
         />
 

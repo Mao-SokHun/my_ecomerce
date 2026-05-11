@@ -6,13 +6,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { Invoice, Order } from '@/types';
-import { orderApi, paymentApi } from '@/lib/api';
+import { orderApi, paymentApi, settingApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { t, paymentTypeForInvoice } from '@/lib/i18n';
 import { formatDate, formatPrice, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
+import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export default function OrderDetailsPage() {
   } | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'bakong'>('card');
+  const [receiptMeta, setReceiptMeta] = useState<ShopReceiptMeta>(() => shopReceiptMetaFromFooterInfo(null));
 
   const parseOrderIdFromRoute = (raw: string) => {
     if (!raw) return raw;
@@ -99,7 +101,7 @@ export default function OrderDetailsPage() {
     const receiptText = [
       `${t(language, 'brand')} ${t(language, 'receipt')}`,
       t(language, 'brand') + ' Online Store',
-      'support@shophub.com | +1 (555) 000-1000',
+      receiptMeta.contactLine,
       '----------------------------------------',
       invoiceText,
     ].join('\n');
@@ -208,7 +210,8 @@ export default function OrderDetailsPage() {
           <div class="receipt">
             <div class="center title">${t(language, 'receipt')}</div>
             <div class="center shop-name">${t(language, 'brand')} Online Store</div>
-            <div class="center muted">123 Commerce St, New York, NY 10001</div>
+            <div class="center muted">${escapeHtml(receiptMeta.contactLine)}</div>
+            <div class="center muted">${escapeHtml(receiptMeta.shopAddress)}</div>
             <div class="center muted">${t(language, 'dateLabel')}: ${escapeHtml(formatDate(invoice.createdAt, language))}</div>
             <div class="center muted">${t(language, 'orderLabel')}: ${escapeHtml(invoice.orderNumber)}</div>
             <div class="line"></div>
@@ -279,6 +282,19 @@ export default function OrderDetailsPage() {
       })
       .finally(() => setLoading(false));
   }, [isAuthChecked, isAuthenticated, params.id, router, language]);
+
+  useEffect(() => {
+    settingApi
+      .get()
+      .then(({ data }) => {
+        if (data?.success && data.data?.footerInfo != null) {
+          setReceiptMeta(shopReceiptMetaFromFooterInfo(data.data.footerInfo));
+        }
+      })
+      .catch(() => {
+        /* keep defaults */
+      });
+  }, []);
 
   useEffect(() => {
     if (!khqrPayment) return;
@@ -365,7 +381,7 @@ export default function OrderDetailsPage() {
 
   if (loading) {
     return (
-      <div className="page-container py-8">
+      <div className="page-container py-6 sm:py-8">
         <div className="card p-6 animate-pulse h-64" />
       </div>
     );
@@ -374,57 +390,64 @@ export default function OrderDetailsPage() {
   if (!order) return null;
 
   return (
-    <div className="page-container py-8 space-y-6">
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+    <div className="page-container py-6 sm:py-8">
+      <div className="mx-auto w-full max-w-2xl space-y-5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
         <Link href="/" className="hover:text-primary-600">{t(language, 'breadcrumbHome')}</Link>
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="w-4 h-4 shrink-0" />
         <Link href="/dashboard" className="hover:text-primary-600">{t(language, 'breadcrumbAccount')}</Link>
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="w-4 h-4 shrink-0" />
         <Link href="/dashboard/orders" className="hover:text-primary-600">{t(language, 'breadcrumbOrders')}</Link>
-        <ChevronRight className="w-4 h-4" />
-        <span className="text-gray-900 dark:text-white">{order.orderNumber}</span>
+        <ChevronRight className="w-4 h-4 shrink-0" />
+        <span className="text-gray-900 dark:text-white font-medium break-all">{order.orderNumber}</span>
       </div>
 
-      <div className="card p-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{order.orderNumber}</h1>
-            <p className="text-sm text-gray-500 mt-1">
+      <div className="card overflow-hidden p-0 shadow-sm border-gray-100 dark:border-gray-800">
+        <div className="p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white font-mono tracking-tight break-all">
+              {order.orderNumber}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t(language, 'placedOn').replace('{date}', formatDate(order.createdAt, language))}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
               <span className={`badge ${getOrderStatusColor(order.status)}`}>
                 {t(language, `orderStatus_${order.status}`)}
               </span>
               <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
                 {t(language, order.paymentStatus === 'PAID' ? 'paymentStatus_PAID' : 'paymentStatus_PENDING')}
               </span>
-            </div>
           </div>
-        </div>
+          </div>
+
         {order.paymentStatus === 'PENDING' && (
-          <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-surface-900 w-fit">
+          <div className="rounded-xl border border-gray-200/90 bg-gray-50/80 dark:border-gray-700 dark:bg-surface-800/60 p-3 sm:p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+              {language === 'km' ? 'របៀបទូទាត់' : language === 'zh' ? '付款方式' : 'Payment'}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-600 p-1 bg-white dark:bg-surface-900 w-fit">
               <button
                 type="button"
                 onClick={() => setSelectedPaymentMethod('card')}
-                className={`px-3 py-1.5 text-xs rounded-lg ${
+                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                   selectedPaymentMethod === 'card'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300'
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
                 }`}
               >
-                Visa/Master
+                Visa
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedPaymentMethod('bakong')}
-                className={`px-3 py-1.5 text-xs rounded-lg ${
+                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                   selectedPaymentMethod === 'bakong'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300'
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
                 }`}
               >
                 Bakong
@@ -434,65 +457,85 @@ export default function OrderDetailsPage() {
               <button
                 onClick={handlePayNow}
                 disabled={isPaying}
-                className="btn-primary py-2 px-4 text-sm flex items-center gap-2 shadow-md shadow-primary-500/20"
+                className="btn-primary py-2.5 px-4 text-sm inline-flex items-center justify-center gap-2 shadow-sm shadow-primary-500/20"
               >
-                {selectedPaymentMethod === 'bakong' ? <QrCode className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                {selectedPaymentMethod === 'bakong' ? <QrCode className="w-4 h-4 shrink-0" /> : <CreditCard className="w-4 h-4 shrink-0" />}
                 {isPaying ? '...' : t(language, 'payNow')}
               </button>
               {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
                 <button
                   type="button"
                   onClick={handleCancelOrder}
-                  className="btn-secondary py-2 px-4 text-sm flex items-center gap-2 text-red-600 dark:text-red-400"
+                  className="btn-secondary py-2.5 px-4 text-sm inline-flex items-center gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"
                 >
-                  <XCircle className="w-4 h-4" />
+                  <XCircle className="w-4 h-4 shrink-0" />
                   {language === 'km' ? 'បោះបង់កម្មង់' : language === 'zh' ? '取消订单' : 'Cancel order'}
                 </button>
               )}
             </div>
+            </div>
           </div>
         )}
 
-        {/* Order Status Stepper */}
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-          <div className="relative">
-            <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-200 dark:bg-gray-800 -translate-y-1/2 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary-500 transition-all duration-500"
+        {/* Order status — compact width so steps are not stretched edge-to-edge */}
+        <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="relative mx-auto max-w-md px-1">
+            <div className="absolute top-[13px] left-3 right-3 sm:left-4 sm:right-4 h-0.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary-500 transition-all duration-500 rounded-full"
                 style={{
-                  width: order.status === 'PENDING' ? '0%' : 
-                         order.status === 'CONFIRMED' ? '33%' : 
-                         order.status === 'PROCESSING' || order.status === 'SHIPPED' ? '66%' : 
-                         order.status === 'DELIVERED' ? '100%' : '0%'
+                  width:
+                    order.status === 'PENDING'
+                      ? '0%'
+                      : order.status === 'CONFIRMED'
+                        ? '33%'
+                        : order.status === 'PROCESSING' || order.status === 'SHIPPED'
+                          ? '66%'
+                          : order.status === 'DELIVERED'
+                            ? '100%'
+                            : '0%',
                 }}
               />
             </div>
-            <div className="relative flex justify-between">
-              {[
-                { key: 'PENDING', label: 'Pending' },
-                { key: 'CONFIRMED', label: 'Confirmed' },
-                { key: 'SHIPPED', label: 'Shipped' },
-                { key: 'DELIVERED', label: 'Delivered' }
-              ].map((step, idx, arr) => {
-                const isCompleted = arr.findIndex(s => s.key === order.status) >= idx || order.status === 'DELIVERED';
-                const isCurrent = order.status === step.key || (order.status === 'PROCESSING' && step.key === 'CONFIRMED');
+            <div className="relative flex justify-between gap-1">
+              {(
+                [
+                  { key: 'PENDING' as const },
+                  { key: 'CONFIRMED' as const },
+                  { key: 'SHIPPED' as const },
+                  { key: 'DELIVERED' as const },
+                ] as const
+              ).map((step, stepIndex, arr) => {
+                const isCompleted =
+                  arr.findIndex((s) => s.key === order.status) >= stepIndex || order.status === 'DELIVERED';
+                const isCurrent =
+                  order.status === step.key || (order.status === 'PROCESSING' && step.key === 'CONFIRMED');
                 const isCancelled = order.status === 'CANCELLED';
                 return (
-                  <div key={step.key} className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 transition-colors z-10 ${
-                      isCancelled ? 'bg-red-100 border-red-500 text-red-500' :
-                      isCompleted ? 'bg-primary-500 border-primary-100 dark:border-primary-900 border-opacity-50 text-white' : 
-                      'bg-white dark:bg-surface-900 border-gray-200 dark:border-gray-700 text-gray-400'
-                    }`}>
-                      <div className="w-2.5 h-2.5 rounded-full bg-current" />
+                  <div key={step.key} className="flex flex-col items-center max-w-[22%] sm:max-w-none flex-1">
+                    <div
+                      className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center border-2 transition-colors z-10 bg-white dark:bg-surface-900 ${
+                        isCancelled
+                          ? 'border-red-500 text-red-500'
+                          : isCompleted
+                            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                            : 'border-gray-200 dark:border-gray-600 text-gray-400'
+                      }`}
+                    >
+                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-current opacity-90" />
                     </div>
-                    <p className={`mt-2 text-xs font-semibold ${
-                      isCancelled ? 'text-red-500' :
-                      isCurrent ? 'text-primary-600' : 
-                      isCompleted ? 'text-gray-900 dark:text-white' : 
-                      'text-gray-400'
-                    }`}>
-                      {step.label}
+                    <p
+                      className={`mt-1.5 text-center text-[10px] sm:text-xs font-medium leading-tight ${
+                        isCancelled
+                          ? 'text-red-500'
+                          : isCurrent
+                            ? 'text-primary-600 dark:text-primary-400'
+                            : isCompleted
+                              ? 'text-gray-800 dark:text-gray-200'
+                              : 'text-gray-400'
+                      }`}
+                    >
+                      {t(language, `orderStatus_${step.key}`)}
                     </p>
                   </div>
                 );
@@ -500,19 +543,21 @@ export default function OrderDetailsPage() {
             </div>
           </div>
         </div>
+
         {order.paymentStatus === 'PENDING' && (
-          <div className="mt-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-surface-800 flex items-center justify-center">
-              <CreditCard className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+          <div className="rounded-xl border border-amber-200/70 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/25 p-3 sm:p-3.5 flex gap-3 items-start">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/90 dark:bg-surface-800 shadow-sm ring-1 ring-amber-200/60 dark:ring-amber-800/50">
+              <CreditCard className="w-4 h-4 text-amber-700 dark:text-amber-400" />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-amber-950/90 dark:text-amber-100/90 leading-snug min-w-0">
               {t(language, 'unpaidWarning')}
             </p>
           </div>
         )}
+        </div>
       </div>
 
-      <div className="card p-6">
+      <div className="card p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t(language, 'purchasedProducts')}</h2>
         <div className="space-y-3">
           {order.items.map((item) => (
@@ -535,7 +580,7 @@ export default function OrderDetailsPage() {
         </div>
       </div>
 
-      <div className="card p-6">
+      <div className="card p-4 sm:p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <FileText className="w-5 h-5" /> {t(language, 'printReceipt')}
@@ -557,7 +602,7 @@ export default function OrderDetailsPage() {
           <div className="text-sm">
             <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-4 space-y-1">
               <p className="font-semibold text-gray-900 dark:text-white">{t(language, 'brand')} Online Store</p>
-              <p className="text-xs text-gray-500 border-none">support@shophub.com | +1 (555) 000-1000</p>
+              <p className="text-xs text-gray-500 border-none">{receiptMeta.contactLine}</p>
               <p className="text-xs text-gray-500">#{t(language, 'receiptNoLabel')}: {invoice.invoiceNumber}</p>
             </div>
 
@@ -592,6 +637,7 @@ export default function OrderDetailsPage() {
         ) : (
           <p className="text-sm text-gray-500">{t(language, 'invoiceNotAvailable')}</p>
         )}
+      </div>
       </div>
 
       {khqrPayment && (

@@ -22,6 +22,95 @@ const localizeProductName = (slug: string, fallbackName: string, lang: ProductLa
   return fallbackName;
 };
 
+/** Multi-word search: every token must match at least one field (AND). Matches Khmer/Latin partial text; case-insensitive. */
+function tokenizeSearch(raw: string): string[] {
+  return raw
+    .trim()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+function matchTokenClause(token: string): Record<string, unknown> {
+  return {
+    OR: [
+      { name: { contains: token, mode: 'insensitive' } },
+      { slug: { contains: token, mode: 'insensitive' } },
+      { description: { contains: token, mode: 'insensitive' } },
+      { shortDesc: { contains: token, mode: 'insensitive' } },
+      { brand: { contains: token, mode: 'insensitive' } },
+      {
+        category: {
+          is: {
+            OR: [
+              { name: { contains: token, mode: 'insensitive' } },
+              { slug: { contains: token, mode: 'insensitive' } },
+              { parent: { name: { contains: token, mode: 'insensitive' } } },
+              { parent: { slug: { contains: token, mode: 'insensitive' } } },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+function buildSearchWhereClause(searchRaw: string): Record<string, unknown> | undefined {
+  const tokens = tokenizeSearch(searchRaw);
+  if (tokens.length === 0) return undefined;
+  if (tokens.length === 1) return matchTokenClause(tokens[0]);
+  return { AND: tokens.map(matchTokenClause) };
+}
+
+export const getProductSuggestions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const q = str(req.query.q);
+    const limitNum = Math.min(15, Math.max(1, Number(str(req.query.limit as unknown)) || 8));
+    const lang = resolveLang(req.query.lang);
+
+    if (q.length < 2) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const clause = buildSearchWhereClause(q);
+    if (!clause) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const where = { isActive: true, AND: [clause] };
+
+    const products = await prisma.product.findMany({
+      where,
+      take: limitNum,
+      orderBy: [{ soldCount: 'desc' }, { rating: 'desc' }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        thumbnail: true,
+        price: true,
+        brand: true,
+      },
+    });
+
+    const data = products.map((p) => ({
+      id: p.id,
+      name: localizeProductName(p.slug, p.name, lang),
+      slug: p.slug,
+      thumbnail: p.thumbnail,
+      price: p.price,
+      brand: p.brand,
+    }));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const {
@@ -52,16 +141,36 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
 
     const where: Record<string, unknown> = { isActive: true };
 
-    if (categoryStr) where.category = { slug: categoryStr };
+    if (categoryStr) {
+      const cat = await prisma.category.findFirst({
+        where: { slug: categoryStr, deletedAt: null, isActive: true },
+        select: { id: true, parentId: true },
+      });
+      if (cat?.parentId === null) {
+        const subtree = await prisma.category.findMany({
+          where: {
+            OR: [{ id: cat.id }, { parentId: cat.id }],
+            isActive: true,
+            deletedAt: null,
+          },
+          select: { id: true },
+        });
+        const ids = subtree.map((c) => c.id);
+        if (ids.length) where.categoryId = { in: ids };
+      } else if (cat) {
+        where.categoryId = cat.id;
+      } else {
+        where.category = { slug: categoryStr };
+      }
+    }
     if (featured === 'true') where.isFeatured = true;
-    if (brandStr) where.brand = { contains: brandStr };
-    if (searchStr) {
-      where.OR = [
-        { name: { contains: searchStr } },
-        { description: { contains: searchStr } },
-        { brand: { contains: searchStr } },
-        { tags: { has: searchStr } },
-      ];
+    if (brandStr) where.brand = { contains: brandStr, mode: 'insensitive' };
+
+    const searchClause = buildSearchWhereClause(searchStr);
+    if (searchClause) {
+      const prevAnd = where.AND as unknown;
+      const nextAnd = Array.isArray(prevAnd) ? [...prevAnd, searchClause] : prevAnd ? [prevAnd, searchClause] : [searchClause];
+      where.AND = nextAnd;
     }
     if (minPrice || maxPrice) {
       where.price = {};
@@ -70,16 +179,21 @@ export const getProducts = async (req: Request, res: Response, next: NextFunctio
     }
     if (rating) where.rating = { gte: Number(str(rating as unknown)) };
 
-    const validSortFields = ['price', 'rating', 'createdAt', 'soldCount', 'name'];
-    const sortField = validSortFields.includes(sortStr) ? sortStr : 'createdAt';
+    const validSortFields = ['price', 'rating', 'createdAt', 'soldCount', 'name', 'relevance'];
     const sortOrder = orderStr === 'asc' ? 'asc' : 'desc';
+    const sortField = validSortFields.includes(sortStr) && sortStr !== 'relevance' ? sortStr : 'createdAt';
+
+    const orderBy =
+      sortStr === 'relevance'
+        ? [{ soldCount: 'desc' as const }, { rating: 'desc' as const }, { createdAt: 'desc' as const }]
+        : { [sortField]: sortOrder };
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         skip,
         take,
-        orderBy: { [sortField]: sortOrder },
+        orderBy,
         select: {
           id: true,
           name: true,

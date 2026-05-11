@@ -4,8 +4,6 @@ import { AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { paginate, paginateResponse } from '../utils/helpers';
 
-const adminSeenState = new Map<string, { ordersAt?: Date; usersAt?: Date; leadsAt?: Date }>();
-
 export const getDashboardStats = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const now = new Date();
@@ -306,17 +304,24 @@ export const getSellerProfiles = async (req: AuthRequest, res: Response, next: N
 export const getUnreadCounts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const adminId = req.user!.id;
-    const seen = adminSeenState.get(adminId) || {};
     const adminMeta = await prisma.user.findUnique({
       where: { id: adminId },
-      select: { lastSeenLeadsAt: true },
+      select: {
+        lastSeenLeadsAt: true,
+        lastSeenOrdersAt: true,
+        lastSeenUsersAt: true,
+      },
     });
     const [orders, users, leads] = await Promise.all([
       prisma.order.count({
-        where: seen.ordersAt ? { createdAt: { gt: seen.ordersAt } } : undefined,
+        where: adminMeta?.lastSeenOrdersAt
+          ? { createdAt: { gt: adminMeta.lastSeenOrdersAt } }
+          : undefined,
       }),
       prisma.user.count({
-        where: seen.usersAt ? { createdAt: { gt: seen.usersAt } } : undefined,
+        where: adminMeta?.lastSeenUsersAt
+          ? { createdAt: { gt: adminMeta.lastSeenUsersAt } }
+          : undefined,
       }),
       prisma.lead.count({
         where: adminMeta?.lastSeenLeadsAt
@@ -336,21 +341,18 @@ export const markSeen = async (req: AuthRequest, res: Response, next: NextFuncti
     const adminId = req.user!.id;
     const type = String(req.body?.type || '');
     const now = new Date();
-    const seen = adminSeenState.get(adminId) || {};
-    if (type === 'orders') seen.ordersAt = now;
-    else if (type === 'users') seen.usersAt = now;
-    else if (type === 'leads') {
-      await prisma.user.update({
-        where: { id: adminId },
-        data: { lastSeenLeadsAt: now },
-      });
-      seen.leadsAt = now;
-    }
+    const data: { lastSeenOrdersAt?: Date; lastSeenUsersAt?: Date; lastSeenLeadsAt?: Date } = {};
+    if (type === 'orders') data.lastSeenOrdersAt = now;
+    else if (type === 'users') data.lastSeenUsersAt = now;
+    else if (type === 'leads') data.lastSeenLeadsAt = now;
     else {
       res.status(400).json({ success: false, message: 'Invalid type' });
       return;
     }
-    adminSeenState.set(adminId, seen);
+    await prisma.user.update({
+      where: { id: adminId },
+      data,
+    });
     res.json({ success: true, message: 'Marked as seen' });
   } catch (error) {
     next(error);

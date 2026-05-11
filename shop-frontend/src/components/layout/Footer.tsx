@@ -2,11 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Youtube,
+  Linkedin,
+  Globe,
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { leadApi, settingApi } from '@/lib/api';
+
+/** Pick icon from admin "Social name" + URL (supports any count — not only four networks). */
+function socialIconFor(link: { name?: string; url?: string }): LucideIcon {
+  const raw = `${link.name || ''} ${link.url || ''}`.toLowerCase();
+  if (/facebook|fb\.com|\.facebook\./.test(raw)) return Facebook;
+  if (/instagram|instagr\.am/.test(raw)) return Instagram;
+  if (/twitter\.com|x\.com|\btwitter\b|\bx\b/.test(raw)) return Twitter;
+  if (/youtube|youtu\.be/.test(raw)) return Youtube;
+  if (/linkedin/.test(raw)) return Linkedin;
+  if (/telegram|t\.me/.test(raw)) return Send;
+  return Globe;
+}
 
 export function Footer() {
   const { language } = useLanguageStore();
@@ -100,26 +124,21 @@ export function Footer() {
   const phones =
     Array.isArray(footerInfo.phones) && footerInfo.phones.length > 0
       ? footerInfo.phones.filter(Boolean)
-      : ['+855 97 494 4390', '+855 88 545 9115'];
-  const email = footerInfo.email || 'info@sh-shop.com';
+      : ['0974944390', '0885459115'];
+  const email = footerInfo.email || 'sokhunmao390@gmail.com';
   const address = footerInfo.address || '247 Beong Salang St, Toul Kork, Phnom Penh';
-  const paymentBadges =
-    Array.isArray(footerInfo.paymentBadges) && footerInfo.paymentBadges.length > 0
-      ? footerInfo.paymentBadges.filter(Boolean)
-      : ['Visa', 'MC', 'Bakong'];
+  /** SH-Shop accepts Visa card and Bakong only — fixed badges (not driven by legacy admin lists). */
+  const displayPaymentBadges = ['Visa', 'Bakong'];
   const socialLinks =
     Array.isArray(footerInfo.socialLinks) && footerInfo.socialLinks.length > 0
-      ? footerInfo.socialLinks.filter((x) => x?.url)
-      : [{ name: 'Facebook', url: '#' }, { name: 'Twitter', url: '#' }, { name: 'Instagram', url: '#' }, { name: 'Youtube', url: '#' }];
+      ? footerInfo.socialLinks.filter(
+          (x) => x?.url && String(x.url).trim() !== '' && String(x.url).trim() !== '#',
+        )
+      : [];
   const displayShopLinks = shopLinks.length >= 4 ? shopLinks : fallbackShopLinks;
   const displayAccountLinks = accountLinks.length >= 4 ? accountLinks : fallbackAccountLinks;
   const displayLegalLinks = legalLinks.length >= 2 ? legalLinks : fallbackLegalLinks;
-  const displayPhones = phones.length >= 2 ? phones : ['+855 97 494 4390', '+855 88 545 9115'];
-  const displayPaymentBadges = paymentBadges.length >= 3 ? paymentBadges : ['Visa', 'MC', 'Bakong'];
-  const displaySocialLinks =
-    socialLinks.length >= 4
-      ? socialLinks
-      : [{ name: 'Facebook', url: '#' }, { name: 'Twitter', url: '#' }, { name: 'Instagram', url: '#' }, { name: 'Youtube', url: '#' }];
+  const displayPhones = phones.length >= 2 ? phones : ['0974944390', '0885459115'];
 
   return (
     <footer className="bg-surface-950 text-gray-300 mt-20">
@@ -134,19 +153,35 @@ export function Footer() {
               <span className="text-white font-bold text-lg">{brandName}</span>
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed mb-5">{brandDescription}</p>
-            <div className="flex items-center gap-3">
-              {[Facebook, Twitter, Instagram, Youtube].map((Icon, i) => (
-                <a
-                  key={`social-${i}`}
-                  href={displaySocialLinks[i]?.url || '#'}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-9 h-9 bg-surface-900 hover:bg-primary-600 text-gray-400 hover:text-white rounded-lg flex items-center justify-center transition-all duration-200"
-                >
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
+            {socialLinks.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                {socialLinks.map((link, i) => {
+                  const Icon = socialIconFor(link);
+                  const label =
+                    (link.name && link.name.trim()) ||
+                    (() => {
+                      try {
+                        return new URL(link.url!).hostname.replace(/^www\./, '');
+                      } catch {
+                        return 'Social';
+                      }
+                    })();
+                  return (
+                    <a
+                      key={`social-${i}-${link.url}`}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      title={label}
+                      className="w-9 h-9 bg-surface-900 hover:bg-primary-600 text-gray-400 hover:text-white rounded-lg flex items-center justify-center transition-all duration-200 ease-smooth-out"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Shop */}

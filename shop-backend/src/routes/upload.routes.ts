@@ -28,7 +28,13 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    const mime = (file.mimetype || '').toLowerCase();
+    const name = (file.originalname || '').toLowerCase();
+    if (mime === 'image/svg+xml' || name.endsWith('.svg')) {
+      cb(new Error('SVG uploads are not allowed'));
+      return;
+    }
+    if (mime.startsWith('image/')) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'));

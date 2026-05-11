@@ -1,3 +1,5 @@
+import type { TrustBadgeCard } from '@/types';
+
 export type LinkItem = { label: string; href: string };
 export type SocialItem = { name: string; url: string };
 
@@ -52,6 +54,7 @@ export interface AdminSettingsForm {
   homepage: {
     heroSlides: HeroSlide[];
     promoCards: PromoCard[];
+    trustBadges: TrustBadgeCard[];
   };
   invoice: {
     shopName: string;
@@ -64,5 +67,5 @@ export interface AdminSettingsForm {
   };
 }
 
-export type SettingsSection = 'core' | 'header' | 'homepage' | 'footer' | 'invoice';
+export type SettingsSection = 'core' | 'contact' | 'header' | 'homepage' | 'footer' | 'invoice';
 export type UILang = 'km' | 'en' | 'zh';

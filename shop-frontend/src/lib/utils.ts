@@ -106,3 +106,16 @@ export function normalizeImageListToFullUrls(imagesStr: string, baseUrl?: string
     .filter(Boolean)
     .map((u) => resolveToFullImageUrl(u, baseUrl));
 }
+
+/** Same rules as shop-backend `displayName.ts` (Khmer/Latin names with spaces). */
+export const DISPLAY_NAME_PATTERN = /^[-\p{L}\p{M}\s'.]+$/u;
+
+const INVISIBLE_FORMAT_CHARS = /[\u200B-\u200D\uFEFF\u2060]/g;
+
+export function normalizeDisplayName(raw: string): string {
+  return String(raw)
+    .normalize('NFC')
+    .replace(INVISIBLE_FORMAT_CHARS, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+}

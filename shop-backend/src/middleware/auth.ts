@@ -77,10 +77,16 @@ export const optionalAuth = async (
         role: string;
         name: string;
       };
-      req.user = decoded;
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id, isActive: true },
+        select: { id: true, email: true, role: true, name: true },
+      });
+      if (user) {
+        req.user = { id: user.id, email: user.email || '', role: user.role, name: user.name };
+      }
     }
   } catch {
-    // Optional auth, ignore errors
+    // Optional auth, ignore invalid tokens
   }
   next();
 };

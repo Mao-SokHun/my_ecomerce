@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { authApi, uploadApi } from '@/lib/api';
-import { User, Package, Heart, MapPin, Lock, MessageSquare } from 'lucide-react';
+import { User, Package, Heart, MapPin, Lock, MessageSquare, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { getInitials } from '@/lib/utils';
+import {
+  DISPLAY_NAME_PATTERN,
+  normalizeDisplayName,
+  resolveToFullImageUrl,
+  truncateText,
+} from '@/lib/utils';
+import { UserAvatar } from '@/components/common/UserAvatar';
 import { t } from '@/lib/i18n';
 import { useLanguageStore } from '@/store/languageStore';
 
@@ -21,6 +26,8 @@ export default function DashboardPage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
 
   useEffect(() => {
     if (!isAuthChecked) return;
@@ -40,12 +47,17 @@ export default function DashboardPage() {
     });
   }, [user?.name, user?.phone, user?.avatar]);
 
+  useEffect(() => {
+    setEditingProfile(false);
+    setEditingPassword(false);
+  }, [activeTab]);
+
   if (!isAuthChecked || !isAuthenticated) return null;
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const nameTrim = profileForm.name.trim();
-    if (!/^[\p{L}\p{M}\s'.-]+$/u.test(nameTrim)) {
+    const nameNorm = normalizeDisplayName(profileForm.name);
+    if (!nameNorm || !DISPLAY_NAME_PATTERN.test(nameNorm)) {
       toast.error(t(language, 'invalidNameLettersOnly'));
       return;
     }
@@ -54,15 +66,19 @@ export default function DashboardPage() {
       toast.error(t(language, 'invalidPhoneDigitsOnly'));
       return;
     }
-    const payload = { name: nameTrim, phone: phoneDigits, avatar: profileForm.avatar.trim() };
+    const rawAvatar = profileForm.avatar.trim();
+    const avatar = rawAvatar ? resolveToFullImageUrl(rawAvatar) : '';
+    const payload = { name: nameNorm, phone: phoneDigits, avatar };
     setSaving(true);
     try {
       const { data } = await authApi.updateProfile(payload);
       if (data?.data) updateUser(data.data);
       else updateUser(payload);
+      setEditingProfile(false);
       toast.success(t(language, 'profileUpdated'));
-    } catch { 
-      toast.error(t(language, 'updateFailed')); 
+    } catch (error: unknown) {
+      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || t(language, 'updateFailed'));
     } finally { 
       setSaving(false); 
     }
@@ -81,6 +97,7 @@ export default function DashboardPage() {
         newPassword: passwordForm.newPassword,
       });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setEditingPassword(false);
       toast.success(t(language, 'passwordChanged'));
     } catch (error: unknown) {
       toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || t(language, 'updateFailed'));
@@ -102,8 +119,21 @@ export default function DashboardPage() {
   };
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
+    const maxBytes = 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(
+        language === 'km'
+          ? 'រូបធំពេក (អតិបរមា 5MB)'
+          : language === 'zh'
+            ? '图片过大（最大 5MB）'
+            : 'Image is too large (max 5MB)'
+      );
+      input.value = '';
+      return;
+    }
     setUploadingAvatar(true);
     try {
       const { data } = await uploadApi.uploadProductImage(file, 'avatars');
@@ -115,7 +145,7 @@ export default function DashboardPage() {
       toast.error(language === 'km' ? 'ផ្ទុករូបបរាជ័យ' : language === 'zh' ? '图片上传失败' : 'Upload failed');
     } finally {
       setUploadingAvatar(false);
-      e.currentTarget.value = '';
+      input.value = '';
     }
   };
 
@@ -127,25 +157,14 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t(language, 'myAccount')}</h1>
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="card p-5 text-center">
-            <div className="relative w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center text-white text-xl font-bold mx-auto mb-3 overflow-hidden shadow-premium">
-              {user?.avatar ? (
-                <Image 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  fill 
-                  className="object-cover" 
-                />
-              ) : (
-                getInitials(user?.name || '')
-              )}
-            </div>
+            <UserAvatar name={user?.name || ''} src={user?.avatar} size="md" className="mx-auto mb-3" />
             <p className="font-bold text-gray-900 dark:text-white">{user?.name}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
             {user?.role === 'ADMIN' && (
@@ -190,7 +209,7 @@ export default function DashboardPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {stats.map(({ icon: Icon, label, value, href, color }) => (
-              <Link key={label} href={href} className="card p-4 hover:shadow-card-hover transition-shadow border-none bg-white dark:bg-surface-900">
+              <Link key={label} href={href} className="card p-3.5 sm:p-4 hover:shadow-card-hover transition-shadow border-none bg-white dark:bg-surface-900 min-h-[100px] sm:min-h-0">
                 <div className={`w-10 h-10 ${color} rounded-xl flex items-center justify-center mb-2`}>
                   <Icon className="w-5 h-5" />
                 </div>
@@ -201,77 +220,128 @@ export default function DashboardPage() {
           </div>
 
           {/* Form */}
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             {activeTab === 'profile' ? (
-              <form onSubmit={handleUpdateProfile}>
-                <h2 className="font-bold text-gray-900 dark:text-white mb-6 text-lg">{t(language, 'profileInfo')}</h2>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'fullName')}</label>
-                    <input
-                      type="text"
-                      value={profileForm.name}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
-                      className="input"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'emailAddress')}</label>
-                    <input type="email" value={user?.email} disabled className="input opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'phoneNumber')}</label>
-                    <input
-                      type="tel"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
-                      placeholder="+855 12 345 678"
-                      className="input"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      {language === 'km' ? 'រូបភាពប្រូហ្វាល់' : language === 'zh' ? '头像图片' : 'Profile Image'}
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <label className="inline-flex items-center justify-center px-4 h-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-900 text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-surface-800">
-                        {uploadingAvatar
-                          ? (language === 'km' ? 'កំពុងផ្ទុក...' : language === 'zh' ? '上传中...' : 'Uploading...')
-                          : (language === 'km' ? 'ជ្រើសរូបពីឧបករណ៍' : language === 'zh' ? '从设备选择图片' : 'Choose image from device')}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarFileChange}
-                          className="hidden"
-                          disabled={uploadingAvatar}
-                        />
-                      </label>
+              editingProfile ? (
+                <form onSubmit={handleUpdateProfile}>
+                  <h2 className="font-bold text-gray-900 dark:text-white mb-6 text-lg">{t(language, 'profileInfo')}</h2>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'fullName')}</label>
                       <input
-                        type="url"
-                        value={profileForm.avatar}
-                        onChange={(e) => setProfileForm((p) => ({ ...p, avatar: e.target.value }))}
-                        placeholder="https://example.com/avatar.jpg"
-                        className="input flex-1"
+                        type="text"
+                        value={profileForm.name}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
+                        className="input"
+                        required
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'emailAddress')}</label>
+                      <input type="email" value={user?.email} disabled className="input opacity-60 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'phoneNumber')}</label>
+                      <input
+                        type="tel"
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                        placeholder="+855 12 345 678"
+                        className="input"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t(language, 'profilePicture')}</label>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <label className="inline-flex items-center justify-center px-4 h-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-900 text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 dark:hover:bg-surface-800">
+                          {uploadingAvatar
+                            ? (language === 'km' ? 'កំពុងផ្ទុក...' : language === 'zh' ? '上传中...' : 'Uploading...')
+                            : (language === 'km' ? 'ជ្រើសរូបពីឧបករណ៍' : language === 'zh' ? '从设备选择图片' : 'Choose image from device')}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/gif,image/webp,image/avif,.jpg,.jpeg,.png,.gif,.webp,.avif"
+                            onChange={handleAvatarFileChange}
+                            className="hidden"
+                            disabled={uploadingAvatar}
+                          />
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="url"
+                          autoComplete="off"
+                          spellCheck={false}
+                          value={profileForm.avatar}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, avatar: e.target.value }))}
+                          placeholder={t(language, 'avatarUrlFieldHint')}
+                          className="input flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-8 flex flex-wrap items-center gap-3">
+                    <button type="submit" disabled={saving} className="btn-primary px-8 py-2.5 shadow-premium">
+                      {saving ? t(language, 'saving') : t(language, 'saveChanges')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => {
+                        resetProfileForm();
+                        setEditingProfile(false);
+                      }}
+                      className="btn-secondary px-6 py-2.5"
+                    >
+                      {t(language, 'cancel')}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div>
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+                    <h2 className="font-bold text-gray-900 dark:text-white text-lg">{t(language, 'profileInfo')}</h2>
+                    <button
+                      type="button"
+                      onClick={() => setEditingProfile(true)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" aria-hidden />
+                      {t(language, 'edit')}
+                    </button>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">{t(language, 'fullName')}</p>
+                      <p className="text-gray-900 dark:text-white">{user?.name?.trim() ? user.name : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">{t(language, 'emailAddress')}</p>
+                      <p className="text-gray-900 dark:text-white break-all">{user?.email || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">{t(language, 'phoneNumber')}</p>
+                      <p className="text-gray-900 dark:text-white">{user?.phone?.trim() ? user.phone : '—'}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t(language, 'profilePicture')}</p>
+                      <div className="flex flex-col sm:flex-row gap-5 sm:items-center">
+                        <UserAvatar name={user?.name || ''} src={user?.avatar} size="lg" />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          {user?.avatar?.trim() ? (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-all">
+                              {truncateText(user.avatar, 96)}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                              {t(language, 'avatarNoPhotoHint')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <button type="submit" disabled={saving} className="btn-primary px-8 py-2.5 shadow-premium">
-                    {saving ? t(language, 'saving') : t(language, 'saveChanges')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={resetProfileForm}
-                    className="btn-secondary px-6 py-2.5"
-                  >
-                    {language === 'km' ? 'បោះបង់' : language === 'zh' ? '取消' : 'Cancel'}
-                  </button>
-                </div>
-              </form>
-            ) : (
+              )
+            ) : editingPassword ? (
               <form onSubmit={handleChangePassword}>
                 <h2 className="font-bold text-gray-900 dark:text-white mb-6 text-lg">{t(language, 'changePassword')}</h2>
                 <div className="space-y-5 max-w-md">
@@ -299,14 +369,32 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       disabled={saving}
-                      onClick={resetPasswordForm}
+                      onClick={() => {
+                        resetPasswordForm();
+                        setEditingPassword(false);
+                      }}
                       className="btn-secondary px-6 py-2.5"
                     >
-                      {language === 'km' ? 'បោះបង់' : language === 'zh' ? '取消' : 'Cancel'}
+                      {t(language, 'cancel')}
                     </button>
                   </div>
                 </div>
               </form>
+            ) : (
+              <div>
+                <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
+                  <h2 className="font-bold text-gray-900 dark:text-white text-lg">{t(language, 'changePassword')}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPassword(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" aria-hidden />
+                    {t(language, 'edit')}
+                  </button>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">{t(language, 'passwordChangeHint')}</p>
+              </div>
             )}
           </div>
         </div>

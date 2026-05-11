@@ -1,8 +1,12 @@
 'use client';
 
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
+/**
+ * Route change: previous view unmounts immediately (no exit wait).
+ * Enter is a very short opacity nudge so navigation feels instant.
+ */
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
@@ -12,16 +16,14 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AnimatePresence mode="sync" initial={false}>
-      <motion.div
-        key={pathname}
-        initial={{ opacity: 0.96 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0.98 }}
-        transition={{ duration: 0.12, ease: 'linear' }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={pathname}
+      initial={{ opacity: 0.985 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.08, ease: 'linear' }}
+      className="min-h-[100dvh]"
+    >
+      {children}
+    </motion.div>
   );
 }

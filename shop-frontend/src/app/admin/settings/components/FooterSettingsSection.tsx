@@ -3,6 +3,8 @@
 import { Building2, Plus, Trash2 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AdminSettingsForm } from '../types';
+import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 
 interface FooterSettingsSectionProps {
   active: boolean;
@@ -27,6 +29,7 @@ export default function FooterSettingsSection({
   onChangeForm,
   updateLinkArray,
 }: FooterSettingsSectionProps) {
+  const { language } = useAdminLanguageStore();
   return (
     <div className={active ? `${blockCls} ring-1 ring-cyan-200/70 dark:ring-cyan-900/30` : 'hidden'}>
       <div className={blockHeadCls}>
@@ -34,19 +37,15 @@ export default function FooterSettingsSection({
           <Building2 className="w-5 h-5 text-cyan-600 mt-0.5" />
         </span>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Footer & Store Contact</h2>
-          <p className="text-xs text-gray-500">Store address, phone, social, legal, and payment badges</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{adminT(language, 'footerLinksOnly')}</h2>
+          <p className="text-xs text-gray-500">{adminT(language, 'settingsFooterBlurb')}</p>
         </div>
       </div>
       <div className={blockBodyCls}>
         <div className="grid md:grid-cols-2 gap-4">
-          <div>
+          <div className="md:col-span-2">
             <label className={fieldLabelCls}>Brand Name</label>
             <input className="input" placeholder="Brand Name" value={form.footer.brandName} onChange={(e) => onChangeForm((p) => ({ ...p, footer: { ...p.footer, brandName: e.target.value } }))} />
-          </div>
-          <div>
-            <label className={fieldLabelCls}>Store Email</label>
-            <input className="input" placeholder="Store Email" value={form.footer.email} onChange={(e) => onChangeForm((p) => ({ ...p, footer: { ...p.footer, email: e.target.value } }))} />
           </div>
           <div className="md:col-span-2">
             <label className={fieldLabelCls}>Store Address</label>
@@ -58,24 +57,7 @@ export default function FooterSettingsSection({
           </div>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium">Phones</p>
-              <button type="button" className={addBtn} onClick={() => onChangeForm((p) => ({ ...p, footer: { ...p.footer, phones: [...p.footer.phones, ''] } }))}><Plus className="w-3.5 h-3.5" /> Add</button>
-            </div>
-            <div className="space-y-2">
-              {form.footer.phones.map((phone, i) => (
-                <div key={`phone-${i}`} className="flex gap-2">
-                  <div className="flex-1">
-                    <label className={fieldLabelCls}>Phone Number</label>
-                    <input className="input" value={phone} onChange={(e) => { const arr = [...form.footer.phones]; arr[i] = e.target.value; onChangeForm((p) => ({ ...p, footer: { ...p.footer, phones: arr } })); }} />
-                  </div>
-                  <button type="button" className="btn-secondary px-2" onClick={() => onChangeForm((p) => ({ ...p, footer: { ...p.footer, phones: p.footer.phones.filter((_, idx) => idx !== i) } }))}><Trash2 className="w-4 h-4" /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
+          <div className="md:col-span-2">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium">Social links</p>
               <button type="button" className={addBtn} onClick={() => onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: [...p.footer.socialLinks, { name: '', url: '' }] } }))}><Plus className="w-3.5 h-3.5" /> Add</button>

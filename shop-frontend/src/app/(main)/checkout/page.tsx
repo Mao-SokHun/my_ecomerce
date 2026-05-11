@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode } from 'lucide-react';
@@ -719,10 +720,10 @@ export default function CheckoutPage() {
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400">
                       {language === 'km'
-                        ? 'អ្នកអាចបង់តាម Visa/Master card ឬ Bakong'
+                        ? 'អ្នកអាចបង់តាមកាត Visa ឬ Bakong'
                         : language === 'zh'
-                          ? '您可以使用 Visa/Master 卡或 Bakong 支付'
-                          : 'You can pay by Visa/Master card or Bakong.'}
+                          ? '您可以使用 Visa 卡或 Bakong 支付'
+                          : 'You can pay with a Visa card or Bakong.'}
                     </p>
                   </div>
 
@@ -738,10 +739,10 @@ export default function CheckoutPage() {
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <CreditCard className="w-4 h-4 text-primary-600" />
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">Visa/Master card</p>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">Visa</p>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {language === 'km' ? 'ការទូទាត់មានសុវត្ថិភាពតាម Visa/Master card' : language === 'zh' ? '通过 Visa/Master 卡安全支付' : 'Secure payment via Visa/Master card.'}
+                        {language === 'km' ? 'ការទូទាត់មានសុវត្ថិភាពតាមកាត Visa' : language === 'zh' ? '通过 Visa 卡安全支付' : 'Secure payment with Visa card.'}
                       </p>
                     </button>
                     <button
@@ -806,6 +807,14 @@ export default function CheckoutPage() {
                       </a>
                     </div>
                   )}
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                    {t(language, 'checkoutPrivacyNoticePrefix')}{' '}
+                    <Link href="/legal/privacy" className="text-primary-600 hover:underline font-medium">
+                      {t(language, 'privacyPolicy')}
+                    </Link>
+                    {t(language, 'checkoutPrivacyNoticeSuffix')}
+                  </p>
 
                   <div className="flex gap-3">
                     <button onClick={() => setStep(1)} className="btn-secondary flex-1">

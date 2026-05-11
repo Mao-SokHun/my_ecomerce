@@ -14,10 +14,12 @@ import { CategorySkeleton } from '@/components/ui/Skeleton';
 export function CategoryGrid() {
   const [categories, setCategories] = useState<Category[]>([]);
   const { language } = useLanguageStore();
+  const countLocale = language === 'km' ? 'km-KH' : language === 'zh' ? 'zh-CN' : 'en-US';
 
   useEffect(() => {
-    categoryApi.getAll()
-      .then(({ data }) => setCategories(data.data || []))
+    categoryApi
+      .getAll()
+      .then(({ data }) => setCategories(Array.isArray(data?.data) ? data.data : []))
       .catch(console.error);
   }, []);
 
@@ -25,8 +27,8 @@ export function CategoryGrid() {
     return (
       <section className="py-16 page-container">
         <div className="h-8 w-48 bg-gray-100 dark:bg-surface-800 rounded-lg mb-8 animate-pulse" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
             <CategorySkeleton key={`cat-skeleton-${i}`} />
           ))}
         </div>
@@ -34,15 +36,20 @@ export function CategoryGrid() {
     );
   }
 
-  const getDisplayCount = (category: Category) => {
-    if (typeof category.totalProducts === 'number') return category.totalProducts;
-    const selfCount = category._count?.products || 0;
+  /** Prefer API aggregate (parent + all subcategories); fallback if older payload lacks totalProducts */
+  const getDisplayCount = (category: Category): number => {
+    if (typeof category.totalProducts === 'number' && Number.isFinite(category.totalProducts)) {
+      return Math.max(0, category.totalProducts);
+    }
+    const selfCount = category._count?.products ?? 0;
     const childrenCount = (category.children || []).reduce(
-      (sum, child) => sum + (child._count?.products || 0),
-      0
+      (sum, child) => sum + (child._count?.products ?? 0),
+      0,
     );
     return selfCount + childrenCount;
   };
+
+  const formatCount = (n: number) => n.toLocaleString(countLocale);
 
   return (
     <section className="py-16 page-container">
@@ -59,8 +66,8 @@ export function CategoryGrid() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {categories.slice(0, 6).map((category, i) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-4">
+        {categories.map((category, i) => (
           <motion.div
             key={category.id}
             initial={{ opacity: 0, y: 20 }}
@@ -91,7 +98,9 @@ export function CategoryGrid() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">
                   {category.name}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">{getDisplayCount(category)} {t(language, 'items')}</p>
+                <p className="text-xs text-gray-400 mt-0.5 tabular-nums">
+                  {t(language, 'itemsCount', { count: formatCount(getDisplayCount(category)) })}
+                </p>
               </div>
             </Link>
           </motion.div>

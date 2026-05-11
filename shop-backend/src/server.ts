@@ -12,6 +12,14 @@ const start = async () => {
     if (!process.env.JWT_SECRET?.trim()) {
       throw new Error('JWT_SECRET is not set. Add it in Render Environment (any long random string).');
     }
+    if (process.env.NODE_ENV === 'production') {
+      const jwtSecret = process.env.JWT_SECRET.trim();
+      if (jwtSecret.length < 32) {
+        throw new Error(
+          'JWT_SECRET must be at least 32 characters in production. Generate a strong random string.'
+        );
+      }
+    }
 
     await prisma.$connect();
     console.log('✅ Database connected');

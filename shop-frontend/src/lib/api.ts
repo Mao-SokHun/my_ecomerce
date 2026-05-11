@@ -33,13 +33,30 @@ api.interceptors.response.use((response) => response, (error) => Promise.reject(
 
 // Auth
 export const authApi = {
-  register: (data: { name: string; email?: string; phone: string; password: string }) =>
-    api.post('/auth/register', data),
-  login: (data: { identifier: string; password: string }) =>
-    api.post('/auth/login', data),
-  facebookLogin: (accessToken: string) =>
-    api.post('/auth/facebook', { accessToken }),
-  googleLogin: (credential: string) => api.post('/auth/google', { credential }),
+  register: (data: {
+    name: string;
+    email?: string;
+    phone: string;
+    password: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/register', data),
+  login: (data: {
+    identifier: string;
+    password: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/login', data),
+  facebookLogin: (data: {
+    accessToken: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/facebook', data),
+  googleLogin: (data: {
+    credential: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/google', data),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data: Partial<{ name: string; phone: string; avatar: string }>) =>
     api.put('/auth/profile', data),
@@ -56,6 +73,9 @@ export const authApi = {
 // Products
 export const productApi = {
   getAll: (params?: Record<string, unknown>) => api.get('/products', { params }),
+  /** Lightweight autocomplete / instant search (name, brand, category, slug). */
+  suggest: (params: { q: string; limit?: number; lang?: string }) =>
+    api.get('/products/suggestions', { params }),
   getFeatured: (lang: 'km' | 'en' | 'zh' = 'km') => api.get('/products/featured', { params: { lang } }),
   getBySlug: (slug: string, lang: 'km' | 'en' | 'zh' = 'km') => api.get(`/products/${slug}`, { params: { lang } }),
   getRelated: (slug: string, lang: 'km' | 'en' | 'zh' = 'km') => api.get(`/products/${slug}/related`, { params: { lang } }),

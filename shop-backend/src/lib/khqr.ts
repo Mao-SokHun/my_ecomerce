@@ -174,10 +174,25 @@ export const createKhqrForOrder = async (order: Order): Promise<KhqrCreateResult
 };
 
 export const verifyKhqrWebhookSignature = (rawBody: string, signature: string | undefined): boolean => {
-  const secret = process.env.ABA_KHQR_WEBHOOK_SECRET;
-  if (!secret) return true; // allow in local if secret not set
+  const secret = process.env.ABA_KHQR_WEBHOOK_SECRET?.trim();
+  const provider = (process.env.KHQR_PROVIDER || 'mock').toLowerCase();
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production' && provider === 'aba') {
+      return false;
+    }
+    return true;
+  }
   if (!signature) return false;
   const digest = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+  const sig = String(signature).trim();
+  if (sig.length !== digest.length) return false;
+  try {
+    const a = Buffer.from(digest, 'utf8');
+    const b = Buffer.from(sig, 'utf8');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 };
 

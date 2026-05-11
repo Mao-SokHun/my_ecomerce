@@ -55,7 +55,7 @@ export default function DashboardReviewsPage() {
   if (!isAuthChecked) return null;
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t(language, 'myReviewsPage')}</h1>
 
       {loading ? (

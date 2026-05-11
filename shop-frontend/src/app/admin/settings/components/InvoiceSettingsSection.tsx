@@ -3,6 +3,8 @@
 import { ReceiptText } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { AdminSettingsForm } from '../types';
+import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 
 interface InvoiceSettingsSectionProps {
   active: boolean;
@@ -23,6 +25,7 @@ export default function InvoiceSettingsSection({
   fieldLabelCls,
   onChangeForm,
 }: InvoiceSettingsSectionProps) {
+  const { language } = useAdminLanguageStore();
   return (
     <div className={active ? `${blockCls} ring-1 ring-amber-200/70 dark:ring-amber-900/30` : 'hidden'}>
       <div className={blockHeadCls}>
@@ -30,12 +33,20 @@ export default function InvoiceSettingsSection({
           <ReceiptText className="w-5 h-5 text-amber-600 mt-0.5" />
         </span>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Invoice Settings</h2>
-          <p className="text-xs text-gray-500">Invoice contact details and payment labels</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{adminT(language, 'invoiceSettings')}</h2>
+          <p className="text-xs text-gray-500">{adminT(language, 'invoiceSectionSubtitle')}</p>
         </div>
       </div>
 
       <div className={blockBodyCls}>
+        <div className="rounded-xl border border-slate-200/80 dark:border-gray-700 bg-slate-50/70 dark:bg-slate-900/40 p-4">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">{adminT(language, 'invoiceContactReadonlyTitle')}</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-white break-all">{form.footer.email?.trim() || '—'}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            {form.footer.phones.map((p) => p.trim()).filter(Boolean).join(' / ') || '—'}
+          </p>
+          <p className="text-[11px] text-gray-500 mt-2">{adminT(language, 'invoiceContactReadonlyHint')}</p>
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className={fieldLabelCls}>Invoice Shop Name</label>
@@ -45,28 +56,6 @@ export default function InvoiceSettingsSection({
               value={form.invoice.shopName}
               onChange={(e) =>
                 onChangeForm((p) => ({ ...p, invoice: { ...p.invoice, shopName: e.target.value } }))
-              }
-            />
-          </div>
-          <div>
-            <label className={fieldLabelCls}>Support Email</label>
-            <input
-              className="input"
-              placeholder="Support Email"
-              value={form.invoice.supportEmail}
-              onChange={(e) =>
-                onChangeForm((p) => ({ ...p, invoice: { ...p.invoice, supportEmail: e.target.value } }))
-              }
-            />
-          </div>
-          <div>
-            <label className={fieldLabelCls}>Support Phone</label>
-            <input
-              className="input"
-              placeholder="Support Phone"
-              value={form.invoice.supportPhone}
-              onChange={(e) =>
-                onChangeForm((p) => ({ ...p, invoice: { ...p.invoice, supportPhone: e.target.value } }))
               }
             />
           </div>

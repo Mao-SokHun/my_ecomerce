@@ -12,6 +12,8 @@ type Inquiry = {
 };
 
 const inquiries: Inquiry[] = [];
+const MAX_INQUIRIES = 500;
+const MAX_FIELD_LEN = 4000;
 
 const inferPriority = (text: string): Inquiry['priority'] => {
   const s = String(text || '').toLowerCase();
@@ -37,14 +39,17 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
     const p = priority || inferPriority(question);
     const inquiry: Inquiry = {
       id: `inq_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      name: String(name),
-      phone: String(phone),
-      question: `[PRIORITY:${p}] ${String(question)}`,
+      name: String(name).slice(0, MAX_FIELD_LEN),
+      phone: String(phone).slice(0, 64),
+      question: `[PRIORITY:${p}] ${String(question).slice(0, MAX_FIELD_LEN)}`,
       priority: p,
-      transcript: String(transcript || ''),
+      transcript: String(transcript || '').slice(0, MAX_FIELD_LEN),
       createdAt: new Date().toISOString(),
     };
     inquiries.unshift(inquiry);
+    if (inquiries.length > MAX_INQUIRIES) {
+      inquiries.length = MAX_INQUIRIES;
+    }
     res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry });
   } catch (error) {
     next(error);

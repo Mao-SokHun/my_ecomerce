@@ -98,10 +98,10 @@ export function HeroBanner() {
   const slide = renderedSlides[current];
 
   return (
-    <section className={`relative min-h-[85vh] bg-gradient-to-br ${slide.bg} overflow-hidden transition-all duration-1000`}>
+    <section className={`relative min-h-[85vh] bg-gradient-to-br ${slide.bg} overflow-hidden transition-all duration-500 ease-smooth-out`}>
       {/* Background image */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-10 bg-cover bg-center transition-all duration-1000"
+        className="pointer-events-none absolute inset-0 opacity-10 bg-cover bg-center transition-all duration-500 ease-smooth-out"
         style={{ backgroundImage: `url(${slide.image})` }}
       />
 
@@ -120,16 +120,16 @@ export function HeroBanner() {
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.id}
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="max-w-2xl"
           >
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.06, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
               style={{ backgroundColor: `${slide.accent}33`, color: slide.accent, border: `1px solid ${slide.accent}55` }}
             >
@@ -138,9 +138,9 @@ export function HeroBanner() {
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
+              transition={{ delay: 0.12, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="text-5xl sm:text-6xl lg:text-8xl font-black text-white leading-[1.1] tracking-normal"
             >
               {slide.title}
@@ -149,18 +149,18 @@ export function HeroBanner() {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.8 }}
+              transition={{ delay: 0.2, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="text-xl text-white/70 mt-8 leading-relaxed max-w-lg font-medium"
             >
               {slide.description}
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
+              transition={{ delay: 0.28, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-wrap gap-4 mt-10"
             >
               <Link
@@ -169,11 +169,11 @@ export function HeroBanner() {
                 style={{ backgroundColor: slide.accent }}
               >
                 {slide.cta} 
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200 ease-smooth-out" />
               </Link>
               <Link
                 href="/products"
-                className="btn-secondary px-8 py-4 text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+                className="btn-secondary px-8 py-4 text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white transition-all duration-200 ease-smooth-out motion-reduce:transition-none"
               >
                 {t(language, 'browseAll')}
               </Link>
@@ -183,7 +183,7 @@ export function HeroBanner() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.38, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-wrap gap-8 mt-12"
             >
               {[
@@ -206,7 +206,7 @@ export function HeroBanner() {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
+              className={`h-1.5 rounded-full transition-all duration-200 ease-smooth-out ${
                 i === current ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'
               }`}
             />

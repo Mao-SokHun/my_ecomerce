@@ -41,7 +41,7 @@ export default function DashboardWishlistPage() {
   if (!isAuthChecked) return null;
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8">
       <div className="flex items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, 'wishlist')}</h1>
         <Link href="/products" className="btn-secondary text-sm">

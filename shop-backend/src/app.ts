@@ -67,8 +67,9 @@ app.use(cookieParser());
 
 /** Product images uploaded when Cloudinary is off — URL path is /uploads/{folder}/{file} */
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+/** JSON bodies only; file uploads use multipart with separate limits. */
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
@@ -94,6 +95,8 @@ app.use('/api', limiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/google', authLimiter);
+app.use('/api/auth/facebook', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // Health check
 app.get('/', (_req, res) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -50,6 +50,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     users: false,
     leads: false,
   });
+  /** Bumped when visiting a section (mark-seen) so in-flight poll responses cannot overwrite fresh counts. */
+  const unreadPullGenerationRef = useRef(0);
 
   useEffect(() => {
     if (!isAuthChecked) return;
@@ -82,10 +84,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let prevOrders = -1;
     let prevUsers = -1;
     const pull = async () => {
+      const gen = ++unreadPullGenerationRef.current;
       try {
         const { data } = await adminApi.getUnreadCounts();
+        if (!mounted || gen !== unreadPullGenerationRef.current) return;
         const counts = data.data || {};
-        if (!mounted) return;
         setLiveCounts({
           orders: Number(counts.orders || 0),
           users: Number(counts.users || 0),
@@ -126,21 +129,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!isAuthChecked || (!adminUser && user?.role !== 'ADMIN')) return;
-    const type = pathname === '/admin/orders'
-      ? 'orders'
-      : pathname === '/admin/users'
-        ? 'users'
-        : pathname === '/admin/leads'
-          ? 'leads'
-          : null;
+    const type =
+      pathname === '/admin/orders' || pathname.startsWith('/admin/orders/')
+        ? 'orders'
+        : pathname === '/admin/users' || pathname.startsWith('/admin/users/')
+          ? 'users'
+          : pathname === '/admin/leads' || pathname.startsWith('/admin/leads/')
+            ? 'leads'
+            : null;
     if (!type) return;
 
-    // Same behavior as chat unread: open page => mark seen immediately.
-    adminApi.markSeen(type).catch(() => {});
-    setLiveCounts((prev) => ({
-      ...prev,
-      [type]: 0,
-    }));
+    let cancelled = false;
+    unreadPullGenerationRef.current += 1;
+    (async () => {
+      try {
+        await adminApi.markSeen(type);
+        const { data } = await adminApi.getUnreadCounts();
+        if (cancelled) return;
+        const counts = data.data || {};
+        setLiveCounts({
+          orders: Number(counts.orders || 0),
+          users: Number(counts.users || 0),
+          leads: Number(counts.leads || 0),
+        });
+      } catch {
+        // keep last known counts
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, isAuthChecked, adminUser, user?.role]);
 
   useEffect(() => {
@@ -160,17 +178,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const langLabel = language === 'km' ? 'ខ្មែរ' : language === 'zh' ? '中文' : 'English';
   const settingsActive = pathname.startsWith('/admin/settings');
   const isKhmer = language === 'km';
-  const currentNav = navItems.find((item) => item.href === pathname);
+  const currentNav =
+    navItems.find((item) => item.href === pathname) ||
+    navItems.find((item) => item.href !== '/admin' && pathname.startsWith(`${item.href}/`)) ||
+    (pathname.startsWith('/admin/settings') ? navItems.find((i) => i.href === '/admin/settings') : undefined);
   const pageTitle = adminT(language, currentNav?.key || 'navDashboard');
-  const headerKicker = isKhmer ? 'មជ្ឈមណ្ឌលគ្រប់គ្រង' : adminT(language, 'controlCenter');
-  const headerHint =
-    pathname === '/admin'
-      ? adminT(language, 'dashboardOverview')
-      : `${adminT(language, 'controlCenter')} / ${pageTitle}`;
 
   return (
     <div
-      className="min-h-screen bg-slate-100 dark:bg-surface-950 flex relative overflow-hidden font-sans"
+      className="min-h-screen bg-slate-100 dark:bg-surface-950 flex relative overflow-x-hidden font-sans"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
       <div className="pointer-events-none absolute -top-20 -right-16 w-80 h-80 rounded-full bg-primary-200/40 dark:bg-primary-900/20 blur-3xl" />
@@ -214,7 +230,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </div>
 
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 space-y-2 overscroll-contain">
             {!compactSidebar && (
               <p className="px-3 pb-1 text-[11px] font-semibold tracking-wide uppercase text-gray-400">
                 {isKhmer ? 'មុខងារសំខាន់' : 'Main Navigation'}
@@ -255,21 +271,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       </span>
                     )}
                     {settingsOpen && (
-                      <div className={`${compactSidebar ? 'absolute left-full top-0 ml-2 w-40' : 'mt-1 ml-6'} p-1 rounded-xl border border-gray-200/80 dark:border-gray-700 bg-white/90 dark:bg-surface-900/90 backdrop-blur shadow-sm`}>
-                        {[
-                          { q: 'core', label: 'Core' },
-                          { q: 'header', label: 'Header' },
-                          { q: 'homepage', label: 'Homepage Ads' },
-                          { q: 'footer', label: 'Footer' },
-                          { q: 'invoice', label: 'Invoice' },
-                        ].map((child) => (
+                      <div
+                        className={`${
+                          compactSidebar
+                            ? 'absolute left-full top-0 ml-2 w-40 z-50 max-h-[min(70vh,22rem)] overflow-y-auto overscroll-contain'
+                            : 'absolute inset-x-3 bottom-full z-50 mb-1 max-h-[min(70vh,22rem)] overflow-y-auto overscroll-contain'
+                        } p-1 rounded-xl border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-surface-900/95 backdrop-blur shadow-lg`}
+                      >
+                        {(
+                          [
+                            ['core', 'settingsMenuCore'],
+                            ['contact', 'settingsMenuContact'],
+                            ['header', 'settingsMenuHeader'],
+                            ['homepage', 'settingsMenuHomepage'],
+                            ['footer', 'settingsMenuFooter'],
+                            ['invoice', 'settingsMenuInvoice'],
+                          ] as const
+                        ).map(([q, key]) => (
                           <Link
-                            key={child.q}
-                            href={`/admin/settings?section=${child.q}`}
+                            key={q}
+                            href={`/admin/settings?section=${q}`}
                             onClick={() => setSidebarOpen(false)}
                             className="block px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600"
                           >
-                            {child.label}
+                            {adminT(language, key)}
                           </Link>
                         ))}
                       </div>

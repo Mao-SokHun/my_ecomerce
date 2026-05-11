@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   SlidersHorizontal, X, ChevronDown, Search, Grid3X3, LayoutList,
 } from 'lucide-react';
-import { Product, Pagination, Category } from '@/types';
+import { Product, Pagination, ApiResponse, Category } from '@/types';
 import { ProductCard } from '@/components/products/ProductCard';
 import { productApi, categoryApi } from '@/lib/api';
 import { useLanguageStore } from '@/store/languageStore';
@@ -16,8 +16,9 @@ function ProductsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { language } = useLanguageStore();
-  const SORT_OPTIONS = [
+  const SORT_BASE = [
     { value: 'createdAt-desc', label: t(language, 'sortNewest') },
+    { value: 'relevance-desc', label: t(language, 'sortMostRelevant') },
     { value: 'price-asc', label: t(language, 'sortPriceLow') },
     { value: 'price-desc', label: t(language, 'sortPriceHigh') },
     { value: 'rating-desc', label: t(language, 'sortTopRated') },
@@ -30,10 +31,13 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const countLocale = language === 'km' ? 'km-KH' : language === 'zh' ? 'zh-CN' : 'en-US';
+  const formatProductCount = (n: number) => n.toLocaleString(countLocale);
 
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
     category: searchParams.get('category') || '',
+    brand: searchParams.get('brand') || '',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     sort: 'createdAt-desc',
@@ -42,16 +46,42 @@ function ProductsContent() {
     featured: searchParams.get('featured') || '',
   });
 
-  // Sync filters when URL search params change (e.g. navbar link clicks)
+  const SORT_OPTIONS = filters.search
+    ? SORT_BASE
+    : SORT_BASE.filter((o) => o.value !== 'relevance-desc');
+
+  const skipScrollOnMount = useRef(true);
+
   useEffect(() => {
+    const sortCombined = (() => {
+      const s = searchParams.get('sort');
+      const o = searchParams.get('order') || 'desc';
+      if (s === 'relevance') return 'relevance-desc';
+      if (!s) return undefined;
+      const allowed = ['createdAt', 'price', 'rating', 'soldCount', 'name'];
+      if (!allowed.includes(s)) return undefined;
+      return `${s}-${o}`;
+    })();
+
     setFilters((prev) => ({
       ...prev,
       search: searchParams.get('search') || '',
       category: searchParams.get('category') || '',
       featured: searchParams.get('featured') || '',
-      page: 1,
+      brand: searchParams.get('brand') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || '',
+      rating: searchParams.get('rating') || '',
+      sort: sortCombined ?? prev.sort,
+      page: Math.max(1, Number(searchParams.get('page')) || 1),
     }));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!filters.search && filters.sort === 'relevance-desc') {
+      setFilters((p) => ({ ...p, sort: 'createdAt-desc' }));
+    }
+  }, [filters.search, filters.sort]);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -66,16 +96,20 @@ function ProductsContent() {
       };
       if (filters.search) params.search = filters.search;
       if (filters.category) params.category = filters.category;
+      if (filters.brand) params.brand = filters.brand;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (filters.rating) params.rating = filters.rating;
       if (filters.featured) params.featured = filters.featured;
 
-      const { data } = await productApi.getAll(params);
-      setProducts(data.data || []);
-      setPagination(data.pagination || null);
+      const { data: body } = await productApi.getAll(params);
+      const res = body as ApiResponse<Product[]>;
+      setProducts(Array.isArray(res.data) ? res.data : []);
+      setPagination(res.pagination ?? null);
     } catch (err) {
       console.error(err);
+      setProducts([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -86,11 +120,26 @@ function ProductsContent() {
   }, [fetchProducts]);
 
   useEffect(() => {
+    if (skipScrollOnMount.current) {
+      skipScrollOnMount.current = false;
+      return;
+    }
+    document.getElementById('products-pagination-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [filters.page]);
+
+  useEffect(() => {
     categoryApi.getAll().then(({ data }) => setCategories(data.data || []));
   }, []);
 
   const updateFilter = (key: string, value: unknown) => {
-    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+    setFilters((prev) => {
+      if (key === 'page') {
+        const n = typeof value === 'number' ? value : Number(value);
+        const next = Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 1;
+        return { ...prev, page: next };
+      }
+      return { ...prev, [key]: value, page: 1 };
+    });
   };
 
   const clearFilters = () => {
@@ -104,18 +153,22 @@ function ProductsContent() {
   return (
     <div className="page-container py-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+      <div id="products-pagination-anchor" className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 scroll-mt-24">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {filters.search ? `${t(language, 'productsSearchPrefix')} "${filters.search}"` :
              filters.category ? categories.find(c => c.slug === filters.category)?.name || t(language, 'productsAllProducts') :
              filters.featured ? t(language, 'productsFeaturedOnly') : t(language, 'productsAllProducts')}
           </h1>
-          {pagination && (
-            <p className="text-sm text-gray-500 mt-0.5">
-              {pagination.total.toLocaleString()} {t(language, 'productsFound')}
+          {loading && !pagination ? (
+            <p className="text-sm text-gray-500 mt-0.5" aria-live="polite">
+              <span className="inline-block h-4 w-40 max-w-full animate-pulse rounded-md bg-gray-200 dark:bg-gray-700" />
             </p>
-          )}
+          ) : pagination ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 tabular-nums" aria-live="polite">
+              {t(language, 'productsFoundCount', { count: formatProductCount(pagination.total) })}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2">

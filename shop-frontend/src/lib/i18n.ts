@@ -6,10 +6,14 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     allProducts: 'ទំនិញទាំងអស់',
     electronics: 'អេឡិចត្រូនិក',
     fashion: 'ម៉ូដ',
-    homeGarden: 'ផ្ទះ & សួនច្បារ',
-    sports: 'កីឡា',
+    homeGarden: 'ផ្ទះ និងការរស់នៅ',
+    sports: 'កីឡា និងក្រៅផ្ទះ',
     deals: 'ប្រូម៉ូសិន',
-    searchPlaceholder: 'ស្វែងរកទំនិញ...',
+    navBooks: 'សៀវភៅ',
+    navBeautyCare: 'សម្រស់ និងការថែរក្សាផ្ទាល់ខ្លួន',
+    navGroceries: 'គ្រឿងទេស និងអាហារ',
+    navAutomotive: 'រថយន្ត និងប្រដាប់ប្រដា',
+    searchPlaceholder: 'ស្វែងរកផលិតផល...',
     signIn: 'ចូលគណនី',
     signUp: 'បង្កើតគណនី',
     navHome: 'ទំព័រដើម',
@@ -109,10 +113,13 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     productsSearchPrefix: 'ស្វែងរក៖',
     productsFeaturedOnly: 'ទំនិញពិសេស',
     productsFound: 'ទំនិញត្រូវបានរកឃើញ',
+    /** Use {count} — formatted number from API (matches filters). */
+    productsFoundCount: '{count} ទំនិញត្រូវបានរកឃើញ',
     productsSearchPlaceholder: 'ស្វែងរក...',
     productsFilters: 'តម្រង',
     productsClearAll: 'សម្អាតទាំងអស់',
     productsCategory: 'ប្រភេទ',
+    productsBrand: 'ម៉ាក / Brand',
     productsAllCategories: 'គ្រប់ប្រភេទ',
     productsMinPrice: 'តម្លៃទាបបំផុត',
     productsMaxPrice: 'តម្លៃខ្ពស់បំផុត',
@@ -132,6 +139,14 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     sortPriceHigh: 'តម្លៃ៖ ពីខ្ពស់ទៅទាប',
     sortTopRated: 'ពិន្ទុខ្ពស់',
     sortBestSellers: 'លក់ដាច់',
+    sortMostRelevant: 'ពាក់គោលបំផុត (ពេញនិយម)',
+    searchRecent: 'ការស្វែងរកថ្មីៗ',
+    searchTrending: 'ពេញនិយម',
+    searchSeeAllResults: 'មើលរាល់លទ្ធផល',
+    searchNoMatches: 'រកមិនឃើញ — ព្យាយាមពាក្យផ្សេង',
+    searchHintMinChars: 'វាយយ៉ាងតិច ២ តួអក្សរ',
+    searchAriaSuggestions: 'លទ្ធផលស្វែងរក',
+    searchQuickResults: 'ផលិតផលត្រូវនឹងពាក្យ',
     productNotFound: 'រកមិនឃើញទំនិញ',
     home: 'ទំព័រដើម',
     products: 'ទំនិញ',
@@ -215,12 +230,68 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     byRegisteringAgree: 'ដោយចុះឈ្មោះ អ្នកយល់ព្រមនឹង',
     terms: 'លក្ខខណ្ឌ',
     privacyPolicy: 'គោលការណ៍ឯកជនភាព',
+    privacyPageTitle: 'គោលការណ៍ឯកជនភាពរបស់ SH-Shop',
+    privacyPageIntro:
+      'នៅ SH-Shop យើងផ្តល់តម្លៃខ្ពស់បំផុតលើឯកជនភាពរបស់អ្នក។ សេចក្តីថ្លែងការណ៍នេះពន្យល់អំពីប្រភេទព័ត៌មានដែលយើងប្រមូល របៀបដែលយើងប្រើប្រាស់វា និងវិធានការការពារទិន្នន័យរបស់អ្នក។',
+    privacySectionCollectionTitle: 'ការប្រមូលទិន្នន័យ',
+    privacySectionCollectionBody:
+      'យើងប្រមូលព័ត៌មានដែលអ្នកផ្តល់ពេលប្រើប្រាស់ហាង រួមមាន ឈ្មោះ លេខទូរស័ព្ទ អ៊ីមែល (បើមាន) អាសយដ្ឋានដឹកជញ្ជូន ព័ត៌មានការបញ្ជាទិញ និងទិន្នន័យបច្ចេកទេសទូទៅដូចជា IP ពេលចូលគណនី (សម្រាប់សុវត្ថិភាព) តាមការចាំបាច់នៃសេវា។',
+    privacySectionPurposeTitle: 'គោលបំណងប្រើប្រាស់',
+    privacySectionPurposeBody:
+      'ទិន្នន័យត្រូវបានប្រើដើម្បីដំណើរការការបញ្ជាទិញ ការដឹកជញ្ជូន ទំនាក់ទំនងអំពីការទិញ និងការគាំទ្រអតិថិជន ក៏ដូចជាការរក្សាសុវត្ថិភាពប្រព័ន្ធតាមដែលច្បាប់អាចអនុវត្ត។',
+    privacySectionRetentionTitle: 'ការរក្សាទុក និងប្រព័ន្ធ',
+    privacySectionRetentionBody:
+      'SH-Shop រក្សាទុកទិន្នន័យក្នុងមូលដ្ឋានទិន្នន័យដែលមានសុវត្ថិភាព (PostgreSQL) តាមរយៈអ្នកផ្តល់សេវាដែលអ្នកប្រើប្រាស់។ រយៈពេលរក្សាទុកអាស្រ័យលើតម្រូវការអាជីវកម្ម ការបញ្ជាក់ពន្ធ និងច្បាប់ដែលអាចអនុវត្ត។',
+    privacySectionRightsTitle: 'សិទ្ធិរបស់អ្នក',
+    privacySectionRightsBody:
+      'អ្នកអាចស្នើសុំមើល កែប្រែ ឬលុបព័ត៌មានគណនីដែលអាចធ្វើបាន តាមរយៈព័ត៌មានទំនាក់ទំនងនៅផ្នែកខាងក្រោមនៃគេហទំព័រ ក្នុងក្របខ័ណ្ឌដែលច្បាប់អនុញ្ញាត។',
+    privacySignInSecurityTitle: 'ការចូលគណនី និងសុវត្ថិភាព',
+    privacySignInIpGeo:
+      'ពេលចូលគណនី ឬចុះឈ្មោះ ប្រព័ន្ធអាចឃើញលេខ IP ទូទៅ និងប្រើទិន្នន័យសាធារណៈដើម្បីប៉ាន់ស្មានតំបន់ប្រើប្រាស់ (មិនមែនទីតាំងផ្ទាល់តាមឧបករណ៍របស់អ្នកទេ)។ លទ្ធផលអាចមានភាពខុសប្លែងពីកន្លែងពិតរបស់អ្នក។',
+    privacySignInDeviceLocation:
+      'បើអ្នកចង់ យើងអាចស្នើឲ្យកម្មវិធីរុករកបើកទីតាំង — អ្នកអាចបដិសេធបាន។ បើអ្នកយល់ព្រម ទីតាំងនឹងត្រូវផ្ញើជាមួយសំណើចូល ឬចុះឈ្មោះ ដើម្បីបំភ្លឺសារជូនដំណឹងសុវត្ថិភាពតាមប្រព័ន្ធរបស់ហាង។ យើងមិនរក្សាទុកទីតាំងនេះក្នុងគណនីរបស់អ្នកទេ។ ព័ត៌មាននៅក្នុងសារទាំងនោះជាជំនួយ មិនមែនជាទីតាំងពិតគ្រប់ពេលទេ។',
+    privacyPageLegalNote:
+      'ចំណាំ៖ ខ្លឹមសារនេះត្រូវបានផ្តល់ជូនសម្រាប់ជាព័ត៌មានប៉ុណ្ណោ។ ប្រសិនបើអ្នកចង់បានការប្រឹក្សាផ្នែកច្បាប់ផ្លូវការ សូមទាក់ទងអ្នកជំនាញផ្នែកច្បាប់នៅក្នុងតំបន់របស់អ្នក។',
+    privacyBackHome: '← ត្រឡប់ទៅទំព័រដើម',
+    checkoutPrivacyNoticePrefix: 'ព័ត៌មានទូទាត់ និងដឹកជញ្ជូនរបស់អ្នកត្រូវបានគ្រប់គ្រងដោយមានសុវត្ថិភាព។ សម្រាប់លម្អិតសូមមើល',
+    checkoutPrivacyNoticeSuffix: '។',
+    termsPageTitle: 'លក្ខខណ្ឌប្រើប្រាស់ SH-Shop',
+    termsPageIntro:
+      'លក្ខខណ្ឌទាំងនេះពន្យល់ពីរបៀបប្រើប្រាស់គេហទំព័រ និងសេវារបស់ SH-Shop។ ដោយបន្តការចូលប្រើ អ្នកយល់ព្រមគោរពលក្ខខណ្ឌនេះ។',
+    termsSectionAcceptanceTitle: 'ការយល់ព្រម និងការប្រើប្រាស់',
+    termsSectionAcceptanceBody:
+      'អ្នកត្រូវប្រើ SH-Shop តាមច្បាប់ មិនប្រើសម្រាប់គោលបំណងលួចលាក់ ឬប៉ះពាល់ដល់ប្រព័ន្ធ ឬអ្នកប្រើផ្សេងទៀត។ ព័ត៌មានដែលអ្នកបំពេញ (ឧ. ពេលចុះឈ្មោះ ឬ checkout) ត្រូវត្រឹមត្រូវ និងពិតប្រាកដក្នុងដែនកំណត់សមរម្យ។',
+    termsSectionAccountsTitle: 'គណនី និងសុវត្ថិភាព',
+    termsSectionAccountsBody:
+      'អ្នកទទួលខុសត្រូវលើពាក្យសម្ងាត់គណនី និងសកម្មភាពដែលកើតឡើងក្រោមគណនីរបស់អ្នក។ សូមជូនដំណឹងយើងប្រសិនបើអ្នកសង្ស័យថាមានការចូលប្រើដោយគ្មានការអនុញ្ញាត។',
+    termsSectionOrdersTitle: 'ការបញ្ជាទិញ តម្លៃ និងស្តុក',
+    termsSectionOrdersBody:
+      'តម្លៃ បញ្ចុះតម្លៃ និងស្តុកទំនិញអាចផ្លាស់ប្តូរដោយមិនបាច់ជូនដំណឹងមុន។ យើងព្យាយាមបង្ហាញព័ត៌មានត្រឹមត្រូវ ប៉ុន្តែកំហុសបច្ចេកទេស ឬភាពខ្វះស្តុក អាចកើតឡើង។ ក្នុងករណីមិនអាចផ្គើនឹងការបញ្ជាទិញ យើងអាចលុបចោល ឬទាក់ទងអ្នកសម្រាប់ជម្រើស។',
+    termsSectionPaymentTitle: 'ការទូទាត់',
+    termsSectionPaymentBody:
+      'ការទូទាត់ធ្វើតាមវិធីដែលបង្ហាញនៅ checkout៖ កាត Visa ឬ Bakong តាមរយៈដៃគូទូទាត់។ អ្នកធានាថាអ្នកមានសិទ្ធិប្រើវិធីទូទាត់និងព័ត៌មានដែលបំពេញ។',
+    termsSectionShippingTitle: 'ដឹកជញ្ជូន',
+    termsSectionShippingBody:
+      'ពេលវេលា ថ្លៃដឹកជញ្ជូន និងដៃគូដឹកជញ្ជូនអាស្រ័យលើការកំណត់នៅពេល checkout និងលក្ខខណ្ឌដែលបង្ហាញនៅទំព័រទំនិញ ឬទំព័រជំនួយ។',
+    termsSectionReturnsTitle: 'ការត្រឡប់ និងការប្តូរ',
+    termsSectionReturnsBody:
+      'លក្ខខណ្ឌត្រឡប់ទំនិញ ឬប្តូរទំនិញ (បើមាន) បានបញ្ជាក់នៅពេល checkout ឬក្នុងគោលការណ៍អតិថិជន។ សូមអានមុនពេលបញ្ជាទិញ។',
+    termsSectionConductTitle: 'អ្នកប្រើប្រាស់ និងមាតិកា',
+    termsSectionConductBody:
+      'ហាមឃាត់ការផ្សព្វផ្សាយសារមិនសមរម្យ ការប៉ុនប៉ងប្រព័ន្ធ ការលួចយកទិន្នន័យ ឬសកម្មភាពរំខានដល់សេវា។ SH-Shop អាចផ្អាក ឬបិទគណនីដែលលើសលប់លក្ខខណ្ឌ។',
+    termsSectionChangesTitle: 'ការកែប្រែលក្ខខណ្ឌ',
+    termsSectionChangesBody:
+      'យើងអាចធ្វើបច្ចុប្បន្នភាពលក្ខខណ្ឌនេះ។ ការបន្តប្រើប្រាស់បន្ទាប់ពីការផ្សព្វផ្សាយកំណែថ្មី ត្រូវបានយល់ថាអ្នកយល់ព្រមនឹងកំណែដែលពាក់ព័ន្ធ។',
+    termsPageLegalNote:
+      'ចំណាំ៖ ខ្លឹមសារនេះជាការពិពណ៌នាទូទៅ។ សម្រាប់ការប្រឹក្សាផ្លូវច្បាប់ផ្លូវការ សូមទាក់ទងអ្នកជំនាញក្នុងតំបន់របស់អ្នក។',
+    termsBackHome: '← ត្រឡប់ទៅទំព័រដើម',
     and: 'និង',
     passwordWeak: 'ខ្សោយ',
     passwordFair: 'មធ្យម',
     passwordGood: 'ល្អ',
     passwordStrong: 'ខ្លាំង',
-    invalidNameLettersOnly: 'ឈ្មោះមិនត្រឹមត្រូវ៖ ប្រើតែអក្សរប៉ុណ្ណោះ',
+    invalidNameLettersOnly:
+      'ឈ្មោះមិនត្រឹមត្រូវ៖ ប្រើអក្សរ (គ្រប់ភាសា) ដកឃ្លា ត្រេករង បុព្វបទ និងចុចបានប៉ុណ្ណោះ',
     invalidEmailFormat:
       'អ៊ីមែលមិនត្រឹមត្រូវ៖ ត្រូវមាន @ និងផ្នែកដូចជា .com ឬ .net (ឧ. name@gmail.com)',
     invalidPhoneDigitsOnly: 'លេខទូរស័ព្ទមិនត្រឹមត្រូវ៖ ប្រើតែលេខ (8-15 ខ្ទង់)',
@@ -263,6 +334,9 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     purchasedProducts: 'ទំនិញដែលបានទិញ',
     each: 'ក្នុងមួយមុខ',
     browseMore: 'មើលបន្ថែម',
+    viewOrder: 'មើលលម្អិត',
+    orderMoreLines: '+{count} មុខទំនិញទៀត',
+    ordersListSummary: '{count} ការបញ្ជាទិញ',
     printReceipt: 'បោះពុម្ពវិក្កយបត្រ',
     download: 'ទាញយក',
     print: 'បោះពុម្ព',
@@ -277,6 +351,11 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     orderRemoved: 'បានលុបចេញពីប្រវត្តិ',
     cannotCancelOrder: 'មិនអាចបោះបង់ការបញ្ជាទិញនេះបានទេ',
     myAccount: 'គណនីរបស់ខ្ញុំ',
+    edit: 'កែប្រែ',
+    profilePicture: 'រូបភាពប្រូហ្វាល់',
+    avatarNoPhotoHint: 'មិនទាន់មានរូបភាព — ចុច «កែប្រែ» ដើម្បីបន្ថែមរូប ឬតំណរភ្ជាប់។',
+    avatarUrlFieldHint: 'https://… ឬ /uploads/avatars/…',
+    passwordChangeHint: 'ចុច «កែប្រែ» ដើម្បីប្តូរពាក្យសម្ងាត់។',
     profileInfo: 'ព័ត៌មានផ្ទាល់ខ្លួន',
     changePassword: 'ប្ដូរពាក្យសម្ងាត់',
     saveChanges: 'រក្សាទុកការកែប្រែ',
@@ -309,9 +388,13 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     allProducts: 'All Products',
     electronics: 'Electronics',
     fashion: 'Fashion',
-    homeGarden: 'Home & Garden',
-    sports: 'Sports',
+    homeGarden: 'Home & Living',
+    sports: 'Sports & Outdoors',
     deals: 'Deals',
+    navBooks: 'Books',
+    navBeautyCare: 'Beauty & Personal Care',
+    navGroceries: 'Groceries',
+    navAutomotive: 'Automotive',
     searchPlaceholder: 'Search products...',
     signIn: 'Sign In',
     signUp: 'Sign Up',
@@ -408,10 +491,12 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     productsSearchPrefix: 'Search:',
     productsFeaturedOnly: 'Featured Products',
     productsFound: 'products found',
+    productsFoundCount: '{count} products found',
     productsSearchPlaceholder: 'Search...',
     productsFilters: 'Filters',
     productsClearAll: 'Clear all',
     productsCategory: 'Category',
+    productsBrand: 'Brand',
     productsAllCategories: 'All Categories',
     productsMinPrice: 'Min Price',
     productsMaxPrice: 'Max Price',
@@ -431,6 +516,14 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     sortPriceHigh: 'Price: High to Low',
     sortTopRated: 'Top Rated',
     sortBestSellers: 'Best Sellers',
+    sortMostRelevant: 'Most relevant (popular matches)',
+    searchRecent: 'Recent searches',
+    searchTrending: 'Trending',
+    searchSeeAllResults: 'See all results',
+    searchNoMatches: 'No matches — try other words',
+    searchHintMinChars: 'Type at least 2 characters',
+    searchAriaSuggestions: 'Search suggestions',
+    searchQuickResults: 'Matching products',
     productNotFound: 'Product not found',
     home: 'Home',
     products: 'Products',
@@ -514,12 +607,67 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     byRegisteringAgree: 'By registering, you agree to our',
     terms: 'Terms',
     privacyPolicy: 'Privacy Policy',
+    privacyPageTitle: 'SH-Shop Privacy Policy',
+    privacyPageIntro:
+      'At SH-Shop we place the highest value on your privacy. This statement describes the types of information we collect, how we use it, and the measures we take to protect your data.',
+    privacySectionCollectionTitle: 'Data we collect',
+    privacySectionCollectionBody:
+      'We collect information you provide when using the store, including your name, phone number, email (if given), delivery address, order details, and standard technical data such as IP address when you sign in (for security), as needed to operate the service.',
+    privacySectionPurposeTitle: 'How we use it',
+    privacySectionPurposeBody:
+      'Data is used to process orders, arrange delivery, communicate about your purchases, provide customer support, and maintain system security in line with applicable law.',
+    privacySectionRetentionTitle: 'Storage and systems',
+    privacySectionRetentionBody:
+      'SH-Shop stores data in a secured database (PostgreSQL) through the hosting and infrastructure providers you use for this project. Retention periods depend on business needs, tax or accounting requirements, and applicable regulations.',
+    privacySectionRightsTitle: 'Your rights',
+    privacySectionRightsBody:
+      'You may request access, correction, or deletion of certain account information where the law allows, using the contact details in the website footer.',
+    privacySignInSecurityTitle: 'Sign-in and security',
+    privacySignInIpGeo:
+      'When you sign in or create an account, our systems may see a standard IP address and use public data services to estimate a general area. That estimate is not the same as your exact device location.',
+    privacySignInDeviceLocation:
+      'If you choose to, your browser can share location when you sign in or register; you can decline. If you allow it, coordinates are sent only with that sign-in request to support security notifications from our systems. We do not save those coordinates in your customer profile. Any location shown in such messages is for context only and may not always match where you are.',
+    privacyPageLegalNote:
+      'Note: This content is provided for information only. If you require formal legal advice, please contact a qualified legal professional in your jurisdiction.',
+    privacyBackHome: '← Back to home',
+    checkoutPrivacyNoticePrefix: 'Payment and delivery details are handled securely. For details see our',
+    checkoutPrivacyNoticeSuffix: '.',
+    termsPageTitle: 'SH-Shop Terms of Service',
+    termsPageIntro:
+      'These terms explain how you may use the SH-Shop website and related services. By continuing to use the site, you agree to follow them.',
+    termsSectionAcceptanceTitle: 'Acceptance and lawful use',
+    termsSectionAcceptanceBody:
+      'You must use SH-Shop lawfully, not for fraud or to harm the service or other users. Information you provide (for example at registration or checkout) should be accurate and truthful within reasonable limits.',
+    termsSectionAccountsTitle: 'Accounts and security',
+    termsSectionAccountsBody:
+      'You are responsible for your password and for activity under your account. Please notify us if you suspect unauthorised access.',
+    termsSectionOrdersTitle: 'Orders, prices, and stock',
+    termsSectionOrdersBody:
+      'Prices, promotions, and stock levels may change without prior notice. We aim to show correct information, but errors or out-of-stock situations can occur. If we cannot fulfil an order, we may cancel it or contact you with options.',
+    termsSectionPaymentTitle: 'Payments',
+    termsSectionPaymentBody:
+      'Payments are processed only via Visa card or Bakong as shown at checkout, through our payment partners. You confirm that you are entitled to use the payment method and details you provide.',
+    termsSectionShippingTitle: 'Delivery',
+    termsSectionShippingBody:
+      'Delivery times, fees, and carriers depend on the options shown at checkout and on any additional terms on product or help pages.',
+    termsSectionReturnsTitle: 'Returns and exchanges',
+    termsSectionReturnsBody:
+      'Return or exchange rules, where offered, are described at checkout or in our customer policies. Please read them before you order.',
+    termsSectionConductTitle: 'User conduct',
+    termsSectionConductBody:
+      'You must not post abusive content, attempt to break or overload the system, scrape data without permission, or disrupt the service. SH-Shop may suspend or close accounts that seriously breach these terms.',
+    termsSectionChangesTitle: 'Changes to these terms',
+    termsSectionChangesBody:
+      'We may update these terms from time to time. Continued use of the site after we publish changes means you accept the updated terms that apply.',
+    termsPageLegalNote:
+      'Note: This page is a general overview. For binding legal advice, contact a qualified professional in your jurisdiction.',
+    termsBackHome: '← Back to home',
     and: 'and',
     passwordWeak: 'Weak',
     passwordFair: 'Fair',
     passwordGood: 'Good',
     passwordStrong: 'Strong',
-    invalidNameLettersOnly: 'Name is invalid: use letters only',
+    invalidNameLettersOnly: 'Invalid name: use letters (any language), spaces, hyphens, apostrophes, and periods only',
     invalidEmailFormat: 'Email is invalid: use a format like name@example.com (include @ and a domain such as .com)',
     invalidPhoneDigitsOnly: 'Phone is invalid: use numbers only (8-15 digits)',
     passwordsDoNotMatch: 'Passwords do not match',
@@ -561,6 +709,9 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     purchasedProducts: 'Purchased Products',
     each: 'each',
     browseMore: 'Browse more',
+    viewOrder: 'View order',
+    orderMoreLines: '+{count} more items',
+    ordersListSummary: '{count} orders',
     printReceipt: 'Print Receipt',
     download: 'Download',
     print: 'Print',
@@ -575,6 +726,11 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     orderRemoved: 'Order history removed',
     cannotCancelOrder: 'Cannot cancel this order',
     myAccount: 'My Account',
+    edit: 'Edit',
+    profilePicture: 'Profile picture',
+    avatarNoPhotoHint: 'No profile photo yet — click Edit to upload an image or paste a link.',
+    avatarUrlFieldHint: 'https://… or /uploads/avatars/…',
+    passwordChangeHint: 'Click Edit to change your password.',
     profileInfo: 'Profile Information',
     changePassword: 'Change Password',
     saveChanges: 'Save Changes',
@@ -607,9 +763,13 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     allProducts: '全部商品',
     electronics: '电子产品',
     fashion: '时尚',
-    homeGarden: '家居园艺',
-    sports: '运动',
+    homeGarden: '家居与生活',
+    sports: '运动户外',
     deals: '优惠',
+    navBooks: '图书文娱',
+    navBeautyCare: '美妆个护',
+    navGroceries: '生鲜杂货',
+    navAutomotive: '汽车用品',
     searchPlaceholder: '搜索商品...',
     signIn: '登录',
     navHome: '首页',
@@ -705,10 +865,12 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     productsSearchPrefix: '搜索：',
     productsFeaturedOnly: '精选商品',
     productsFound: '件商品',
+    productsFoundCount: '共 {count} 件商品',
     productsSearchPlaceholder: '搜索...',
     productsFilters: '筛选',
     productsClearAll: '清除全部',
     productsCategory: '分类',
+    productsBrand: '品牌',
     productsAllCategories: '全部分类',
     productsMinPrice: '最低价格',
     productsMaxPrice: '最高价格',
@@ -728,6 +890,14 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     sortPriceHigh: '价格：从高到低',
     sortTopRated: '评分最高',
     sortBestSellers: '畅销商品',
+    sortMostRelevant: '最相关（热度）',
+    searchRecent: '最近搜索',
+    searchTrending: '热门',
+    searchSeeAllResults: '查看全部结果',
+    searchNoMatches: '无匹配 — 请换关键词',
+    searchHintMinChars: '请至少输入 2 个字符',
+    searchAriaSuggestions: '搜索建议',
+    searchQuickResults: '匹配商品',
     productNotFound: '未找到商品',
     home: '首页',
     products: '商品',
@@ -811,12 +981,67 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     byRegisteringAgree: '注册即表示你同意我们的',
     terms: '条款',
     privacyPolicy: '隐私政策',
+    privacyPageTitle: 'SH-Shop 隐私政策',
+    privacyPageIntro:
+      '在 SH-Shop，我们高度重视你的隐私。本声明说明我们收集哪些类型的信息、如何使用这些信息，以及我们采取哪些措施来保护你的数据。',
+    privacySectionCollectionTitle: '我们收集的数据',
+    privacySectionCollectionBody:
+      '我们会收集你在使用商店时提供的信息，包括姓名、手机号码、邮箱（如填写）、收货地址、订单信息，以及为提供服务与安全所需的技术信息（例如登录时的 IP 地址）。',
+    privacySectionPurposeTitle: '使用目的',
+    privacySectionPurposeBody:
+      '相关数据用于处理订单、安排配送、就购买事宜与你沟通、提供客户支持，并在符合适用法律的前提下维护系统安全。',
+    privacySectionRetentionTitle: '存储与系统',
+    privacySectionRetentionBody:
+      'SH-Shop 通过你所使用的托管与基础设施，将数据保存在受保护的数据库中（PostgreSQL）。保存期限取决于经营需要、财税合规要求以及适用法规。',
+    privacySectionRightsTitle: '你的权利',
+    privacySectionRightsBody:
+      '在法律规定允许的范围内，你可以通过网站页脚的联系方式申请查阅、更正或删除部分账户相关信息。',
+    privacySignInSecurityTitle: '登录与安全',
+    privacySignInIpGeo:
+      '登录或注册时，系统可能会看到常规 IP 地址，并结合公开数据服务估算大致地区；该估算不等同于你设备的精确位置。',
+    privacySignInDeviceLocation:
+      '在登录或注册时，网站可能会询问是否允许浏览器提供位置；你可以拒绝。若你同意，坐标仅随该次登录/注册请求发送，用于辅助我们系统的安全提醒。我们不会把这些坐标写入你的用户资料。相关提醒中的位置信息仅供了解参考，不一定始终与你所在位置一致。',
+    privacyPageLegalNote:
+      '说明：本内容仅供一般信息参考。如需正式法律咨询，请联系你所在地区的合格法律专业人士。',
+    privacyBackHome: '← 返回首页',
+    checkoutPrivacyNoticePrefix: '支付与收货信息将安全处理。详情请参阅',
+    checkoutPrivacyNoticeSuffix: '。',
+    termsPageTitle: 'SH-Shop 服务条款',
+    termsPageIntro:
+      '本条款说明您如何合法使用 SH-Shop 网站及相关服务。继续使用即表示您同意遵守本条款。',
+    termsSectionAcceptanceTitle: '同意与合法使用',
+    termsSectionAcceptanceBody:
+      '您须合法使用 SH-Shop，不得用于欺诈、破坏服务或损害他人。您在注册、结账等环节填写的信息应真实、准确。',
+    termsSectionAccountsTitle: '账户与安全',
+    termsSectionAccountsBody:
+      '您应妥善保管账户密码，并对账户下的操作负责。如发现未经授权的访问，请及时通知我们。',
+    termsSectionOrdersTitle: '订单、价格与库存',
+    termsSectionOrdersBody:
+      '价格、优惠与库存可能变更且恕不另行通知。我们力求信息准确，但仍可能出现错误或缺货。若无法履约，我们可能取消订单或与您协商处理。',
+    termsSectionPaymentTitle: '支付',
+    termsSectionPaymentBody:
+      '支付仅通过结账页所示的 Visa 卡或 Bakong，由合作支付机构处理。您确认对所填支付方式及信息拥有合法使用权。',
+    termsSectionShippingTitle: '配送',
+    termsSectionShippingBody:
+      '配送时效、费用与承运商以结账时选项及商品页或帮助页的说明为准。',
+    termsSectionReturnsTitle: '退换货',
+    termsSectionReturnsBody:
+      '如提供退换货服务，其条件以结账流程或客户政策页面的说明为准；请在下单前仔细阅读。',
+    termsSectionConductTitle: '用户行为规范',
+    termsSectionConductBody:
+      '禁止发布不当内容、攻击或干扰系统、未经授权抓取数据等影响服务安全与稳定的行为。严重违反时，SH-Shop 可暂停或终止相关账户。',
+    termsSectionChangesTitle: '条款变更',
+    termsSectionChangesBody:
+      '我们可能不时更新本条款。变更公布后您继续使用网站，即视为接受适用的新条款。',
+    termsPageLegalNote:
+      '说明：本页为一般性概述。如需具有法律效力的意见，请咨询您所在地区的合格法律专业人士。',
+    termsBackHome: '← 返回首页',
     and: '和',
     passwordWeak: '弱',
     passwordFair: '一般',
     passwordGood: '良好',
     passwordStrong: '强',
-    invalidNameLettersOnly: '姓名无效：只能输入字母',
+    invalidNameLettersOnly: '姓名无效：仅可使用各语言字母、空格、连字符、撇号与句号',
     invalidEmailFormat: '邮箱格式不正确：请使用类似 name@example.com 的格式（需包含 @ 和如 .com 的域名）',
     invalidPhoneDigitsOnly: '电话号码无效：只能输入数字（8-15 位）',
     passwordsDoNotMatch: '两次密码不一致',
@@ -858,6 +1083,9 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     purchasedProducts: '已购商品',
     each: '單價',
     browseMore: '浏览更多',
+    viewOrder: '查看订单',
+    orderMoreLines: '还有 {count} 件',
+    ordersListSummary: '共 {count} 笔订单',
     printReceipt: '打印收据',
     download: '下载',
     print: '打印',
@@ -872,6 +1100,11 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     orderRemoved: '订单历史已移除',
     cannotCancelOrder: '无法取消此订单',
     myAccount: '我的账户',
+    edit: '编辑',
+    profilePicture: '头像',
+    avatarNoPhotoHint: '暂无头像 — 点击「编辑」上传图片或填写链接。',
+    avatarUrlFieldHint: 'https://… 或 /uploads/avatars/…',
+    passwordChangeHint: '点击「编辑」修改密码。',
     profileInfo: '个人信息',
     changePassword: '修改密码',
     saveChanges: '保存更改',
@@ -901,8 +1134,18 @@ const messages: Record<AppLanguage, Record<string, string>> = {
   },
 };
 
-export const t = (lang: AppLanguage, key: string): string => {
-  return messages[lang][key] || messages.en[key] || key;
+export const t = (
+  lang: AppLanguage,
+  key: string,
+  vars?: Record<string, string | number>,
+): string => {
+  let s = messages[lang][key] || messages.en[key] || key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      s = s.replaceAll(`{${k}}`, String(v));
+    }
+  }
+  return s;
 };
 
 /** Visa/card vs Bakong label for receipts and invoices. */

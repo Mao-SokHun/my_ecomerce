@@ -1,20 +1,46 @@
+'use client';
+
 import Link from 'next/link';
+import { useLanguageStore } from '@/store/languageStore';
+import { t } from '@/lib/i18n';
 
 export default function TermsPage() {
+  const { language } = useLanguageStore();
+
+  const sections: { titleKey: string; bodyKey: string }[] = [
+    { titleKey: 'termsSectionAcceptanceTitle', bodyKey: 'termsSectionAcceptanceBody' },
+    { titleKey: 'termsSectionAccountsTitle', bodyKey: 'termsSectionAccountsBody' },
+    { titleKey: 'termsSectionOrdersTitle', bodyKey: 'termsSectionOrdersBody' },
+    { titleKey: 'termsSectionPaymentTitle', bodyKey: 'termsSectionPaymentBody' },
+    { titleKey: 'termsSectionShippingTitle', bodyKey: 'termsSectionShippingBody' },
+    { titleKey: 'termsSectionReturnsTitle', bodyKey: 'termsSectionReturnsBody' },
+    { titleKey: 'termsSectionConductTitle', bodyKey: 'termsSectionConductBody' },
+    { titleKey: 'termsSectionChangesTitle', bodyKey: 'termsSectionChangesBody' },
+  ];
+
   return (
     <div className="page-container py-12 max-w-3xl">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Terms of Use</h1>
-      <p className="text-gray-600 dark:text-gray-300 mb-4">
-        By using SH-Shop you agree to use the service lawfully, provide accurate checkout information, and accept that
-        product availability and prices may change. Shipping and returns follow the policies shown at checkout and on
-        product pages where applicable.
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">{t(language, 'termsPageTitle')}</h1>
+      <p className="text-gray-600 dark:text-gray-300 mb-10 leading-relaxed">{t(language, 'termsPageIntro')}</p>
+
+      {sections.map(({ titleKey, bodyKey }) => (
+        <section key={titleKey} className="mb-10">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{t(language, titleKey)}</h2>
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{t(language, bodyKey)}</p>
+        </section>
+      ))}
+
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed border-t border-gray-200 dark:border-gray-700 pt-6">
+        {t(language, 'termsPageLegalNote')}
       </p>
-      <p className="text-gray-600 dark:text-gray-300 mb-8">
-        We may update these terms; continued use of the site after changes constitutes acceptance of the revised terms.
-      </p>
-      <Link href="/" className="text-primary-600 hover:underline">
-        ← Back to home
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link href="/legal/privacy" className="text-primary-600 hover:underline">
+          {t(language, 'privacyPolicy')}
+        </Link>
+        <Link href="/" className="text-primary-600 hover:underline">
+          {t(language, 'termsBackHome')}
+        </Link>
+      </div>
     </div>
   );
 }

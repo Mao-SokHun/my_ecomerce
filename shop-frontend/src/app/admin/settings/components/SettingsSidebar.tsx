@@ -1,8 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
-
-type SettingsSection = 'core' | 'header' | 'homepage' | 'footer' | 'invoice';
+import type { SettingsSection } from '../types';
 
 interface SettingsSidebarProps {
   tx: Record<string, string>;
@@ -13,6 +12,7 @@ interface SettingsSidebarProps {
 
 const sections: Array<{ id: SettingsSection; key: string }> = [
   { id: 'core', key: 'core' },
+  { id: 'contact', key: 'contact' },
   { id: 'header', key: 'header' },
   { id: 'homepage', key: 'homepage' },
   { id: 'footer', key: 'footer' },

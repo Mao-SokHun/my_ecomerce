@@ -58,7 +58,7 @@ export default function DashboardAddressesPage() {
     [a.province, a.district, a.commune, a.village, a.street, a.roadNumber].filter(Boolean).join(', ');
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t(language, 'myAddressesPage')}</h1>
         <Link href="/checkout" className="btn-primary text-sm text-center">
