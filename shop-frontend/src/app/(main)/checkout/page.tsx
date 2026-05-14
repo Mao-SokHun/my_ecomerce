@@ -408,8 +408,11 @@ export default function CheckoutPage() {
       setStep(3);
       await fetchCart();
       setCardPaymentOrder(null);
-    } catch {
-      toast.error('Could not confirm payment server-side.');
+    } catch (error: unknown) {
+      const msg = axios.isAxiosError(error)
+        ? String((error.response?.data as { message?: string } | undefined)?.message || '')
+        : '';
+      toast.error(msg || 'Could not confirm payment server-side.');
       router.push(`/dashboard/orders/${cardPaymentOrder.id}`);
     }
   };

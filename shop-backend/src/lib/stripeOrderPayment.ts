@@ -6,11 +6,19 @@ import { sendInvoiceNotification } from './invoice';
 import { notifyAdminOrderEvent } from './adminNotifier';
 
 export function assertPaymentIntentMatchesOrder(order: Order, pi: Stripe.PaymentIntent): void {
-  if (pi.metadata?.orderId !== order.id) {
+  // Stripe metadata values are strings; Prisma `id` is string — compare as strings.
+  const metaOrderId = pi.metadata?.orderId != null ? String(pi.metadata.orderId).trim() : '';
+  const matchesMetadata = metaOrderId !== '' && metaOrderId === String(order.id).trim();
+  const matchesStoredIntent =
+    order.paymentIntentId != null && String(order.paymentIntentId).trim() === String(pi.id).trim();
+
+  if (!matchesMetadata && !matchesStoredIntent) {
     throw new AppError('Payment does not match this order', 400);
   }
+
   const expectedCents = Math.round(Number(order.total) * 100);
-  if (pi.amount !== expectedCents) {
+  const piAmount = typeof pi.amount === 'number' ? pi.amount : Number(pi.amount);
+  if (!Number.isFinite(expectedCents) || !Number.isFinite(piAmount) || piAmount !== expectedCents) {
     throw new AppError('Payment amount does not match order total', 400);
   }
   if (pi.status !== 'succeeded') {

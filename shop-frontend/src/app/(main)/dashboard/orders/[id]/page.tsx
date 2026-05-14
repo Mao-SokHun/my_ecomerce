@@ -12,6 +12,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { t, paymentTypeForInvoice } from '@/lib/i18n';
 import { formatDate, formatPrice, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
 import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
@@ -370,6 +371,8 @@ export default function OrderDetailsPage() {
             const secret = data.data?.clientSecret as string | undefined;
             if (!secret) throw new Error('No client secret');
             setStripeCardSession({ clientSecret: secret, amount: order.total });
+            const { data: refreshed } = await orderApi.getById(order.id);
+            setOrder(refreshed.data);
           } catch {
             toast.error(language === 'zh' ? '无法开始支付' : language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់' : 'Failed to start payment');
           }
@@ -415,8 +418,11 @@ export default function OrderDetailsPage() {
       setOrder(orderData.data);
       const { data: invData } = await orderApi.getInvoice(order.id, language);
       setInvoice(invData.data);
-    } catch {
-      toast.error('Failed to confirm payment.');
+    } catch (error: unknown) {
+      const msg = axios.isAxiosError(error)
+        ? String((error.response?.data as { message?: string } | undefined)?.message || '')
+        : '';
+      toast.error(msg || 'Failed to confirm payment.');
     }
   };
 

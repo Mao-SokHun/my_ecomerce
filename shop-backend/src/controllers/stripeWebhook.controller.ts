@@ -41,13 +41,11 @@ export const handleStripeWebhook = async (req: Request, res: Response): Promise<
   try {
     if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object as Stripe.PaymentIntent;
-      const orderId = pi.metadata?.orderId;
-      if (!orderId) {
-        res.json({ received: true, ignored: true });
-        return;
+      const metaId = pi.metadata?.orderId != null ? String(pi.metadata.orderId).trim() : '';
+      let order = metaId ? await prisma.order.findUnique({ where: { id: metaId } }) : null;
+      if (!order && pi.id) {
+        order = await prisma.order.findFirst({ where: { paymentIntentId: pi.id } });
       }
-
-      const order = await prisma.order.findUnique({ where: { id: orderId } });
       if (!order) {
         res.json({ received: true, ignored: true });
         return;

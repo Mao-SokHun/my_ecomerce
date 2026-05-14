@@ -52,14 +52,12 @@ function CheckoutForm({
   amount,
   language,
   onSuccess,
-  onClose,
   setError,
 }: {
   returnUrl: string;
   amount: number;
   language: Lang;
   onSuccess: (paymentIntentId: string) => Promise<void>;
-  onClose: () => void;
   setError: (msg: string) => void;
 }) {
   const stripe = useStripe();
@@ -178,7 +176,6 @@ export function StripePaymentModal({
                 amount={amount}
                 language={language}
                 onSuccess={onSuccess}
-                onClose={onClose}
                 setError={setError}
               />
             </Elements>

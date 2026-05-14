@@ -392,7 +392,16 @@ export const confirmPayment = async (req: AuthRequest, res: Response, next: Next
       if (!paymentIntentId || paymentIntentId === 'mock_card_payment') {
         throw new AppError('A valid Stripe payment is required for card orders', 400);
       }
-      const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+      let paymentIntent;
+      try {
+        paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Could not verify payment with Stripe';
+        throw new AppError(
+          `Stripe could not load this payment (${msg}). Check that test/live keys match your Stripe Dashboard.`,
+          400
+        );
+      }
       assertPaymentIntentMatchesOrder(order, paymentIntent);
       await persistOrderPaidFromStripe(order.id, paymentIntent.id);
     } else {
