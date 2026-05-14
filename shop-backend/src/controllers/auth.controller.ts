@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import prisma from '../lib/prisma';
+import { allocateCartId } from '../lib/allocatePrefixedId';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 import { sendEmail, sendTelegramMessage } from '../lib/notifier';
@@ -260,7 +261,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     });
 
     // Create empty cart for new user
-    await prisma.cart.create({ data: { userId: user.id } });
+    await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
 
     const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
     notifyTelegramAuthEvent(req, user, 'REGISTER').catch((error) => {
@@ -372,7 +373,7 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
           emailVerified: true,
         },
       });
-      await prisma.cart.create({ data: { userId: user.id } });
+      await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else {
       const updates: { name?: string; avatar?: string | null } = {};
       if (name && user.name !== name) updates.name = name;
@@ -437,7 +438,7 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
           emailVerified: true,
         },
       });
-      await prisma.cart.create({ data: { userId: user.id } });
+      await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else if (!user.avatar && avatar) {
       user = await prisma.user.update({ where: { id: user.id }, data: { avatar } });
     }
