@@ -1,6 +1,7 @@
 -- Prisma uses @default(dbgenerated("next_prefixed_id(...)")) for string ids.
 -- Initial SQL init created TEXT id columns without DB defaults; Prisma then omits `id` on INSERT → null violation.
 -- This migration adds the function, sequences, and DEFAULT expressions (no data rewrite).
+-- ALTER runs only for tables that exist (production DBs may lag schema).
 
 CREATE OR REPLACE FUNCTION next_prefixed_id(prefix text, seq_name regclass)
 RETURNS text
@@ -32,24 +33,48 @@ CREATE SEQUENCE IF NOT EXISTS coupons_id_seq;
 CREATE SEQUENCE IF NOT EXISTS advertisements_id_seq;
 CREATE SEQUENCE IF NOT EXISTS seller_profiles_id_seq;
 
-ALTER TABLE "users" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('u', 'users_id_seq'::regclass);
-ALTER TABLE "leads" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('lead', 'leads_id_seq'::regclass);
-ALTER TABLE "newsletter_leads" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('nl', 'newsletter_leads_id_seq'::regclass);
-ALTER TABLE "support_inquiries" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('sup', 'support_inquiries_id_seq'::regclass);
-ALTER TABLE "addresses" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('addr', 'addresses_id_seq'::regclass);
-ALTER TABLE "kh_provinces" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('prov', 'kh_provinces_id_seq'::regclass);
-ALTER TABLE "kh_districts" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('dis', 'kh_districts_id_seq'::regclass);
-ALTER TABLE "kh_communes" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('cum', 'kh_communes_id_seq'::regclass);
-ALTER TABLE "kh_villages" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('vil', 'kh_villages_id_seq'::regclass);
-ALTER TABLE "categories" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('cate', 'categories_id_seq'::regclass);
-ALTER TABLE "products" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('pro', 'products_id_seq'::regclass);
-ALTER TABLE "product_variants" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('var', 'product_variants_id_seq'::regclass);
-ALTER TABLE "carts" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('cart', 'carts_id_seq'::regclass);
-ALTER TABLE "cart_items" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('ci', 'cart_items_id_seq'::regclass);
-ALTER TABLE "orders" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('ord', 'orders_id_seq'::regclass);
-ALTER TABLE "order_items" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('oi', 'order_items_id_seq'::regclass);
-ALTER TABLE "reviews" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('rev', 'reviews_id_seq'::regclass);
-ALTER TABLE "wishlists" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('wish', 'wishlists_id_seq'::regclass);
-ALTER TABLE "coupons" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('coup', 'coupons_id_seq'::regclass);
-ALTER TABLE "advertisements" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('ad', 'advertisements_id_seq'::regclass);
-ALTER TABLE "seller_profiles" ALTER COLUMN "id" SET DEFAULT next_prefixed_id('seller', 'seller_profiles_id_seq'::regclass);
+CREATE OR REPLACE FUNCTION __prisma_tmp_set_prefixed_default(p_table text, p_prefix text, p_seq text)
+RETURNS void
+LANGUAGE plpgsql
+AS $helper$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = p_table
+  ) THEN
+    EXECUTE format(
+      'ALTER TABLE %I.%I ALTER COLUMN id SET DEFAULT next_prefixed_id(%L, %I::regclass)',
+      'public',
+      p_table,
+      p_prefix,
+      p_seq
+    );
+  END IF;
+END;
+$helper$;
+
+SELECT __prisma_tmp_set_prefixed_default('users', 'u', 'users_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('leads', 'lead', 'leads_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('newsletter_leads', 'nl', 'newsletter_leads_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('support_inquiries', 'sup', 'support_inquiries_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('addresses', 'addr', 'addresses_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('kh_provinces', 'prov', 'kh_provinces_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('kh_districts', 'dis', 'kh_districts_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('kh_communes', 'cum', 'kh_communes_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('kh_villages', 'vil', 'kh_villages_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('categories', 'cate', 'categories_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('products', 'pro', 'products_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('product_variants', 'var', 'product_variants_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('carts', 'cart', 'carts_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('cart_items', 'ci', 'cart_items_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('orders', 'ord', 'orders_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('order_items', 'oi', 'order_items_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('reviews', 'rev', 'reviews_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('wishlists', 'wish', 'wishlists_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('coupons', 'coup', 'coupons_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('advertisements', 'ad', 'advertisements_id_seq');
+SELECT __prisma_tmp_set_prefixed_default('seller_profiles', 'seller', 'seller_profiles_id_seq');
+
+DROP FUNCTION __prisma_tmp_set_prefixed_default(text, text, text);
