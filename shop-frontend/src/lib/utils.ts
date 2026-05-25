@@ -108,7 +108,7 @@ export function normalizeImageListToFullUrls(imagesStr: string, baseUrl?: string
 }
 
 /** Same rules as shop-backend `displayName.ts` (Khmer/Latin names with spaces). */
-export const DISPLAY_NAME_PATTERN = /^[-\p{L}\p{M}\s'.]+$/u;
+export const DISPLAY_NAME_PATTERN = /^[-\p{L}\p{M}\s'.()]+$/u;
 
 const INVISIBLE_FORMAT_CHARS = /[\u200B-\u200D\uFEFF\u2060]/g;
 

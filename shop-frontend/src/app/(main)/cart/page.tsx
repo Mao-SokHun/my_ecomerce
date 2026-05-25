@@ -12,7 +12,7 @@ import { formatPrice } from '@/lib/utils';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import toast from 'react-hot-toast';
-import { orderApi } from '@/lib/api';
+import { orderApi, settingApi } from '@/lib/api';
 
 export default function CartPage() {
   const { cart, fetchCart, updateItem, removeItem, isLoading } = useCartStore();
@@ -21,13 +21,21 @@ export default function CartPage() {
   const router = useRouter();
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [shippingFee, setShippingFee] = useState<number>(2.0);
 
   useEffect(() => {
     fetchCart();
   }, [isAuthenticated, fetchCart]);
 
+  useEffect(() => {
+    settingApi.get().then(({ data }) => {
+      const d = data.data as { shippingFee?: number; shippingFeeVet?: number } | undefined;
+      setShippingFee(d?.shippingFeeVet ?? d?.shippingFee ?? 2.0);
+    }).catch(() => {});
+  }, []);
+
   const subtotal = cart?.cartTotal || 0;
-  const shipping = subtotal >= 50 ? 0 : 9.99;
+  const shipping = shippingFee;
   const total = subtotal + shipping;
 
   const applyCoupon = async () => {
@@ -148,11 +156,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {subtotal < 50 && (
-                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-xs text-green-700 dark:text-green-400">
-                  {t(language, 'addMoreForFreeShipping').replace('{amount}', formatPrice(50 - subtotal))}
-                </div>
-              )}
+              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-xs text-blue-700 dark:text-blue-400">
+                {language === 'km' ? 'ថ្លៃដឹកជញ្ជូនចុងក្រោយត្រូវបានគណនានៅពេលទូទាត់' : language === 'zh' ? '最终运费在结账时计算' : 'Final shipping calculated at checkout'}
+              </div>
 
               <button
                 type="button"

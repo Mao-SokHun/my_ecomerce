@@ -17,5 +17,76 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./shop-backend
+      dockerfile: Dockerfile
+    container_name: sh-shop-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:4944@postgres:5432/shopdb?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-string-at-least-32-chars}
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: production
+      PORT: 5000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      KHQR_PROVIDER: ${KHQR_PROVIDER:-mock}
+      KHQR_MERCHANT_NAME: ${KHQR_MERCHANT_NAME:-ShopHub Online Store}
+      KHQR_MERCHANT_CITY: ${KHQR_MERCHANT_CITY:-Phnom Penh}
+      KHQR_MERCHANT_ID: ${KHQR_MERCHANT_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_USER_BOT_TOKEN: ${TELEGRAM_USER_BOT_TOKEN:-}
+      TELEGRAM_USER_CHAT_ID: ${TELEGRAM_USER_CHAT_ID:-}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-}
+    ports:
+      - '5000:5000'
+    volumes:
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./shop-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+    container_name: sh-shop-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      BACKEND_PROXY_TARGET: http://backend:5000
+    ports:
+      - '3000:3000'
+
+  nginx:
+    image: nginx:alpine
+    container_name: sh-shop-nginx
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   sh_shop_pgdata:
+  backend_uploads:

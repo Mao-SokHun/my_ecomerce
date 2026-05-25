@@ -70,6 +70,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'via.placeholder.com' },
       { protocol: 'https', hostname: 'example.com' },
       { protocol: 'https', hostname: 'shop.switch.com.my' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'quickchart.io' },
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: '127.0.0.1' },
       ...(apiImageHost ? [apiImageHost] : []),

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle } from 'lucide-react';
-import Image from 'next/image';
 import { Invoice, Order } from '@/types';
 import { orderApi, paymentApi, settingApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -648,12 +647,12 @@ export default function OrderDetailsPage() {
             </h3>
             <p className="text-sm text-gray-500 mb-4">{t(language, 'total')}: <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(khqrPayment.amount, language)}</span></p>
             
-            <div className="relative w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200 overflow-hidden shadow-inner">
-              <Image 
-                src={khqrPayment.qrImageUrl} 
-                alt="KHQR Payment" 
-                fill 
-                className="object-contain p-2" 
+            <div className="relative w-full aspect-square bg-white rounded-2xl p-4 border border-gray-200 overflow-hidden shadow-inner flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={khqrPayment.qrImageUrl}
+                alt="KHQR Payment"
+                className="w-full h-full object-contain p-2"
               />
             </div>
             

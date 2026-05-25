@@ -976,12 +976,12 @@ export default function CheckoutPage() {
               {language === 'km' ? 'ចំនួនទឹកប្រាក់' : language === 'zh' ? '金额' : 'Amount'}:{' '}
               <span className="font-semibold text-gray-900 dark:text-white">{formatPrice(khqrPayment.amount)}</span>
             </p>
-            <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden">
-              <Image 
-                src={khqrPayment.qrImageUrl} 
-                alt="KHQR Payment" 
-                fill 
-                className="object-contain p-2" 
+            <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={khqrPayment.qrImageUrl}
+                alt="KHQR Payment"
+                className="w-full h-full object-contain p-2"
               />
             </div>
             <p className="text-xs text-gray-500 mt-2">

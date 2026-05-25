@@ -220,7 +220,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const displayName = normalizeDisplayName(String(name));
     if (!displayName || !DISPLAY_NAME_PATTERN.test(displayName)) {
       throw new AppError(
-        'Name may only include letters (any script), spaces, hyphens (-), apostrophes, and periods',
+        'Name may only include letters (any script), spaces, hyphens (-), apostrophes, periods, and parentheses',
         400
       );
     }
@@ -502,7 +502,7 @@ export const updateProfile = async (
       if (!displayName) throw new AppError('Name is required', 400);
       if (!DISPLAY_NAME_PATTERN.test(displayName)) {
         throw new AppError(
-          'Name may only include letters (any script), spaces, hyphens (-), apostrophes, and periods',
+          'Name may only include letters (any script), spaces, hyphens (-), apostrophes, periods, and parentheses',
           400
         );
       }
