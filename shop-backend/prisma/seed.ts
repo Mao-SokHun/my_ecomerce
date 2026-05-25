@@ -689,13 +689,32 @@ async function main() {
   console.log(`✅ Created ${8 + subcategories.length} categories/subcategories`);
 
   // Admin user
-  const adminPassword = await bcrypt.hash('Admin@12345', 12);
+  const adminEmail =
+    process.env.ADMIN_EMAIL?.trim() ||
+    (process.env.NODE_ENV === 'production' ? '' : 'admin@shop.com');
+  const adminPlainPassword =
+    process.env.ADMIN_PASSWORD?.trim() ||
+    (process.env.NODE_ENV === 'production' ? '' : 'Admin@12345');
+
+  if (!adminEmail || !adminPlainPassword) {
+    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD are required when seeding in production.');
+  }
+  if (process.env.NODE_ENV === 'production' && adminPlainPassword.length < 12) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters in production.');
+  }
+
+  const adminPassword = await bcrypt.hash(adminPlainPassword, 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@shop.com' },
-    update: {},
+    where: { email: adminEmail },
+    update: {
+      password: adminPassword,
+      role: 'ADMIN',
+      isActive: true,
+      emailVerified: true,
+    },
     create: {
       name: 'Admin User',
-      email: 'admin@shop.com',
+      email: adminEmail,
       password: adminPassword,
       role: 'ADMIN',
       emailVerified: true,
@@ -733,27 +752,34 @@ async function main() {
   console.log('✅ Created admin and demo users');
 
   // Sample address
-  await prisma.address.upsert({
-    where: { id: 'seed-address-1' },
-    update: {},
-    create: {
-      id: 'seed-address-1',
+  const existingDemoAddress = await prisma.address.findFirst({
+    where: {
       userId: demoUser.id,
       name: 'John Doe',
       phone: '+1 555-0100',
-      province: 'Phnom Penh',
-      district: 'Sen Sok',
-      commune: 'Phnom Penh Thmei',
-      village: 'Borey Area',
-      roadNumber: '271',
-      street: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      country: 'US',
-      zipCode: '10001',
-      isDefault: true,
     },
   });
+
+  if (!existingDemoAddress) {
+    await prisma.address.create({
+      data: {
+        userId: demoUser.id,
+        name: 'John Doe',
+        phone: '+1 555-0100',
+        province: 'Phnom Penh',
+        district: 'Sen Sok',
+        commune: 'Phnom Penh Thmei',
+        village: 'Borey Area',
+        roadNumber: '271',
+        street: '123 Main Street',
+        city: 'New York',
+        state: 'NY',
+        country: 'US',
+        zipCode: '10001',
+        isDefault: true,
+      },
+    });
+  }
 
   // Products
   const products = [

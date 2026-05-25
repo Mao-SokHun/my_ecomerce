@@ -128,7 +128,10 @@ function ProductsContent() {
   }, [filters.page]);
 
   useEffect(() => {
-    categoryApi.getAll().then(({ data }) => setCategories(data.data || []));
+    categoryApi
+      .getAll()
+      .then(({ data }) => setCategories(data.data || []))
+      .catch(() => setCategories([]));
   }, []);
 
   const updateFilter = (key: string, value: unknown) => {

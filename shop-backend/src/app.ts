@@ -24,6 +24,7 @@ import supportRoutes from './routes/support.routes';
 import leadRoutes from './routes/lead.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { checkDatabaseHealth } from './lib/prisma';
+import { handleStripeWebhook } from './controllers/stripeWebhook.controller';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -33,6 +34,21 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
   .map((o) => o.trim())
   .filter(Boolean);
 
+const allowVercelPreviewOrigins = ['1', 'true', 'yes'].includes(
+  String(process.env.CORS_ALLOW_VERCEL || '').trim().toLowerCase()
+);
+
+function isAllowedVercelOrigin(origin: string): boolean {
+  if (!allowVercelPreviewOrigins) return false;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'https:') return false;
+    return hostname === 'vercel.app' || hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+}
+
 // Security & middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
@@ -41,6 +57,7 @@ app.use(
       // Allow non-browser clients and server-to-server requests.
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (isAllowedVercelOrigin(origin)) return callback(null, true);
       // Dev: allow same machine on LAN (e.g. http://192.168.x.x:3000) when testing from phone / network IP.
       if (process.env.NODE_ENV !== 'production' && origin) {
         try {
@@ -67,6 +84,8 @@ app.use(cookieParser());
 
 /** Product images uploaded when Cloudinary is off — URL path is /uploads/{folder}/{file} */
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+/** Stripe webhooks require the raw body for signature verification (must be before express.json). */
+app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 /** JSON bodies only; file uploads use multipart with separate limits. */
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));

@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
+import { allocateCartId, allocateCartItemId } from '../lib/allocatePrefixedId';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 
@@ -27,7 +28,7 @@ export const getCart = async (req: AuthRequest, res: Response, next: NextFunctio
 
     if (!cart) {
       cart = await prisma.cart.create({
-        data: { userId: req.user!.id },
+        data: { id: await allocateCartId(), userId: req.user!.id },
         include: { items: { include: { product: true } } },
       });
     }
@@ -60,7 +61,7 @@ export const addToCart = async (req: AuthRequest, res: Response, next: NextFunct
 
     let cart = await prisma.cart.findUnique({ where: { userId: req.user!.id } });
     if (!cart) {
-      cart = await prisma.cart.create({ data: { userId: req.user!.id } });
+      cart = await prisma.cart.create({ data: { id: await allocateCartId(), userId: req.user!.id } });
     }
 
     const variantIdValue: string | null = variantId ? String(variantId) : null;
@@ -79,7 +80,13 @@ export const addToCart = async (req: AuthRequest, res: Response, next: NextFunct
       });
     } else {
       await prisma.cartItem.create({
-        data: { cartId: cart.id, productId: String(productId), quantity, variantId: variantIdValue ?? undefined },
+        data: {
+          id: await allocateCartItemId(),
+          cartId: cart.id,
+          productId: String(productId),
+          quantity,
+          variantId: variantIdValue ?? undefined,
+        },
       });
     }
 
