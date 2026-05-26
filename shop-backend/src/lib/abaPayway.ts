@@ -80,7 +80,7 @@ export function buildCheckoutPayload(req: AbaPaymentRequest) {
     currency,
     merchant_id: merchantId,
     req_time: reqTime,
-    payment_option: 'abapay_deeplink cards abapay',
+    payment_option: 'abapay cards',
     type: 'purchase',
     api_url: ABA_API_URL,
   };
