@@ -98,7 +98,7 @@ export function HeroBanner() {
   const slide = renderedSlides[current];
 
   return (
-    <section className={`relative min-h-[85vh] bg-gradient-to-br ${slide.bg} overflow-hidden transition-all duration-500 ease-smooth-out`}>
+    <section className={`relative min-h-[70vh] sm:min-h-[85vh] bg-gradient-to-br ${slide.bg} overflow-hidden transition-all duration-500 ease-smooth-out`}>
       {/* Background image */}
       <div
         className="pointer-events-none absolute inset-0 opacity-10 bg-cover bg-center transition-all duration-500 ease-smooth-out"
@@ -116,7 +116,7 @@ export function HeroBanner() {
       <div className="pointer-events-none absolute bottom-10 left-10 w-64 h-64 rounded-full blur-3xl opacity-15"
         style={{ backgroundColor: slide.accent }} />
 
-      <div className="relative z-10 page-container flex flex-col justify-center min-h-[85vh] pb-20">
+      <div className="relative z-10 page-container flex flex-col justify-center min-h-[70vh] sm:min-h-[85vh] pb-16 sm:pb-20">
         <AnimatePresence mode="wait">
           <motion.div
             key={slide.id}
@@ -130,7 +130,7 @@ export function HeroBanner() {
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.06, duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
+              className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6"
               style={{ backgroundColor: `${slide.accent}33`, color: slide.accent, border: `1px solid ${slide.accent}55` }}
             >
               <Sparkles className="w-4 h-4" />
@@ -141,7 +141,7 @@ export function HeroBanner() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl sm:text-6xl lg:text-8xl font-black text-white leading-[1.1] tracking-normal"
+              className="text-3xl sm:text-5xl lg:text-7xl xl:text-8xl font-black text-white leading-[1.1] tracking-normal"
             >
               {slide.title}
               <br />
@@ -152,7 +152,7 @@ export function HeroBanner() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="text-xl text-white/70 mt-8 leading-relaxed max-w-lg font-medium"
+              className="text-sm sm:text-xl text-white/70 mt-4 sm:mt-8 leading-relaxed max-w-lg font-medium"
             >
               {slide.description}
             </motion.p>
@@ -161,11 +161,11 @@ export function HeroBanner() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.28, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-wrap gap-4 mt-10"
+              className="flex flex-wrap gap-3 sm:gap-4 mt-6 sm:mt-10"
             >
               <Link
                 href={slide.ctaHref}
-                className="btn-primary px-8 py-4 text-lg active:scale-95 group"
+                className="btn-primary px-6 py-3 text-sm sm:px-8 sm:py-4 sm:text-lg active:scale-95 group"
                 style={{ backgroundColor: slide.accent }}
               >
                 {slide.cta} 
@@ -173,7 +173,7 @@ export function HeroBanner() {
               </Link>
               <Link
                 href="/products"
-                className="btn-secondary px-8 py-4 text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white transition-all duration-200 ease-smooth-out motion-reduce:transition-none"
+                className="btn-secondary px-6 py-3 text-sm sm:px-8 sm:py-4 sm:text-lg bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white transition-all duration-200 ease-smooth-out motion-reduce:transition-none"
               >
                 {t(language, 'browseAll')}
               </Link>
@@ -184,7 +184,7 @@ export function HeroBanner() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.38, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-wrap gap-8 mt-12"
+              className="flex flex-wrap gap-5 sm:gap-8 mt-8 sm:mt-12"
             >
               {[
                 { value: '10K+', label: t(language, 'statProducts') },
@@ -192,8 +192,8 @@ export function HeroBanner() {
                 { value: '4.9★', label: t(language, 'statRating') },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-sm text-white/50">{stat.label}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs sm:text-sm text-white/50">{stat.label}</p>
                 </div>
               ))}
             </motion.div>

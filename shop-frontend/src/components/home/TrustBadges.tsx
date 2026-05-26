@@ -36,22 +36,22 @@ export function TrustBadges() {
   if (!cards || cards.length === 0) return null;
 
   return (
-    <section className="py-8 page-container">
-      <div className="grid gap-4 grid-cols-2 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+    <section className="py-5 sm:py-8 page-container">
+      <div className="grid gap-2.5 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
         {cards.map((card, i) => {
           const Icon = resolveTrustBadgeIcon(card.iconKey);
           const { title, desc } = pickText(card, language);
           return (
             <div
               key={`${card.iconKey}-${i}`}
-              className="flex items-center gap-4 p-4 bg-white dark:bg-surface-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
+              className="flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 bg-white dark:bg-surface-900 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
             >
-              <div className="w-11 h-11 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-primary-600" aria-hidden />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 bg-primary-50 dark:bg-primary-900/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{title}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
+                <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight">{title}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 leading-tight mt-0.5">{desc}</p>
               </div>
             </div>
           );

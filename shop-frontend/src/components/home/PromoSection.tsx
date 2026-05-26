@@ -75,12 +75,12 @@ export function PromoSection() {
     [adminPromoCards, language]
   );
   return (
-    <section className="py-16 page-container">
-      <div className="grid md:grid-cols-2 gap-6">
+    <section className="py-10 sm:py-16 page-container">
+      <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
         {cards.slice(0, 2).map((card, idx) => (
           <div
             key={`${card.title}-${idx}`}
-            className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo} p-8 text-white`}
+            className={`relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo} p-5 sm:p-8 text-white`}
             style={
               card.gradientFromColor && card.gradientToColor
                 ? { backgroundImage: `linear-gradient(135deg, ${card.gradientFromColor}, ${card.gradientToColor})` }
@@ -99,8 +99,8 @@ export function PromoSection() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-medium mb-4">
                 <Tag className="w-3.5 h-3.5" /> {card.tag}
               </span>
-              <h3 className="text-2xl font-bold mb-2">{card.title}</h3>
-              <p className="text-white/80 text-sm mb-5">{card.description}</p>
+              <h3 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2">{card.title}</h3>
+              <p className="text-white/80 text-xs sm:text-sm mb-4 sm:mb-5">{card.description}</p>
               <Link
                 href={card.ctaHref}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-primary-700 font-semibold text-sm rounded-xl hover:bg-primary-50 transition-colors"

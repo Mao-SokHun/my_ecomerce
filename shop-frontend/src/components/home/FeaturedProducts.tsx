@@ -25,9 +25,9 @@ export function FeaturedProducts() {
 
   if (loading) {
     return (
-      <section className="py-16 page-container">
-        <div className="h-8 w-48 bg-gray-100 dark:bg-surface-800 rounded-lg mb-8 animate-pulse" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+      <section className="py-10 sm:py-16 page-container">
+        <div className="h-6 sm:h-8 w-40 sm:w-48 bg-gray-100 dark:bg-surface-800 rounded-lg mb-5 sm:mb-8 animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <ProductSkeleton key={`featured-skeleton-${i}`} />
           ))}
@@ -37,13 +37,13 @@ export function FeaturedProducts() {
   }
 
   return (
-    <section className="py-16 page-container">
-      <div className="flex items-end justify-between mb-8">
+    <section className="py-10 sm:py-16 page-container">
+      <div className="flex items-end justify-between mb-5 sm:mb-8">
         <div>
-          <p className="text-sm font-semibold text-primary-600 mb-1 flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4" /> {t(language, 'trending')}
+          <p className="text-xs sm:text-sm font-semibold text-primary-600 mb-0.5 sm:mb-1 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {t(language, 'trending')}
           </p>
-          <h2 className="section-title">{t(language, 'featuredProducts')}</h2>
+          <h2 className="section-title text-xl sm:text-2xl">{t(language, 'featuredProducts')}</h2>
         </div>
         <Link
           href="/products?featured=true"
@@ -53,7 +53,7 @@ export function FeaturedProducts() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
         {products.map((product, i) => (
           <motion.div
             key={product.id}
@@ -67,8 +67,8 @@ export function FeaturedProducts() {
         ))}
       </div>
 
-      <div className="text-center mt-10">
-        <Link href="/products" className="btn-secondary inline-flex">
+      <div className="text-center mt-6 sm:mt-10">
+        <Link href="/products" className="btn-secondary inline-flex text-sm sm:text-base">
           {t(language, 'browseAllProducts')} <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

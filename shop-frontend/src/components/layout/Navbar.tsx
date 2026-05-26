@@ -444,75 +444,125 @@ export function Navbar() {
         {/* Mobile menu */}
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0, scale: 0.95 }}
-              animate={{ opacity: 1, height: 'auto', scale: 1 }}
-              exit={{ opacity: 0, height: 0, scale: 0.95 }}
-              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:hidden glass shadow-premium rounded-3xl mt-2 mx-2 py-4 space-y-1 overflow-hidden z-50 origin-top"
-            >
-              <div className="flex flex-col gap-1 px-2">
-                <Link
-                  href="/"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-bold text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 rounded-2xl transition-all duration-200 ease-smooth-out"
-                >
-                  {t(language, 'navHome')}
-                </Link>
-                <Link
-                  href="/products"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-bold text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 rounded-2xl transition-all duration-200 ease-smooth-out"
-                >
-                  {t(language, 'navShop')}
-                </Link>
-                <div className="ml-4 pl-4 border-l-2 border-gray-100 dark:border-gray-800 space-y-1">
-                  {shopNavCategories.map((cat) => {
-                    const href = `/products?category=${encodeURIComponent(cat.slug)}`;
-                    return (
-                      <Link
-                        key={cat.slug}
-                        href={href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-primary-600 transition-colors duration-200 ease-smooth-out"
-                      >
-                        <span className="text-base leading-none w-7 flex justify-center shrink-0" aria-hidden>
-                          {shopCategoryIcon(cat.slug)}
-                        </span>
-                        <span>{shopCategoryLabel(language, cat.slug, cat.name)}</span>
-                      </Link>
-                    );
-                  })}
+            <>
+              {/* Backdrop overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="lg:hidden fixed inset-0 top-16 bg-black/30 backdrop-blur-sm z-40"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="lg:hidden fixed left-3 right-3 top-[4.5rem] bg-white dark:bg-surface-900 shadow-2xl rounded-2xl overflow-hidden z-50 origin-top max-h-[calc(100vh-5.5rem)] overflow-y-auto"
+              >
+                {/* Navigation links */}
+                <div className="px-4 pt-5 pb-3">
+                  <div className="flex gap-2">
+                    <Link
+                      href="/"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20 dark:hover:text-primary-400 rounded-xl transition-all duration-200"
+                    >
+                      {t(language, 'navHome')}
+                    </Link>
+                    <Link
+                      href="/products?featured=true"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20 dark:hover:text-primary-400 rounded-xl transition-all duration-200"
+                    >
+                      {t(language, 'navDeals')}
+                    </Link>
+                  </div>
                 </div>
-                <Link
-                  href="/products?featured=true"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-base font-bold text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 rounded-2xl transition-all duration-200 ease-smooth-out"
-                >
-                  {t(language, 'navDeals')}
-                </Link>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-100 dark:bg-gray-800 mx-4" />
+
+                {/* Category section */}
+                <div className="px-4 pt-4 pb-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                      {t(language, 'navShop')}
+                    </h3>
+                    <Link
+                      href="/products"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-xs font-medium text-primary-600 dark:text-primary-400"
+                    >
+                      {t(language, 'viewAll')} →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {shopNavCategories.map((cat, idx) => {
+                      const href = `/products?category=${encodeURIComponent(cat.slug)}`;
+                      return (
+                        <motion.div
+                          key={cat.slug}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03, duration: 0.2 }}
+                        >
+                          <Link
+                            href={href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-2.5 px-3 py-3 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl text-gray-700 dark:text-gray-300 transition-all duration-200"
+                          >
+                            <span className="text-lg leading-none w-6 flex justify-center shrink-0" aria-hidden>
+                              {shopCategoryIcon(cat.slug)}
+                            </span>
+                            <span className="text-sm font-medium leading-tight truncate">
+                              {shopCategoryLabel(language, cat.slug, cat.name)}
+                            </span>
+                          </Link>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-100 dark:bg-gray-800 mx-4 mt-2" />
+
+                {/* Language selector (mobile) */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {languageOptions.map((option) => (
+                      <button
+                        key={`mobile-lang-${option.value}`}
+                        type="button"
+                        onClick={() => setLanguage(option.value)}
+                        className={`flex-1 py-2 text-sm font-medium rounded-xl text-center transition-all duration-200 ${
+                          language === option.value
+                            ? 'bg-primary-600 text-white shadow-sm'
+                            : 'bg-gray-50 dark:bg-surface-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sign in button for unauthenticated */}
                 {!isAuthenticated && (
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{
-                      delay: 0.05 * Math.max(shopNavCategories.length, 4),
-                      duration: 0.2,
-                      ease: [0.16, 1, 0.3, 1],
-                    }}
-                    className="pt-2 px-2"
-                  >
+                  <div className="px-4 pb-5">
                     <Link
                       href="/login"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="btn-primary w-full py-3 shadow-lg"
+                      className="btn-primary w-full py-3 rounded-xl text-center font-semibold shadow-lg block"
                     >
                       {t(language, 'signIn')}
                     </Link>
-                  </motion.div>
+                  </div>
                 )}
-              </div>
-            </motion.div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
         </NavbarSearchProvider>
