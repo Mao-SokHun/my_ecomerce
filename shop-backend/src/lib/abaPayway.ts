@@ -17,10 +17,10 @@ export function isAbaConfigured(): boolean {
 }
 
 /**
- * Generate HMAC-SHA512 hash for ABA PayWay request signing.
- * ABA requires: hash = HMAC-SHA512(reqTime + merchantId + transactionId + amount + items + ..., apiKey)
+ * ABA PayWay HMAC-SHA512 hash.
+ * Key = API Key, output = base64.
  */
-export function generateHash(dataString: string): string {
+function generateHash(dataString: string): string {
   return crypto
     .createHmac('sha512', getApiKey())
     .update(dataString)
@@ -43,24 +43,33 @@ export interface AbaPaymentRequest {
 
 /**
  * Build the form data payload for ABA PayWay checkout.
- * The frontend should POST this data to the ABA checkout URL or render the ABA form.
+ *
+ * Hash fields (exact order per ABA SDK):
+ *   req_time + merchant_id + tran_id + amount + items + currency
+ *   + type + payment_option + return_url + cancel_url
+ *   + continue_success_url + return_deeplink
  */
 export function buildCheckoutPayload(req: AbaPaymentRequest) {
   const merchantId = getMerchantId();
   const reqTime = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
   const currency = req.currency || 'USD';
+  const type = 'purchase';
+  const paymentOption = 'abapay cards';
+  const returnDeeplink = '';
 
-  const hashString = reqTime
-    + merchantId
-    + req.transactionId
-    + req.amount
-    + req.items
-    + currency
-    + req.firstName
-    + req.lastName
-    + req.email
-    + req.phone
-    + 'purchase';
+  const hashString =
+    reqTime +
+    merchantId +
+    req.transactionId +
+    req.amount +
+    req.items +
+    currency +
+    type +
+    paymentOption +
+    req.returnUrl +
+    req.cancelUrl +
+    req.returnUrl +
+    returnDeeplink;
 
   const hash = generateHash(hashString);
 
@@ -80,14 +89,14 @@ export function buildCheckoutPayload(req: AbaPaymentRequest) {
     currency,
     merchant_id: merchantId,
     req_time: reqTime,
-    payment_option: 'abapay cards',
-    type: 'purchase',
+    payment_option: paymentOption,
+    type,
     api_url: ABA_API_URL,
   };
 }
 
 /**
- * Verify the push notification / callback hash from ABA PayWay.
+ * Verify callback hash from ABA PayWay push notification.
  */
 export function verifyCallbackHash(transactionId: string, amount: string, receivedHash: string): boolean {
   const merchantId = getMerchantId();
@@ -98,6 +107,7 @@ export function verifyCallbackHash(transactionId: string, amount: string, receiv
 
 /**
  * Check transaction status with ABA PayWay API.
+ * Hash fields: req_time + merchant_id + tran_id
  */
 export async function checkTransactionStatus(transactionId: string): Promise<{
   status: number;
