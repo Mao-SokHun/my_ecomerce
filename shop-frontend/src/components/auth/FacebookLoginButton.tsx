@@ -67,25 +67,27 @@ export function FacebookLoginButton({ redirectTo }: Props) {
     setLoading(true);
 
     window.FB.login(
-      async (response) => {
+      (response) => {
         const token = response.authResponse?.accessToken;
         if (!token) {
           setLoading(false);
           return;
         }
 
-        try {
-          await loginWithFacebook(token);
-          toast.success(t(language, 'facebookLoginSuccess'));
-          router.push(redirectTo);
-        } catch (error: unknown) {
-          const msg = axios.isAxiosError(error)
-            ? (error.response?.data as { message?: string } | undefined)?.message
-            : undefined;
-          toast.error(msg || t(language, 'facebookLoginFailed'));
-        } finally {
-          setLoading(false);
-        }
+        loginWithFacebook(token)
+          .then(() => {
+            toast.success(t(language, 'facebookLoginSuccess'));
+            router.push(redirectTo);
+          })
+          .catch((error: unknown) => {
+            const msg = axios.isAxiosError(error)
+              ? (error.response?.data as { message?: string } | undefined)?.message
+              : undefined;
+            toast.error(msg || t(language, 'facebookLoginFailed'));
+          })
+          .finally(() => {
+            setLoading(false);
+          });
       },
       { scope: 'public_profile,email' }
     );
