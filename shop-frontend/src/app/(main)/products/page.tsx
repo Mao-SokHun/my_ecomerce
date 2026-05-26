@@ -326,7 +326,7 @@ function ProductsContent() {
 
       {/* Products grid */}
       {loading ? (
-        <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'}`}>
+        <div className={`grid gap-3 sm:gap-5 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'}`}>
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={`products-skeleton-${i}`} className="card animate-pulse">
               <div className="aspect-square bg-gray-200 dark:bg-gray-800" />
@@ -348,7 +348,7 @@ function ProductsContent() {
           <button onClick={clearFilters} className="btn-primary text-sm">{t(language, 'productsClearFilters')}</button>
         </div>
       ) : (
-        <div className={`grid gap-5 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'}`}>
+        <div className={`grid gap-3 sm:gap-5 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'}`}>
           {products.map((product, i) => (
             <motion.div
               key={product.id}

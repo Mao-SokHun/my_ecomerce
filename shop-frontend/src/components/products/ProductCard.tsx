@@ -162,17 +162,17 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       </div>
 
       {/* Info */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4 space-y-1.5">
         {product.brand && (
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">{product.brand}</p>
+          <p className="text-[11px] sm:text-xs font-medium text-gray-400 uppercase tracking-wide">{product.brand}</p>
         )}
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 ease-smooth-out">
+        <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 transition-colors duration-200 ease-smooth-out">
           {product.name}
         </h3>
 
         {/* Rating */}
         {product.reviewCount > 0 && (
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <div className="flex items-center gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
@@ -181,24 +181,24 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
                 />
               ))}
             </div>
-            <span className="text-xs text-gray-400">({product.reviewCount})</span>
+            <span className="text-[11px] sm:text-xs text-gray-400">({product.reviewCount})</span>
           </div>
         )}
 
         {/* Price */}
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5">
+          <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
             {formatPrice(product.price)}
           </span>
           {product.comparePrice && product.comparePrice > product.price && (
-            <span className="text-sm text-gray-400 line-through">
+            <span className="text-xs sm:text-sm text-gray-400 line-through">
               {formatPrice(product.comparePrice)}
             </span>
           )}
         </div>
 
         {product.stock > 0 && product.stock <= 10 && (
-          <p className="text-xs text-orange-500 mt-1">{t(language, 'onlyLeft').replace('{count}', String(product.stock))}</p>
+          <p className="text-[11px] sm:text-xs text-orange-500">{t(language, 'onlyLeft').replace('{count}', String(product.stock))}</p>
         )}
       </div>
     </motion.div>
