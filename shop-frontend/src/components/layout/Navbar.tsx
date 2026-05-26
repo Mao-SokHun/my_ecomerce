@@ -361,7 +361,9 @@ export function Navbar() {
                     >
                       <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        {user.email && !user.email.startsWith('fb_') && (
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        )}
                       </div>
                       <div className="py-1">
                         <Link
