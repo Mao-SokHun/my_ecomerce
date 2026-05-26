@@ -5,6 +5,8 @@ import { AppError } from '../middleware/errorHandler';
 import { createKhqrForOrder, verifyKhqrWebhookSignature } from '../lib/khqr';
 import { sendInvoiceNotification } from '../lib/invoice';
 import { notifyAdminOrderEvent } from '../lib/adminNotifier';
+import { isAbaConfigured, buildCheckoutPayload, verifyCallbackHash, checkTransactionStatus } from '../lib/abaPayway';
+import { isWebhookReplay } from '../middleware/security';
 import path from 'path';
 
 export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -130,6 +132,13 @@ export const khqrWebhook = async (req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    const webhookKey = payload.reference || payload.orderNumber || payload.transactionId || '';
+    if (webhookKey && isWebhookReplay('khqr', webhookKey)) {
+      console.warn('[KHQR] Duplicate webhook blocked for:', webhookKey);
+      res.json({ success: true, message: 'Already processed' });
+      return;
+    }
+
     const order = await prisma.order.findFirst({
       where: payload.reference
         ? { khqrRef: payload.reference }
@@ -175,6 +184,182 @@ export const mockConfirmKhqrPayment = async (req: AuthRequest, res: Response, ne
     sendInvoiceNotification(order.id).catch((err) => console.error('[KHQR] Invoice notification failed', err));
     notifyAdminOrderEvent(order.id, 'PAYMENT_PAID').catch((err) => console.error('[KHQR] Admin payment notification failed', err));
     res.json({ success: true, message: 'Mock KHQR payment confirmed' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* ─────────────── ABA PayWay ─────────────── */
+
+export const createAbaPayment = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!isAbaConfigured()) throw new AppError('ABA PayWay is not configured', 503);
+
+    const { orderId } = req.body as { orderId?: string };
+    if (!orderId) throw new AppError('orderId is required', 400);
+
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, userId: req.user!.id },
+      include: {
+        user: { select: { name: true, email: true, phone: true } },
+        items: { include: { product: { select: { name: true } } } },
+      },
+    });
+
+    if (!order) throw new AppError('Order not found', 404);
+    if (order.paymentStatus === 'PAID') throw new AppError('Order already paid', 400);
+    if (order.status === 'CANCELLED' || order.status === 'REFUNDED') {
+      throw new AppError('This order cannot be paid', 400);
+    }
+
+    if (order.paymentMethod !== 'aba') {
+      await prisma.order.update({ where: { id: order.id }, data: { paymentMethod: 'aba' } });
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const backendUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:4000';
+
+    const nameParts = (order.user.name || 'Customer').split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
+    const itemsSummary = Buffer.from(
+      JSON.stringify(order.items.map(i => ({
+        name: i.product.name,
+        quantity: i.quantity,
+        price: Number(i.price),
+      })))
+    ).toString('base64');
+
+    const payload = buildCheckoutPayload({
+      transactionId: order.orderNumber,
+      amount: Number(order.total).toFixed(2),
+      firstName,
+      lastName,
+      phone: order.user.phone || '',
+      email: order.user.email || '',
+      items: itemsSummary,
+      returnUrl: `${frontendUrl}/dashboard/orders/${order.id}?aba=success`,
+      cancelUrl: `${frontendUrl}/dashboard/orders/${order.id}?aba=cancelled`,
+      callbackUrl: `${backendUrl}/api/payments/aba/callback`,
+      currency: 'USD',
+    });
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentIntentId: `aba_${order.orderNumber}` },
+    });
+
+    res.json({ success: true, data: payload });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const abaCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { tran_id, status, amount, hash } = req.body as {
+      tran_id?: string;
+      status?: string;
+      amount?: string;
+      hash?: string;
+    };
+
+    console.log('[ABA] Callback received:', { tran_id, status, amount });
+
+    if (!tran_id) {
+      res.status(400).json({ success: false, message: 'Missing tran_id' });
+      return;
+    }
+
+    if (isWebhookReplay('aba', tran_id)) {
+      console.warn('[ABA] Duplicate callback blocked for tran_id:', tran_id);
+      res.json({ success: true, message: 'Already processed' });
+      return;
+    }
+
+    const order = await prisma.order.findFirst({
+      where: { orderNumber: tran_id },
+    });
+
+    if (!order) {
+      console.error('[ABA] Order not found for tran_id:', tran_id);
+      res.status(404).json({ success: false, message: 'Order not found' });
+      return;
+    }
+
+    if (hash && amount && !verifyCallbackHash(tran_id, amount, hash)) {
+      console.error('[ABA] Invalid callback hash for tran_id:', tran_id);
+      res.status(401).json({ success: false, message: 'Invalid hash' });
+      return;
+    }
+
+    const isPaid = String(status || '').toUpperCase() === '0' || String(status || '').toUpperCase() === 'APPROVED';
+
+    if (isPaid && order.paymentStatus !== 'PAID') {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: 'PAID',
+          status: 'CONFIRMED',
+        },
+      });
+
+      sendInvoiceNotification(order.id).catch(err => console.error('[ABA] Invoice notification failed', err));
+      notifyAdminOrderEvent(order.id, 'PAYMENT_PAID').catch(err => console.error('[ABA] Admin notification failed', err));
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkAbaPaymentStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!isAbaConfigured()) throw new AppError('ABA PayWay is not configured', 503);
+
+    const orderId = String(req.params.orderId);
+    const order = await prisma.order.findFirst({
+      where: req.user!.role === 'ADMIN' ? { id: orderId } : { id: orderId, userId: req.user!.id },
+      select: { id: true, orderNumber: true, paymentStatus: true, paymentMethod: true },
+    });
+
+    if (!order) throw new AppError('Order not found', 404);
+
+    if (order.paymentStatus === 'PAID') {
+      res.json({ success: true, data: { status: 'PAID', orderId: order.id } });
+      return;
+    }
+
+    try {
+      const abaStatus = await checkTransactionStatus(order.orderNumber);
+      const isPaid = abaStatus.status === 0;
+
+      if (isPaid) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { paymentStatus: 'PAID', status: 'CONFIRMED' },
+        });
+        sendInvoiceNotification(order.id).catch(err => console.error('[ABA] Invoice notification failed', err));
+        notifyAdminOrderEvent(order.id, 'PAYMENT_PAID').catch(err => console.error('[ABA] Admin notification failed', err));
+      }
+
+      res.json({
+        success: true,
+        data: {
+          status: isPaid ? 'PAID' : 'PENDING',
+          orderId: order.id,
+          abaStatus: abaStatus.description,
+        },
+      });
+    } catch (abaErr) {
+      console.error('[ABA] Check transaction API error', abaErr);
+      res.json({
+        success: true,
+        data: { status: order.paymentStatus, orderId: order.id },
+      });
+    }
   } catch (error) {
     next(error);
   }

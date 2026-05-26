@@ -50,7 +50,15 @@ function isAllowedVercelOrigin(origin: string): boolean {
 }
 
 // Security & middleware
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  frameguard: { action: 'deny' },
+  noSniff: true,
+  xssFilter: true,
+}));
 app.use(
   cors({
     origin(origin, callback) {
@@ -82,13 +90,22 @@ app.use(
 app.use(compression());
 app.use(cookieParser());
 
+/** Block access to sensitive dotfiles and config paths. */
+app.use((req, res, next) => {
+  if (/\/(\.env|\.git|\.ssh|wp-admin|phpmy|eval\()/i.test(req.path)) {
+    res.status(403).json({ success: false, message: 'Forbidden' });
+    return;
+  }
+  next();
+});
+
 /** Product images uploaded when Cloudinary is off — URL path is /uploads/{folder}/{file} */
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 /** Stripe webhooks require the raw body for signature verification (must be before express.json). */
 app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 /** JSON bodies only; file uploads use multipart with separate limits. */
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
@@ -117,6 +134,7 @@ app.use('/api/auth/refresh', authLimiter);
 app.use('/api/auth/google', authLimiter);
 app.use('/api/auth/facebook', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
 
 // Health check
 app.get('/', (_req, res) => {

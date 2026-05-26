@@ -58,6 +58,7 @@ const khPaymentType = (value?: string | null): string => {
   const v = String(value || '').toLowerCase();
   if (v === 'bakong') return 'បង់តាមបាគង (KHQR)';
   if (v === 'card') return 'បង់តាម Visa/Master card';
+  if (v === 'aba') return 'បង់តាម ABA PayWay';
   return 'មិនមាន';
 };
 

@@ -181,6 +181,8 @@ export const paymentApi = {
   createKhqr: (orderId: string) => api.post('/payments/khqr/create', { orderId }),
   getKhqrStatus: (orderId: string) => api.get(`/payments/khqr/status/${orderId}`),
   mockConfirmKhqr: (orderId: string) => api.post(`/payments/khqr/mock-confirm/${orderId}`),
+  createAba: (orderId: string) => api.post('/payments/aba/create', { orderId }),
+  getAbaStatus: (orderId: string) => api.get(`/payments/aba/status/${orderId}`),
 };
 
 // Reviews

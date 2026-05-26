@@ -17,11 +17,12 @@ const formatDate = (value: Date): string =>
 /** Human-readable payment type for invoices (matches checkout: card vs Bakong). */
 export const formatInvoicePaymentType = (
   method: string | null | undefined,
-  custom?: { card?: string; bakong?: string }
+  custom?: { card?: string; bakong?: string; aba?: string }
 ): string => {
   const m = (method || '').toLowerCase();
   if (m === 'card') return custom?.card || 'Paid by Visa / card';
   if (m === 'bakong') return custom?.bakong || 'Paid by Bakong (KHQR)';
+  if (m === 'aba') return custom?.aba || 'Paid via ABA PayWay';
   return method?.trim() || 'N/A';
 };
 

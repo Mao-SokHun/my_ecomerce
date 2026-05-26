@@ -12,9 +12,9 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
   try {
     const { addressId, paymentMethod = 'card', notes, couponCode, shippingCarrier: rawCarrier } = req.body;
     const method = String(paymentMethod).toLowerCase();
-    const allowedMethods = ['card', 'bakong'];
+    const allowedMethods = ['card', 'bakong', 'aba'];
     if (!allowedMethods.includes(method)) {
-      throw new AppError('Invalid payment method. Allowed: card, bakong', 400);
+      throw new AppError('Invalid payment method. Allowed: card, bakong, aba', 400);
     }
 
     const cart = await prisma.cart.findUnique({

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle } from 'lucide-react';
+import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark } from 'lucide-react';
 import { Invoice, Order } from '@/types';
 import { orderApi, paymentApi, settingApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -35,7 +35,7 @@ export default function OrderDetailsPage() {
   } | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
   const [stripeCardSession, setStripeCardSession] = useState<{ clientSecret: string; amount: number } | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'bakong'>('card');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'bakong' | 'aba'>('card');
   const [receiptMeta, setReceiptMeta] = useState<ShopReceiptMeta>(() => shopReceiptMetaFromFooterInfo(null));
 
   const parseOrderIdFromRoute = (raw: string) => {
@@ -275,7 +275,7 @@ export default function OrderDetailsPage() {
         const nextOrder = orderRes.data.data || null;
         setOrder(nextOrder);
         const method = String(nextOrder?.paymentMethod || '').toLowerCase();
-        setSelectedPaymentMethod(method === 'bakong' ? 'bakong' : 'card');
+        setSelectedPaymentMethod(method === 'bakong' ? 'bakong' : method === 'aba' ? 'aba' : 'card');
         setInvoice(invoiceRes.data.data || null);
       })
       .catch(() => {
@@ -362,6 +362,27 @@ export default function OrderDetailsPage() {
           expiresAt: data.data.expiresAt,
           amount: data.data.amount,
         });
+      } else if (selectedPaymentMethod === 'aba') {
+        try {
+          const abaRes = await paymentApi.createAba(order.id);
+          const payload = abaRes.data.data;
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = payload.api_url;
+          form.style.display = 'none';
+          for (const [key, val] of Object.entries(payload)) {
+            if (key === 'api_url') continue;
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = String(val);
+            form.appendChild(input);
+          }
+          document.body.appendChild(form);
+          form.submit();
+        } catch {
+          toast.error(language === 'zh' ? '无法启动 ABA 支付' : language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់ ABA បានទេ។' : 'Failed to start ABA payment');
+        }
       } else {
         const pk = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
         if (pk) {
@@ -500,6 +521,17 @@ export default function OrderDetailsPage() {
               >
                 Bakong
               </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPaymentMethod('aba')}
+                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  selectedPaymentMethod === 'aba'
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
+                }`}
+              >
+                ABA
+              </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -507,7 +539,7 @@ export default function OrderDetailsPage() {
                 disabled={isPaying}
                 className="btn-primary py-2.5 px-4 text-sm inline-flex items-center justify-center gap-2 shadow-sm shadow-primary-500/20"
               >
-                {selectedPaymentMethod === 'bakong' ? <QrCode className="w-4 h-4 shrink-0" /> : <CreditCard className="w-4 h-4 shrink-0" />}
+                {selectedPaymentMethod === 'bakong' ? <QrCode className="w-4 h-4 shrink-0" /> : selectedPaymentMethod === 'aba' ? <Landmark className="w-4 h-4 shrink-0" /> : <CreditCard className="w-4 h-4 shrink-0" />}
                 {isPaying ? '...' : t(language, 'payNow')}
               </button>
               {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (

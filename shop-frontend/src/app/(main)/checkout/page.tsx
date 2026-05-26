@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode } from 'lucide-react';
+import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -51,7 +51,7 @@ export default function CheckoutPage() {
     note: '', isDefault: false,
   });
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bakong'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bakong' | 'aba'>('card');
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
@@ -280,6 +280,34 @@ export default function CheckoutPage() {
           amount: khqrRes.data.data.amount,
         });
         toast.success('KHQR generated. Please scan to pay.');
+      } else if (paymentMethod === 'aba') {
+        try {
+          const abaRes = await paymentApi.createAba(orderId);
+          const payload = abaRes.data.data;
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = payload.api_url;
+          form.style.display = 'none';
+          for (const [key, val] of Object.entries(payload)) {
+            if (key === 'api_url') continue;
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = String(val);
+            form.appendChild(input);
+          }
+          document.body.appendChild(form);
+          form.submit();
+          return;
+        } catch {
+          toast.error(
+            language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់ ABA បានទេ។' :
+            language === 'zh' ? '无法启动 ABA 支付。' :
+            'Could not start ABA payment. Please try again.'
+          );
+          router.push(`/dashboard/orders/${orderId}`);
+          return;
+        }
       } else {
         const stripeUnavailable = Boolean((data.data as { stripeUnavailable?: boolean }).stripeUnavailable);
         if (stripeUnavailable) {
@@ -769,14 +797,14 @@ export default function CheckoutPage() {
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-400">
                       {language === 'km'
-                        ? 'អ្នកអាចបង់តាមកាត Visa ឬ Bakong'
+                        ? 'អ្នកអាចបង់តាមកាត Visa, Bakong ឬ ABA PayWay'
                         : language === 'zh'
-                          ? '您可以使用 Visa 卡或 Bakong 支付'
-                          : 'You can pay with a Visa card or Bakong.'}
+                          ? '您可以使用 Visa 卡、Bakong 或 ABA PayWay 支付'
+                          : 'You can pay with Visa card, Bakong or ABA PayWay.'}
                     </p>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-3 mb-5">
+                  <div className="grid sm:grid-cols-3 gap-3 mb-5">
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('card')}
@@ -791,7 +819,7 @@ export default function CheckoutPage() {
                         <p className="font-semibold text-sm text-gray-900 dark:text-white">Visa</p>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {language === 'km' ? 'ការទូទាត់មានសុវត្ថិភាពតាមកាត Visa' : language === 'zh' ? '通过 Visa 卡安全支付' : 'Secure payment with Visa card.'}
+                        {language === 'km' ? 'បង់តាមកាត Visa' : language === 'zh' ? 'Visa 卡支付' : 'Visa card payment'}
                       </p>
                     </button>
                     <button
@@ -807,7 +835,26 @@ export default function CheckoutPage() {
                         <QrCode className="w-4 h-4 text-primary-600" />
                         <p className="font-semibold text-sm text-gray-900 dark:text-white">Bakong</p>
                       </div>
-                      <p className="text-xs text-gray-500">Pay via Bakong app / KHQR transfer.</p>
+                      <p className="text-xs text-gray-500">
+                        {language === 'km' ? 'បង់តាម KHQR' : language === 'zh' ? 'KHQR 付款' : 'Pay via KHQR'}
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('aba')}
+                      className={`text-left p-4 rounded-xl border-2 transition-all ${
+                        paymentMethod === 'aba'
+                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-primary-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Landmark className="w-4 h-4 text-primary-600" />
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white">ABA PayWay</p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        {language === 'km' ? 'បង់តាម ABA' : language === 'zh' ? 'ABA 支付' : 'Pay via ABA'}
+                      </p>
                     </button>
                   </div>
 
@@ -840,7 +887,7 @@ export default function CheckoutPage() {
                         <input type="text" placeholder="John Doe" className="input text-sm" defaultValue={user?.name} />
                       </div>
                     </div>
-                  ) : (
+                  ) : paymentMethod === 'bakong' ? (
                     <div className="mb-5 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
                       <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Bakong Payment Selected</p>
                       <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90">
@@ -854,6 +901,19 @@ export default function CheckoutPage() {
                       >
                         {language === 'km' ? 'បើកគេហទំព័រ Bakong' : language === 'zh' ? '打开 Bakong 官网' : 'Open Bakong official website'}
                       </a>
+                    </div>
+                  ) : (
+                    <div className="mb-5 p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                        {language === 'km' ? 'បង់ប្រាក់តាម ABA PayWay' : language === 'zh' ? 'ABA PayWay 支付' : 'ABA PayWay Payment'}
+                      </p>
+                      <p className="text-xs text-blue-700/90 dark:text-blue-300/90">
+                        {language === 'km'
+                          ? 'អ្នកនឹងត្រូវបានបញ្ជូនទៅកាន់ ABA PayWay ដើម្បីបង់ប្រាក់មានសុវត្ថិភាព។ គាំទ្រ ABA Mobile, Visa, Mastercard។'
+                          : language === 'zh'
+                            ? '您将被跳转到 ABA PayWay 安全支付页面。支持 ABA 移动端、Visa、Mastercard。'
+                            : 'You will be redirected to ABA PayWay secure checkout. Supports ABA Mobile, Visa, Mastercard.'}
+                      </p>
                     </div>
                   )}
 

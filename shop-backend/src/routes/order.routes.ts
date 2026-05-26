@@ -13,18 +13,19 @@ import {
   adminUpdateOrderStatus,
 } from '../controllers/order.controller';
 import { authenticate, requireAdmin } from '../middleware/auth';
+import { paymentRateLimiter, logPaymentAttempt } from '../middleware/security';
 
 const router = Router();
 
 router.use(authenticate);
 
-router.post('/', createOrder);
+router.post('/', paymentRateLimiter, logPaymentAttempt, createOrder);
 router.post('/coupon-preview', previewCoupon);
 router.get('/', getUserOrders);
 
 // Static routes must come BEFORE /:id wildcard routes
-router.post('/confirm-payment', confirmPayment);
-router.post('/stripe-payment-intent', createStripePaymentIntentForOrder);
+router.post('/confirm-payment', paymentRateLimiter, logPaymentAttempt, confirmPayment);
+router.post('/stripe-payment-intent', paymentRateLimiter, logPaymentAttempt, createStripePaymentIntentForOrder);
 
 // Admin routes
 router.get('/admin/all', requireAdmin, adminGetOrders);

@@ -1148,10 +1148,15 @@ export const t = (
   return s;
 };
 
-/** Visa/card vs Bakong label for receipts and invoices. */
+/** Visa/card vs Bakong vs ABA label for receipts and invoices. */
 export const paymentTypeForInvoice = (lang: AppLanguage, method?: string | null): string => {
   if (method === 'bakong') return t(lang, 'paymentTypeBakong');
   if (method === 'card') return t(lang, 'paymentTypeCard');
+  if (method === 'aba') {
+    if (lang === 'km') return 'បង់តាម ABA PayWay';
+    if (lang === 'zh') return 'ABA PayWay 支付';
+    return 'Paid via ABA PayWay';
+  }
   const s = method?.trim();
   return s || '—';
 };
