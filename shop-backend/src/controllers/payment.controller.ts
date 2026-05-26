@@ -17,8 +17,12 @@ export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunc
     });
 
     if (!order) throw new AppError('Order not found', 404);
-    if (order.paymentMethod !== 'bakong') throw new AppError('KHQR is available only for Bakong payment method', 400);
     if (order.paymentStatus === 'PAID') throw new AppError('Order already paid', 400);
+    if (order.status === 'CANCELLED' || order.status === 'REFUNDED') throw new AppError('This order cannot be paid', 400);
+
+    if (order.paymentMethod !== 'bakong') {
+      await prisma.order.update({ where: { id: order.id }, data: { paymentMethod: 'bakong' } });
+    }
 
     if (order.khqrPayload && order.khqrQrUrl && order.khqrExpiresAt && order.khqrExpiresAt > new Date()) {
       res.json({

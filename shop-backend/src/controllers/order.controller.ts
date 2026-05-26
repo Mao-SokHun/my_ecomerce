@@ -434,14 +434,18 @@ export const createStripePaymentIntentForOrder = async (
       where: { id: orderId, userId: req.user!.id },
     });
     if (!order) throw new AppError('Order not found', 404);
-    if (order.paymentMethod !== 'card') {
-      throw new AppError('Stripe checkout is only for card orders', 400);
-    }
     if (order.paymentStatus === 'PAID') {
       throw new AppError('Order is already paid', 400);
     }
     if (order.status === 'CANCELLED' || order.status === 'REFUNDED') {
       throw new AppError('This order cannot be paid', 400);
+    }
+
+    if (order.paymentMethod !== 'card') {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { paymentMethod: 'card' },
+      });
     }
 
     const amountCents = Math.round(Number(order.total) * 100);
