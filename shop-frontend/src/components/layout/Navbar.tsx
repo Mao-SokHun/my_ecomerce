@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -169,9 +170,7 @@ export function Navbar() {
         <div className="flex items-center gap-4 h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 rounded-lg transition-opacity duration-200 ease-smooth-out hover:opacity-90 active:opacity-80">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">{logoLetter}</span>
-            </div>
+            <Image src="/logo.png" alt={brandName} width={34} height={34} className="rounded-full" priority />
             <span className="text-lg font-bold text-gray-900 dark:text-white hidden sm:block">
               {brandName}
             </span>
