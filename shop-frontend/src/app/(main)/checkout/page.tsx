@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode } from 'lucide-react';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
@@ -552,14 +553,14 @@ export default function CheckoutPage() {
                         {language === 'km' ? 'អាសយដ្ឋានថ្មី' : language === 'zh' ? '新地址' : 'New Address'}
                       </h3>
                       <div className="grid sm:grid-cols-2 gap-3">
-                        <select
+                        <SearchableSelect
                           required
                           value={newAddress.provinceId}
-                          onChange={(e) => {
-                            const selected = provinces.find((p) => locKeyOf(p) === e.target.value);
+                          onChange={(val) => {
+                            const selected = provinces.find((p) => locKeyOf(p) === val);
                             setNewAddress((prev) => ({
                               ...prev,
-                              provinceId: e.target.value,
+                              provinceId: val,
                               province: selected?.nameKm || '',
                               districtId: '',
                               district: '',
@@ -569,19 +570,17 @@ export default function CheckoutPage() {
                               village: '',
                             }));
                           }}
-                          className="input text-sm"
-                        >
-                          <option value="" disabled hidden>{uiText.province}</option>
-                          {provinces.map((p) => <option key={p.id} value={locKeyOf(p)}>{locLabel(p)}</option>)}
-                        </select>
-                        <select
+                          placeholder={uiText.province}
+                          options={provinces.map((p) => ({ value: locKeyOf(p), label: locLabel(p) }))}
+                        />
+                        <SearchableSelect
                           required
                           value={newAddress.districtId}
-                          onChange={(e) => {
-                            const selected = districts.find((d) => locKeyOf(d) === e.target.value);
+                          onChange={(val) => {
+                            const selected = districts.find((d) => locKeyOf(d) === val);
                             setNewAddress((prev) => ({
                               ...prev,
-                              districtId: e.target.value,
+                              districtId: val,
                               district: selected?.nameKm || '',
                               communeId: '',
                               commune: '',
@@ -589,53 +588,41 @@ export default function CheckoutPage() {
                               village: '',
                             }));
                           }}
-                          className="input text-sm"
+                          placeholder={uiText.district}
                           disabled={!newAddress.provinceId}
-                        >
-                          <option value="" disabled hidden>{uiText.district}</option>
-                          {districts.length === 0 && newAddress.provinceId ? (
-                            <option value="" disabled>{uiText.noDistrict}</option>
-                          ) : null}
-                          {districts.map((d) => <option key={d.id} value={locKeyOf(d)}>{locLabel(d)}</option>)}
-                        </select>
-                        <select
+                          emptyMessage={uiText.noDistrict}
+                          options={districts.map((d) => ({ value: locKeyOf(d), label: locLabel(d) }))}
+                        />
+                        <SearchableSelect
                           required
                           value={newAddress.communeId}
-                          onChange={(e) => {
-                            const selected = communes.find((c) => locKeyOf(c) === e.target.value);
+                          onChange={(val) => {
+                            const selected = communes.find((c) => locKeyOf(c) === val);
                             setNewAddress((prev) => ({
                               ...prev,
-                              communeId: e.target.value,
+                              communeId: val,
                               commune: selected?.nameKm || '',
                               villageId: '',
                               village: '',
                             }));
                           }}
-                          className="input text-sm"
+                          placeholder={uiText.commune}
                           disabled={!newAddress.districtId}
-                        >
-                          <option value="" disabled hidden>{uiText.commune}</option>
-                          {communes.length === 0 && newAddress.districtId ? (
-                            <option value="" disabled>{uiText.noCommune}</option>
-                          ) : null}
-                          {communes.map((c) => <option key={c.id} value={locKeyOf(c)}>{locLabel(c)}</option>)}
-                        </select>
-                        <select
+                          emptyMessage={uiText.noCommune}
+                          options={communes.map((c) => ({ value: locKeyOf(c), label: locLabel(c) }))}
+                        />
+                        <SearchableSelect
                           required
                           value={newAddress.villageId}
-                          onChange={(e) => {
-                            const selected = villages.find((v) => locKeyOf(v) === e.target.value);
-                            setNewAddress((prev) => ({ ...prev, villageId: e.target.value, village: selected?.nameKm || '' }));
+                          onChange={(val) => {
+                            const selected = villages.find((v) => locKeyOf(v) === val);
+                            setNewAddress((prev) => ({ ...prev, villageId: val, village: selected?.nameKm || '' }));
                           }}
-                          className="input text-sm"
+                          placeholder={uiText.village}
                           disabled={!newAddress.communeId}
-                        >
-                          <option value="" disabled hidden>{uiText.village}</option>
-                          {villages.length === 0 && newAddress.communeId ? (
-                            <option value="" disabled>{uiText.noVillage}</option>
-                          ) : null}
-                          {villages.map((v) => <option key={v.id} value={locKeyOf(v)}>{locLabel(v)}</option>)}
-                        </select>
+                          emptyMessage={uiText.noVillage}
+                          options={villages.map((v) => ({ value: locKeyOf(v), label: locLabel(v) }))}
+                        />
                         {[
                           { key: 'name', label: 'Full Name', required: true },
                           { key: 'phone', label: 'Phone', required: true },
