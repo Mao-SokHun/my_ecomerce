@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { createKhqrForOrder, verifyKhqrWebhookSignature } from '../lib/khqr';
 import { sendInvoiceNotification } from '../lib/invoice';
+import { notifyAdminOrderEvent } from '../lib/adminNotifier';
 import path from 'path';
 
 export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -146,6 +147,7 @@ export const khqrWebhook = async (req: Request, res: Response, next: NextFunctio
       });
 
       sendInvoiceNotification(order.id).catch((err) => console.error('[KHQR] Invoice notification failed', err));
+      notifyAdminOrderEvent(order.id, 'PAYMENT_PAID').catch((err) => console.error('[KHQR] Admin payment notification failed', err));
     }
 
     res.json({ success: true });
@@ -167,6 +169,7 @@ export const mockConfirmKhqrPayment = async (req: AuthRequest, res: Response, ne
     });
 
     sendInvoiceNotification(order.id).catch((err) => console.error('[KHQR] Invoice notification failed', err));
+    notifyAdminOrderEvent(order.id, 'PAYMENT_PAID').catch((err) => console.error('[KHQR] Admin payment notification failed', err));
     res.json({ success: true, message: 'Mock KHQR payment confirmed' });
   } catch (error) {
     next(error);
