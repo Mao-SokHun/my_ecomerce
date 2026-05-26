@@ -144,7 +144,6 @@ export function Navbar() {
           .slice(0, 4)
       : [];
   const brandName = headerInfo.siteName || 'SH-Shop';
-  const logoLetter = (headerInfo.logoLetter || brandName.slice(0, 1) || 'S').slice(0, 1).toUpperCase();
 
   const languageOptions: Array<{ value: 'km' | 'en' | 'zh'; label: string }> = [
     { value: 'km', label: 'ខ្មែរ' },
