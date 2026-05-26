@@ -1,0 +1,101 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ========================================
+  # Option 1: Deploy to YOUR PC (local Docker Desktop)
+  # Uses self-hosted runner installed on your machine
+  # ========================================
+  deploy-local:
+    name: Deploy to Local Docker
+    runs-on: self-hosted
+    if: ${{ !vars.USE_REMOTE_SERVER }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build and deploy
+        shell: bash
+        run: |
+          docker compose build --no-cache
+          docker compose up -d
+          echo "Waiting for services to start..."
+          sleep 10
+          docker compose exec -T backend npx prisma migrate deploy
+          docker compose ps
+          echo "Deployment complete!"
+
+  # ========================================
+  # Option 2: Deploy to REMOTE server (VPS/Cloud)
+  # Uses SSH to connect to a remote server
+  # ========================================
+  deploy-remote:
+    name: Deploy to Remote Server
+    runs-on: ubuntu-latest
+    if: ${{ vars.USE_REMOTE_SERVER == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          source: >-
+            docker-compose.yml,
+            shop-backend/,
+            shop-frontend/,
+            nginx/
+          target: ~/sh-shop
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            cd ~/sh-shop
+
+            cat > .env << 'ENVEOF'
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+            NEXT_PUBLIC_FACEBOOK_APP_ID=${{ secrets.NEXT_PUBLIC_FACEBOOK_APP_ID }}
+            FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}
+            CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+            CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+            CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            SMTP_FROM=${{ secrets.SMTP_FROM }}
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+            ENVEOF
+
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+
+            echo "Waiting for services..."
+            sleep 10
+
+            docker compose exec -T backend npx prisma migrate deploy
+            docker compose ps
+            echo "Deployment complete!"

@@ -27,9 +27,52 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Let pages/stores decide how to handle 401 to avoid
-// redirect loops during hydration or transient failures.
-api.interceptors.response.use((response) => response, (error) => Promise.reject(error));
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+  const rt = localStorage.getItem('refreshToken');
+  if (!rt) return null;
+  try {
+    const { data } = await axios.post(`${resolveApiBaseUrl()}/auth/refresh`, { refreshToken: rt });
+    const { token, refreshToken: newRt } = data.data;
+    localStorage.setItem('token', token);
+    if (newRt) localStorage.setItem('refreshToken', newRt);
+    return token;
+  } catch {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    return null;
+  }
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry && typeof window !== 'undefined') {
+      original._retry = true;
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({ resolve: (t) => { original.headers.Authorization = `Bearer ${t}`; resolve(api(original)); }, reject });
+        });
+      }
+      isRefreshing = true;
+      const newToken = await tryRefreshToken();
+      isRefreshing = false;
+      if (newToken) {
+        refreshQueue.forEach((q) => q.resolve(newToken));
+        refreshQueue = [];
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      }
+      refreshQueue.forEach((q) => q.reject(error));
+      refreshQueue = [];
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Auth
 export const authApi = {
@@ -68,6 +111,8 @@ export const authApi = {
     api.post('/auth/forgot-password/email/verify', data),
   resetPasswordByInfo: (data: { name: string; phone: string; newPassword: string }) =>
     api.post('/auth/forgot-password/info/verify', data),
+  refreshToken: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }),
 };
 
 // Products

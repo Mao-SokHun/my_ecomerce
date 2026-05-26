@@ -11,6 +11,8 @@ import { t } from '@/lib/i18n';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '@/lib/utils';
+import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -187,6 +189,22 @@ export default function RegisterPage() {
             {t(language, 'privacyPolicy')}
           </Link>
         </p>
+
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-surface-700" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white dark:bg-surface-900 px-3 text-gray-400">
+              {language === 'km' ? 'ឬ' : language === 'zh' ? '或者' : 'or'}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3 w-full">
+          <FacebookLoginButton redirectTo="/" />
+          <GoogleSignInButton redirectTo="/" />
+        </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">
           {t(language, 'alreadyHaveAccount')}{' '}

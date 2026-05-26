@@ -7,6 +7,7 @@ import { getOptionalBrowserGeolocation } from '@/lib/geolocation';
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   isAuthChecked: boolean;
@@ -18,6 +19,17 @@ interface AuthState {
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
   fetchUser: () => Promise<void>;
+  refreshAccessToken: () => Promise<boolean>;
+}
+
+function saveTokens(token: string, refreshToken?: string) {
+  localStorage.setItem('token', token);
+  if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+}
+
+function clearTokens() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -25,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isLoading: false,
       isAuthenticated: false,
       isAuthChecked: false,
@@ -38,9 +51,9 @@ export const useAuthStore = create<AuthState>()(
             password,
             ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
           });
-          const { user, token } = data.data;
-          localStorage.setItem('token', token);
-          set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
           try {
             const me = await authApi.getMe();
             if (me.data?.data) set({ user: me.data.data });
@@ -61,9 +74,9 @@ export const useAuthStore = create<AuthState>()(
             accessToken,
             ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
           });
-          const { user, token } = data.data;
-          localStorage.setItem('token', token);
-          set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
           try {
             const me = await authApi.getMe();
             if (me.data?.data) set({ user: me.data.data });
@@ -84,9 +97,9 @@ export const useAuthStore = create<AuthState>()(
             credential,
             ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
           });
-          const { user, token } = data.data;
-          localStorage.setItem('token', token);
-          set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
           try {
             const me = await authApi.getMe();
             if (me.data?.data) set({ user: me.data.data });
@@ -110,9 +123,9 @@ export const useAuthStore = create<AuthState>()(
             password,
             ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
           });
-          const { user, token } = data.data;
-          localStorage.setItem('token', token);
-          set({ user, token, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
           try {
             const me = await authApi.getMe();
             if (me.data?.data) set({ user: me.data.data });
@@ -126,14 +139,30 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('token');
-        set({ user: null, token: null, isAuthenticated: false, isAuthChecked: true });
+        clearTokens();
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isAuthChecked: true });
       },
 
       updateUser: (userData) => {
         const current = get().user;
         if (current) {
           set({ user: { ...current, ...userData } });
+        }
+      },
+
+      refreshAccessToken: async () => {
+        const rt = get().refreshToken || localStorage.getItem('refreshToken');
+        if (!rt) return false;
+        try {
+          const { data } = await authApi.refreshToken(rt);
+          const { token, refreshToken: newRt } = data.data;
+          saveTokens(token, newRt);
+          set({ token, refreshToken: newRt || rt });
+          return true;
+        } catch {
+          clearTokens();
+          set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isAuthChecked: true });
+          return false;
         }
       },
 
@@ -149,22 +178,34 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: unknown) {
           const status = (error as { response?: { status?: number } })?.response?.status;
           if (status === 401) {
-            localStorage.removeItem('token');
-            set({ user: null, token: null, isAuthenticated: false, isAuthChecked: true });
+            const refreshed = await get().refreshAccessToken();
+            if (refreshed) {
+              try {
+                const { data } = await authApi.getMe();
+                set({ user: data.data, isAuthenticated: true, isAuthChecked: true });
+                return;
+              } catch {
+                /* fall through to logout */
+              }
+            }
+            clearTokens();
+            set({ user: null, token: null, refreshToken: null, isAuthenticated: false, isAuthChecked: true });
             return;
           }
-          // Keep current auth state on transient/network failures
-          // so users are not kicked out unexpectedly.
           set({ isAuthChecked: true });
         }
       },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Once rehydrated, even if empty, we consider initial hydration done.
           useAuthStore.setState({ isAuthChecked: true });
         }
       },

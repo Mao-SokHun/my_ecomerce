@@ -38,6 +38,25 @@ const nextConfig: NextConfig = {
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "default-src 'self'",
+          isProd
+            ? "script-src 'self' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net"
+            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net",
+          "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
+          "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
+          "img-src 'self' data: blob: https: http:",
+          "font-src 'self' data: https://fonts.gstatic.com",
+          "connect-src 'self' https://accounts.google.com https://graph.facebook.com https://oauth2.googleapis.com",
+          "frame-src https://accounts.google.com https://www.facebook.com https://js.stripe.com",
+          "worker-src 'self' blob:",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "object-src 'none'",
+        ].join('; '),
+      },
     ] as { key: string; value: string }[];
     if (isProd) {
       securityHeaders.push({

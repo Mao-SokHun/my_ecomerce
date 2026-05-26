@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import axios from 'axios';
 import prisma from '../lib/prisma';
 import { allocateCartId } from '../lib/allocatePrefixedId';
@@ -12,6 +13,40 @@ import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '../lib/displayName';
 const normalizePhoneDigits = (raw: string): string => raw.replace(/\D/g, '');
 const forgotPasswordCodes = new Map<string, { code: string; expiresAt: number }>();
 const MAX_FORGOT_PASSWORD_ENTRIES = 2500;
+
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
+function checkLoginLockout(key: string): void {
+  const entry = loginAttempts.get(key);
+  if (!entry) return;
+  if (Date.now() > entry.lockedUntil) {
+    loginAttempts.delete(key);
+    return;
+  }
+  if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+    const minutesLeft = Math.ceil((entry.lockedUntil - Date.now()) / 60000);
+    throw new AppError(`Account locked. Try again in ${minutesLeft} minute(s).`, 429);
+  }
+}
+
+function recordFailedLogin(key: string): void {
+  const entry = loginAttempts.get(key) || { count: 0, lockedUntil: 0 };
+  entry.count += 1;
+  if (entry.count >= MAX_LOGIN_ATTEMPTS) {
+    entry.lockedUntil = Date.now() + LOCKOUT_MINUTES * 60000;
+  }
+  loginAttempts.set(key, entry);
+  if (loginAttempts.size > 5000) {
+    const oldest = loginAttempts.keys().next().value;
+    if (oldest) loginAttempts.delete(oldest);
+  }
+}
+
+function clearLoginAttempts(key: string): void {
+  loginAttempts.delete(key);
+}
 
 const storeForgotPasswordCode = (email: string, entry: { code: string; expiresAt: number }) => {
   forgotPasswordCodes.set(email, entry);
@@ -55,10 +90,30 @@ const sanitizeAvatarUrl = (raw: string): string => {
   }
 };
 
-const signToken = (payload: { id: string; email: string; role: string; name: string }) => {
+const signAccessToken = (payload: { id: string; email: string; role: string; name: string; tokenVersion: number }) => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: '15m',
   } as jwt.SignOptions);
+};
+
+const signRefreshToken = (payload: { id: string; tokenVersion: number }) => {
+  return jwt.sign(payload, process.env.JWT_SECRET! + '_refresh', {
+    expiresIn: '7d',
+  } as jwt.SignOptions);
+};
+
+const buildTokenPair = (user: { id: string; email?: string | null; role: string; name: string; tokenVersion: number }) => {
+  const accessToken = signAccessToken({ id: user.id, email: user.email || '', role: user.role, name: user.name, tokenVersion: user.tokenVersion });
+  const refreshToken = signRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
+  return { token: accessToken, refreshToken };
+};
+
+const logAudit = async (userId: string, action: string, detail: string | null, ip: string) => {
+  try {
+    await prisma.auditLog.create({ data: { userId, action, detail, ip } });
+  } catch {
+    // non-critical
+  }
 };
 
 const parseCsv = (value?: string): string[] =>
@@ -256,14 +311,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
-      data: { name: displayName, email: emailStr, phone: phoneDigits, password: hashedPassword },
-      select: { id: true, name: true, email: true, phone: true, role: true, avatar: true, createdAt: true },
+      data: { name: displayName, email: emailStr, phone: phoneDigits, password: hashedPassword, provider: 'LOCAL' },
+      select: { id: true, name: true, email: true, phone: true, role: true, avatar: true, provider: true, tokenVersion: true, createdAt: true },
     });
 
-    // Create empty cart for new user
     await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
 
-    const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
+    const tokens = buildTokenPair(user);
+    logAudit(user.id, 'REGISTER', 'Local registration', getRequestIp(req));
     notifyTelegramAuthEvent(req, user, 'REGISTER').catch((error) => {
       console.error('[Auth Notify] Register Telegram notification failed:', error);
     });
@@ -271,7 +326,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
-      data: { user, token },
+      data: { user, ...tokens },
     });
   } catch (error) {
     next(error);
@@ -287,6 +342,9 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       throw new AppError('Phone/email and password are required', 400);
     }
 
+    const lockoutKey = loginId.toLowerCase();
+    checkLoginLockout(lockoutKey);
+
     const digits = normalizePhoneDigits(loginId);
     const isEmail = /@/.test(loginId);
     const user = await prisma.user.findFirst({
@@ -294,6 +352,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     });
 
     if (!user) {
+      recordFailedLogin(lockoutKey);
       throw new AppError('Invalid phone, email, or password', 401);
     }
 
@@ -303,10 +362,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      recordFailedLogin(lockoutKey);
       throw new AppError('Invalid phone, email, or password', 401);
     }
 
-    const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
+    clearLoginAttempts(lockoutKey);
+
+    const tokens = buildTokenPair(user);
+    logAudit(user.id, 'LOGIN', `Login via ${isEmail ? 'email' : 'phone'}`, getRequestIp(req));
     notifyTelegramAuthEvent(req, user, 'LOGIN').catch((error) => {
       console.error('[Auth Notify] Login Telegram notification failed:', error);
     });
@@ -317,7 +380,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     res.json({
       success: true,
       message: 'Login successful',
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword, ...tokens },
     });
   } catch (error) {
     next(error);
@@ -371,19 +434,22 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
           avatar: picture || null,
           password: randomPassword,
           emailVerified: true,
+          provider: 'GOOGLE',
         },
       });
       await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else {
-      const updates: { name?: string; avatar?: string | null } = {};
+      const updates: { name?: string; avatar?: string | null; provider?: 'GOOGLE' } = {};
       if (name && user.name !== name) updates.name = name;
       if (picture && !user.avatar) updates.avatar = picture;
+      if (user.provider === 'LOCAL') updates.provider = 'GOOGLE';
       if (Object.keys(updates).length) {
         user = await prisma.user.update({ where: { id: user.id }, data: updates });
       }
     }
 
-    const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
+    const tokens = buildTokenPair(user);
+    logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Google OAuth', getRequestIp(req));
     notifyTelegramAuthEvent(
       req,
       { id: user.id, name: user.name, email: user.email, phone: user.phone },
@@ -398,7 +464,7 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
     res.json({
       success: true,
       message: isNew ? 'Google registration successful' : 'Google login successful',
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword, ...tokens },
     });
   } catch (error) {
     next(error);
@@ -412,9 +478,13 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
 
     let data: any;
     try {
-      const fb = await axios.get(
-        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${encodeURIComponent(accessToken)}`
-      );
+      let fbUrl = `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${encodeURIComponent(accessToken)}`;
+      const fbAppSecret = process.env.FACEBOOK_APP_SECRET?.trim();
+      if (fbAppSecret) {
+        const proof = crypto.createHmac('sha256', fbAppSecret).update(accessToken).digest('hex');
+        fbUrl += `&appsecret_proof=${proof}`;
+      }
+      const fb = await axios.get(fbUrl);
       data = fb.data;
     } catch {
       throw new AppError('Invalid Facebook token', 401);
@@ -436,14 +506,21 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
           avatar,
           password: randomPassword,
           emailVerified: true,
+          provider: 'FACEBOOK',
         },
       });
       await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
-    } else if (!user.avatar && avatar) {
-      user = await prisma.user.update({ where: { id: user.id }, data: { avatar } });
+    } else {
+      const updates: { avatar?: string | null; provider?: 'FACEBOOK' } = {};
+      if (!user.avatar && avatar) updates.avatar = avatar;
+      if (user.provider === 'LOCAL') updates.provider = 'FACEBOOK';
+      if (Object.keys(updates).length) {
+        user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      }
     }
 
-    const token = signToken({ id: user.id, email: user.email || '', role: user.role, name: user.name });
+    const tokens = buildTokenPair(user);
+    logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Facebook OAuth', getRequestIp(req));
     notifyTelegramAuthEvent(
       req,
       { id: user.id, name: user.name, email: user.email, phone: user.phone },
@@ -458,7 +535,7 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       message: 'Facebook login successful',
-      data: { user: userWithoutPassword, token },
+      data: { user: userWithoutPassword, ...tokens },
     });
   } catch (error) {
     next(error);
@@ -476,6 +553,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
         phone: true,
         avatar: true,
         role: true,
+        provider: true,
         createdAt: true,
         _count: { select: { orders: true, reviews: true, wishlist: true, addresses: true } },
       },
@@ -577,12 +655,14 @@ export const changePassword = async (
     if (isSamePassword) throw new AppError('New password must be different from current password', 400);
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: req.user!.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, tokenVersion: { increment: 1 } },
     });
 
-    res.json({ success: true, message: 'Password changed successfully' });
+    logAudit(req.user!.id, 'PASSWORD_CHANGE', null, getRequestIp(req));
+    const tokens = buildTokenPair(updated);
+    res.json({ success: true, message: 'Password changed successfully', data: tokens });
   } catch (error) {
     next(error);
   }
@@ -598,7 +678,7 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const code = String(crypto.randomInt(10000000, 100000000));
       storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
       await sendEmail({
         to: email,
@@ -640,8 +720,9 @@ export const resetPasswordByEmailCode = async (req: Request, res: Response, next
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new AppError('User not found', 404);
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword, tokenVersion: { increment: 1 } } });
     forgotPasswordCodes.delete(email);
+    logAudit(user.id, 'PASSWORD_RESET', 'Via email code', getRequestIp(req));
 
     res.json({ success: true, message: 'Password reset successful' });
   } catch (error) {
@@ -649,34 +730,31 @@ export const resetPasswordByEmailCode = async (req: Request, res: Response, next
   }
 };
 
-export const resetPasswordByInfo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const refreshTokenHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const name = String(req.body?.name || '').trim();
-    const phone = normalizePhoneDigits(String(req.body?.phone || ''));
-    const newPassword = String(req.body?.newPassword || '');
-    if (!name || !phone || !newPassword) throw new AppError('Name, phone and newPassword are required', 400);
+    const { refreshToken } = req.body as { refreshToken?: string };
+    if (!refreshToken) throw new AppError('Refresh token is required', 400);
 
-    const hasLower = /[a-z]/.test(newPassword);
-    const hasUpper = /[A-Z]/.test(newPassword);
-    const hasNumber = /\d/.test(newPassword);
-    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
-    if (newPassword.length < 8 || !hasLower || !hasUpper || !hasNumber || !hasSpecial) {
-      throw new AppError('New password must include upper, lower, number, special character and be at least 8 characters', 400);
+    let decoded: { id: string; tokenVersion: number };
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET! + '_refresh') as typeof decoded;
+    } catch {
+      throw new AppError('Invalid or expired refresh token', 401);
     }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        name: { equals: name, mode: 'insensitive' },
-        phone,
-      },
-    });
-    if (!user) throw new AppError('Provided information is incorrect', 400);
+    const user = await prisma.user.findUnique({ where: { id: decoded.id, isActive: true } });
+    if (!user) throw new AppError('User not found or inactive', 401);
+    if (user.tokenVersion !== decoded.tokenVersion) {
+      throw new AppError('Token has been revoked', 401);
+    }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
-
-    res.json({ success: true, message: 'Password reset successful' });
+    const tokens = buildTokenPair(user);
+    res.json({ success: true, data: tokens });
   } catch (error) {
     next(error);
   }
+};
+
+export const resetPasswordByInfo = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  next(new AppError('Password reset by name+phone is disabled for security. Please use email verification instead.', 403));
 };

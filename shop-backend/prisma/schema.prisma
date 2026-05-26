@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ==================== ENUMS ====================
@@ -46,20 +47,28 @@ enum SellerStatus {
   SUSPENDED
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  FACEBOOK
+}
+
 // ==================== MODELS ====================
 
 model User {
-  id            String   @id @default(dbgenerated("next_prefixed_id('u', 'users_id_seq')"))
-  email         String?  @unique
+  id            String       @id @default(dbgenerated("next_prefixed_id('u', 'users_id_seq')"))
+  email         String?      @unique
   password      String
   name          String
-  phone         String?
-  avatar        String?  @db.Text
-  role          Role     @default(USER)
-  isActive      Boolean  @default(true)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  phone         String?      @db.VarChar(20)
+  avatar        String?      @db.Text
+  role          Role         @default(USER)
+  provider      AuthProvider @default(LOCAL)
+  tokenVersion  Int          @default(0)
+  isActive      Boolean      @default(true)
+  emailVerified Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   addresses        Address[]
   orders           Order[]
@@ -67,11 +76,29 @@ model User {
   cart             Cart?
   wishlist         Wishlist[]
   sellerProfile    SellerProfile?
+  auditLogs        AuditLog[]
   lastSeenOrdersAt DateTime?
   lastSeenUsersAt  DateTime?
   lastSeenLeadsAt  DateTime?
 
+  @@index([phone])
   @@map("users")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   @db.VarChar(50)
+  detail    String?  @db.Text
+  ip        String?  @db.VarChar(45)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 model Lead {

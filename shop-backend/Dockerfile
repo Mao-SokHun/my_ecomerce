@@ -27,7 +27,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
 
-RUN mkdir -p uploads
+RUN mkdir -p uploads && chown -R node:node /app
+
+USER node
 
 EXPOSE 5000
 

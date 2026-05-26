@@ -30,15 +30,21 @@ export const authenticate = async (
       email: string;
       role: string;
       name: string;
+      tokenVersion?: number;
     };
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id, isActive: true },
-      select: { id: true, email: true, role: true, name: true, isActive: true },
+      select: { id: true, email: true, role: true, name: true, isActive: true, tokenVersion: true },
     });
 
     if (!user) {
       res.status(401).json({ success: false, message: 'Invalid or expired token' });
+      return;
+    }
+
+    if (typeof decoded.tokenVersion === 'number' && decoded.tokenVersion !== user.tokenVersion) {
+      res.status(401).json({ success: false, message: 'Token has been revoked' });
       return;
     }
 
@@ -76,12 +82,13 @@ export const optionalAuth = async (
         email: string;
         role: string;
         name: string;
+        tokenVersion?: number;
       };
       const user = await prisma.user.findUnique({
         where: { id: decoded.id, isActive: true },
-        select: { id: true, email: true, role: true, name: true },
+        select: { id: true, email: true, role: true, name: true, tokenVersion: true },
       });
-      if (user) {
+      if (user && (typeof decoded.tokenVersion !== 'number' || decoded.tokenVersion === user.tokenVersion)) {
         req.user = { id: user.id, email: user.email || '', role: user.role, name: user.name };
       }
     }

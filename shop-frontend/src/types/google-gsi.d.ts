@@ -11,6 +11,7 @@ declare global {
             auto_select?: boolean;
           }) => void;
           renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+          prompt: () => void;
           cancel: () => void;
         };
       };

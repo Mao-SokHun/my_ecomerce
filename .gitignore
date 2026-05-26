@@ -13,3 +13,7 @@ shopdb-database/
 !.env.example
 !.env.local.example
 render.yaml
+
+# SSL certificates
+*.pem
+certificates/

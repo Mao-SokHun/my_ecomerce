@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Facebook, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { authApi } from '@/lib/api';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
 
 function loginErrorMessage(error: unknown, lang: AppLanguage): string {
   if (axios.isAxiosError(error)) {
@@ -65,7 +66,7 @@ function LoginForm() {
   const [forgotName, setForgotName] = useState('');
   const [forgotPhone, setForgotPhone] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
-  const { login, loginWithFacebook, isLoading } = useAuthStore();
+  const { login, isLoading } = useAuthStore();
   const { language } = useLanguageStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -112,21 +113,6 @@ function LoginForm() {
       setFieldErrors(parseLoginFieldError(error, language));
       setSubmitError(msg);
       toast.error(msg);
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    const token = window.prompt(t(language, 'pasteFacebookToken'));
-    if (!token) return;
-    try {
-      await loginWithFacebook(token.trim());
-      toast.success(t(language, 'facebookLoginSuccess'));
-      router.push(redirect);
-    } catch (error: unknown) {
-      const msg = axios.isAxiosError(error)
-        ? (error.response?.data as { message?: string } | undefined)?.message
-        : undefined;
-      toast.error(msg || t(language, 'facebookLoginFailed'));
     }
   };
 
@@ -244,12 +230,20 @@ function LoginForm() {
             {isLoading ? t(language, 'signingIn') : t(language, 'signIn')}
           </button>
         </form>
-        <button type="button" onClick={handleFacebookLogin} className="btn-secondary w-full py-3 mt-3">
-          <Facebook className="w-4 h-4" />
-          {t(language, 'continueWithFacebook')}
-        </button>
 
-        <div className="mt-3 w-full">
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200 dark:border-surface-700" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white dark:bg-surface-900 px-3 text-gray-400">
+              {language === 'km' ? 'ឬ' : language === 'zh' ? '或者' : 'or'}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3 w-full">
+          <FacebookLoginButton redirectTo={redirect} />
           <GoogleSignInButton redirectTo={redirect} />
         </div>
 
