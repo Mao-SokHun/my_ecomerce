@@ -16,6 +16,7 @@ const resolveTargets = (): string[] =>
 const formatMoney = (value: number): string => `$${Number(value || 0).toFixed(2)}`;
 const formatDateTime24 = (value: Date): string =>
   value.toLocaleString('en-US', {
+    timeZone: 'Asia/Phnom_Penh',
     year: 'numeric',
     month: 'numeric',
     day: 'numeric',

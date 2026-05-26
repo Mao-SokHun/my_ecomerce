@@ -6,6 +6,7 @@ const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
 
 const formatDate = (value: Date): string =>
   value.toLocaleString('en-US', {
+    timeZone: 'Asia/Phnom_Penh',
     year: 'numeric',
     month: 'short',
     day: '2-digit',
