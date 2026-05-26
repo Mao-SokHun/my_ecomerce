@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
           "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: http:",
           "font-src 'self' data: https://fonts.gstatic.com",
-          `connect-src 'self' ${backendProxyTarget} https://accounts.google.com https://graph.facebook.com https://oauth2.googleapis.com`,
+          `connect-src 'self' ${backendProxyTarget} https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://oauth2.googleapis.com`,
           "frame-src https://accounts.google.com https://www.facebook.com https://js.stripe.com",
           "worker-src 'self' blob:",
           "base-uri 'self'",
