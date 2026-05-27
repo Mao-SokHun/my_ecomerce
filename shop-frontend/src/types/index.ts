@@ -4,6 +4,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  provider?: 'LOCAL' | 'GOOGLE' | 'FACEBOOK';
   role: 'USER' | 'ADMIN';
   isActive?: boolean;
   createdAt: string;

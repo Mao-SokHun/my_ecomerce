@@ -439,10 +439,9 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
       });
       await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else {
-      const updates: { name?: string; avatar?: string | null; provider?: 'GOOGLE' } = {};
+      const updates: { name?: string; avatar?: string | null } = {};
       if (name && user.name !== name) updates.name = name;
       if (picture && !user.avatar) updates.avatar = picture;
-      if (user.provider === 'LOCAL') updates.provider = 'GOOGLE';
       if (Object.keys(updates).length) {
         user = await prisma.user.update({ where: { id: user.id }, data: updates });
       }
@@ -511,9 +510,8 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
       });
       await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else {
-      const updates: { avatar?: string | null; provider?: 'FACEBOOK' } = {};
+      const updates: { avatar?: string | null } = {};
       if (!user.avatar && avatar) updates.avatar = avatar;
-      if (user.provider === 'LOCAL') updates.provider = 'FACEBOOK';
       if (Object.keys(updates).length) {
         user = await prisma.user.update({ where: { id: user.id }, data: updates });
       }
@@ -631,10 +629,10 @@ export const changePassword = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
 
-    if (!currentPassword || !newPassword) {
-      throw new AppError('Current and new password are required', 400);
+    if (!newPassword) {
+      throw new AppError('New password is required', 400);
     }
 
     const hasLower = /[a-z]/.test(newPassword);
@@ -648,8 +646,11 @@ export const changePassword = async (
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) throw new AppError('User not found', 404);
 
-    const isValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isValid) throw new AppError('Current password is incorrect', 400);
+    if (user.provider === 'LOCAL') {
+      if (!currentPassword) throw new AppError('Current password is required', 400);
+      const isValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isValid) throw new AppError('Current password is incorrect', 400);
+    }
 
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) throw new AppError('New password must be different from current password', 400);
@@ -657,7 +658,7 @@ export const changePassword = async (
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     const updated = await prisma.user.update({
       where: { id: req.user!.id },
-      data: { password: hashedPassword, tokenVersion: { increment: 1 } },
+      data: { password: hashedPassword, provider: 'LOCAL', tokenVersion: { increment: 1 } },
     });
 
     logAudit(req.user!.id, 'PASSWORD_CHANGE', null, getRequestIp(req));
@@ -680,11 +681,11 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
     if (user) {
       const code = String(crypto.randomInt(10000000, 100000000));
       storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-      await sendEmail({
+      void sendEmail({
         to: email,
-        subject: 'Your password reset code',
-        text: `Your verification code is ${code}. It expires in 10 minutes.`,
-        html: `<p>Your verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
+        subject: 'SH Shop — Your password reset code',
+        text: `Your SH Shop verification code is ${code}. It expires in 10 minutes.`,
+        html: `<p>Your SH Shop verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
       }).catch((err) => console.error('[Auth] Password reset email failed:', err));
     }
 

@@ -53,6 +53,7 @@ export default function DashboardPage() {
   }, [activeTab]);
 
   if (!isAuthChecked || !isAuthenticated) return null;
+  const needsCurrentPassword = user?.provider === 'LOCAL' || !user?.provider;
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +87,10 @@ export default function DashboardPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (needsCurrentPassword && !passwordForm.currentPassword.trim()) {
+      toast.error(language === 'km' ? 'សូមបញ្ចូលពាក្យសម្ងាត់បច្ចុប្បន្ន' : language === 'zh' ? '请输入当前密码' : 'Please enter current password');
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error(t(language, 'passwordsDoNotMatch'));
       return;
@@ -93,7 +98,7 @@ export default function DashboardPage() {
     setSaving(true);
     try {
       await authApi.changePassword({
-        currentPassword: passwordForm.currentPassword,
+        currentPassword: needsCurrentPassword ? passwordForm.currentPassword : undefined,
         newPassword: passwordForm.newPassword,
       });
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -346,7 +351,7 @@ export default function DashboardPage() {
                 <h2 className="font-bold text-gray-900 dark:text-white mb-6 text-lg">{t(language, 'changePassword')}</h2>
                 <div className="space-y-5 max-w-md">
                   {[
-                    { key: 'currentPassword', label: t(language, 'currentPassword') },
+                    ...(needsCurrentPassword ? [{ key: 'currentPassword', label: t(language, 'currentPassword') }] : []),
                     { key: 'newPassword', label: t(language, 'newPassword') },
                     { key: 'confirmPassword', label: t(language, 'confirmNewPassword') },
                   ].map(({ key, label }) => (
@@ -362,6 +367,15 @@ export default function DashboardPage() {
                       />
                     </div>
                   ))}
+                  {!needsCurrentPassword && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {language === 'km'
+                        ? 'អ្នកចូលដោយ Google/Facebook ដូច្នេះអាចកំណត់ password ថ្មីដោយមិនបញ្ចូល password ចាស់។'
+                        : language === 'zh'
+                          ? '您通过 Google/Facebook 登录，因此可直接设置新密码，无需旧密码。'
+                          : 'You signed in with Google/Facebook, so you can set a new password without the old one.'}
+                    </p>
+                  )}
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <button type="submit" disabled={saving} className="btn-primary px-8 py-2.5 shadow-premium">
                       {saving ? t(language, 'updating') : t(language, 'updatePassword')}

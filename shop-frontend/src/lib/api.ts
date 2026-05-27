@@ -103,10 +103,10 @@ export const authApi = {
   getMe: () => api.get('/auth/me'),
   updateProfile: (data: Partial<{ name: string; phone: string; avatar: string }>) =>
     api.put('/auth/profile', data),
-  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+  changePassword: (data: { currentPassword?: string; newPassword: string }) =>
     api.put('/auth/password', data),
   requestPasswordResetByEmail: (data: { email: string }) =>
-    api.post('/auth/forgot-password/email/request', data),
+    api.post('/auth/forgot-password/email/request', data, { timeout: 60_000 }),
   resetPasswordByEmailCode: (data: { email: string; code: string; newPassword: string }) =>
     api.post('/auth/forgot-password/email/verify', data),
   resetPasswordByInfo: (data: { name: string; phone: string; newPassword: string }) =>
