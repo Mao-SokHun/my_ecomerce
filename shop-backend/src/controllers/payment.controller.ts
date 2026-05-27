@@ -264,13 +264,18 @@ export const createAbaPayment = async (req: AuthRequest, res: Response, next: Ne
       (v) => typeof v === 'string' && String(v).length > 800
     ) as string | undefined;
 
+    const deeplink = (purchaseRes.abapay_deeplink as string | undefined) || null;
+    const qrStringMatch = deeplink ? deeplink.match(/[?&]qrcode=([^&]+)/i) : null;
+    const qrString = qrStringMatch ? decodeURIComponent(qrStringMatch[1]) : null;
+
     res.json({
       success: true,
       data: {
         orderId: order.id,
         orderNumber: order.orderNumber,
         status: statusObj,
-        deeplink: (purchaseRes.abapay_deeplink as string | undefined) || null,
+        deeplink,
+        qrString,
         appStore: (purchaseRes.app_store as string | undefined) || null,
         playStore: (purchaseRes.play_store as string | undefined) || null,
         qrBase64: qrBase64Candidate || null,

@@ -69,6 +69,7 @@ export default function CheckoutPage() {
     orderId: string;
     orderNumber: string;
     deeplink: string | null;
+    qrString: string | null;
     qrBase64: string | null;
     appStore: string | null;
     playStore: string | null;
@@ -295,6 +296,7 @@ export default function CheckoutPage() {
             orderId: string;
             orderNumber: string;
             deeplink: string | null;
+            qrString: string | null;
             qrBase64: string | null;
             appStore: string | null;
             playStore: string | null;
@@ -1162,6 +1164,16 @@ export default function CheckoutPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`data:image/png;base64,${abaPayment.qrBase64}`}
+                  alt="ABA PayWay QR"
+                  className="w-full h-full object-contain p-2"
+                />
+              </div>
+            )}
+            {!abaPayment.qrBase64 && abaPayment.qrString && (
+              <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(abaPayment.qrString)}`}
                   alt="ABA PayWay QR"
                   className="w-full h-full object-contain p-2"
                 />
