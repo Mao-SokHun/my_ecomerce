@@ -681,12 +681,19 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
     if (user) {
       const code = String(crypto.randomInt(10000000, 100000000));
       storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-      void sendEmail({
+      const sent = await sendEmail({
         to: email,
         subject: 'SH Shop — Your password reset code',
         text: `Your SH Shop verification code is ${code}. It expires in 10 minutes.`,
         html: `<p>Your SH Shop verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
-      }).catch((err) => console.error('[Auth] Password reset email failed:', err));
+      }).catch((err) => {
+        console.error('[Auth] Password reset email failed:', err);
+        return false;
+      });
+      if (!sent) {
+        forgotPasswordCodes.delete(email);
+        throw new AppError('Failed to send verification code. Please try again later.', 503);
+      }
     }
 
     res.json({
