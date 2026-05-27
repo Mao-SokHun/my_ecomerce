@@ -407,21 +407,29 @@ export default function OrderDetailsPage() {
       } else if (selectedPaymentMethod === 'aba') {
         try {
           const abaRes = await paymentApi.createAba(order.id);
-          const payload = abaRes.data.data;
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = payload.api_url;
-          form.style.display = 'none';
-          for (const [key, val] of Object.entries(payload)) {
-            if (key === 'api_url') continue;
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = String(val);
-            form.appendChild(input);
+          const payload = abaRes.data.data as { deeplink?: string | null; qrBase64?: string | null };
+          if (payload.deeplink && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            window.location.href = payload.deeplink;
           }
-          document.body.appendChild(form);
-          form.submit();
+          if (payload.qrBase64) {
+            toast.success(
+              language === 'zh'
+                ? 'ABA 二维码已生成，请在结账页扫描'
+                : language === 'km'
+                  ? 'ABA QR បានបង្កើតរួច សូមស្កេននៅ checkout'
+                  : 'ABA QR generated, please scan in checkout page'
+            );
+            router.push('/checkout');
+          } else {
+            toast(
+              language === 'zh'
+                ? 'ABA 支付已启动'
+                : language === 'km'
+                  ? 'ABA payment បានចាប់ផ្តើម'
+                  : 'ABA payment started',
+              { icon: 'ℹ️' }
+            );
+          }
         } catch {
           toast.error(language === 'zh' ? '无法启动 ABA 支付' : language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់ ABA បានទេ។' : 'Failed to start ABA payment');
         }

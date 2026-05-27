@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark } from 'lucide-react';
+import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark, ExternalLink } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -64,6 +64,14 @@ export default function CheckoutPage() {
     qrImageUrl: string;
     expiresAt: string;
     amount: number;
+  } | null>(null);
+  const [abaPayment, setAbaPayment] = useState<{
+    orderId: string;
+    orderNumber: string;
+    deeplink: string | null;
+    qrBase64: string | null;
+    appStore: string | null;
+    playStore: string | null;
   } | null>(null);
   const [cardPaymentOrder, setCardPaymentOrder] = useState<{
     id: string;
@@ -283,21 +291,19 @@ export default function CheckoutPage() {
       } else if (paymentMethod === 'aba') {
         try {
           const abaRes = await paymentApi.createAba(orderId);
-          const payload = abaRes.data.data;
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = payload.api_url;
-          form.style.display = 'none';
-          for (const [key, val] of Object.entries(payload)) {
-            if (key === 'api_url') continue;
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = String(val);
-            form.appendChild(input);
+          const payload = abaRes.data.data as {
+            orderId: string;
+            orderNumber: string;
+            deeplink: string | null;
+            qrBase64: string | null;
+            appStore: string | null;
+            playStore: string | null;
+          };
+          setAbaPayment(payload);
+          if (payload.deeplink && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            window.location.href = payload.deeplink;
           }
-          document.body.appendChild(form);
-          form.submit();
+          toast.success(language === 'km' ? 'បានបង្កើត ABA QR' : language === 'zh' ? 'ABA 二维码已生成' : 'ABA QR generated');
           return;
         } catch {
           toast.error(
@@ -476,6 +482,27 @@ export default function CheckoutPage() {
     }, 3000);
     return () => clearInterval(poll);
   }, [khqrPayment, fetchCart]);
+
+  useEffect(() => {
+    if (!abaPayment) return;
+    const poll = setInterval(async () => {
+      try {
+        const { data } = await paymentApi.getAbaStatus(abaPayment.orderId);
+        if (data.data.status === 'PAID') {
+          const { data: orderData } = await orderApi.getById(abaPayment.orderId);
+          const o = orderData.data as { id: string; orderNumber: string; total: number };
+          setCompletedOrder({ id: o.id, orderNumber: o.orderNumber, total: o.total });
+          setAbaPayment(null);
+          setStep(3);
+          await fetchCart();
+          toast.success('ABA payment confirmed');
+        }
+      } catch {
+        // silent poll
+      }
+    }, 4000);
+    return () => clearInterval(poll);
+  }, [abaPayment, fetchCart]);
 
   if (!isAuthChecked) {
     return (
@@ -1114,6 +1141,39 @@ export default function CheckoutPage() {
                 {language === 'km' ? 'ខ្ញុំបានបង់ (សាកល្បង)' : language === 'zh' ? '我已支付（测试）' : 'I Paid (Test)'}
               </button>
               <button onClick={() => setKhqrPayment(null)} className="btn-secondary text-sm">
+                {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {abaPayment && (
+        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm card p-5">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+              <Landmark className="w-5 h-5 text-primary-600" /> ABA PayWay
+            </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              {language === 'km' ? 'ស្កេន QR ឬបើក ABA App ដើម្បីបង់ប្រាក់' : language === 'zh' ? '扫码或打开 ABA 应用支付' : 'Scan QR or open ABA app to pay'}
+            </p>
+            {abaPayment.qrBase64 && (
+              <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`data:image/png;base64,${abaPayment.qrBase64}`}
+                  alt="ABA PayWay QR"
+                  className="w-full h-full object-contain p-2"
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2 mt-4">
+              {abaPayment.deeplink && (
+                <a href={abaPayment.deeplink} className="btn-primary text-sm inline-flex items-center justify-center gap-1">
+                  ABA App <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <button onClick={() => setAbaPayment(null)} className="btn-secondary text-sm">
                 {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
               </button>
             </div>

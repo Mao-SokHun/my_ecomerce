@@ -155,6 +155,15 @@ export function buildCheckoutPayload(req: AbaPaymentRequest) {
   };
 }
 
+export async function createAbaPurchase(payload: ReturnType<typeof buildCheckoutPayload>): Promise<Record<string, unknown>> {
+  const { api_url: _apiUrl, ...body } = payload;
+  const { data } = await axios.post(ABA_API_URL, body, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 20000,
+  });
+  return data as Record<string, unknown>;
+}
+
 export function verifyCallbackHash(transactionId: string, amount: string, receivedHash: string): boolean {
   const merchantId = getMerchantId();
   const raw = merchantId + transactionId + amount;

@@ -5,7 +5,7 @@ import { AppError } from '../middleware/errorHandler';
 import { createKhqrForOrder, verifyKhqrWebhookSignature } from '../lib/khqr';
 import { sendInvoiceNotification } from '../lib/invoice';
 import { notifyAdminOrderEvent } from '../lib/adminNotifier';
-import { isAbaConfigured, buildCheckoutPayload, verifyCallbackHash, checkTransactionStatus } from '../lib/abaPayway';
+import { isAbaConfigured, buildCheckoutPayload, verifyCallbackHash, checkTransactionStatus, createAbaPurchase } from '../lib/abaPayway';
 import { isWebhookReplay } from '../middleware/security';
 import path from 'path';
 
@@ -253,7 +253,30 @@ export const createAbaPayment = async (req: AuthRequest, res: Response, next: Ne
       data: { paymentIntentId: `aba_${order.orderNumber}` },
     });
 
-    res.json({ success: true, data: payload });
+    const purchaseRes = await createAbaPurchase(payload);
+    const statusObj = (purchaseRes.status || {}) as { code?: string; message?: string };
+    const statusCode = String(statusObj.code || '');
+    if (statusCode !== '00') {
+      throw new AppError(statusObj.message || 'Failed to initiate ABA payment', 400);
+    }
+
+    const qrBase64Candidate = Object.values(purchaseRes).find(
+      (v) => typeof v === 'string' && String(v).length > 800
+    ) as string | undefined;
+
+    res.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: statusObj,
+        deeplink: (purchaseRes.abapay_deeplink as string | undefined) || null,
+        appStore: (purchaseRes.app_store as string | undefined) || null,
+        playStore: (purchaseRes.play_store as string | undefined) || null,
+        qrBase64: qrBase64Candidate || null,
+        raw: purchaseRes,
+      },
+    });
   } catch (error) {
     next(error);
   }
