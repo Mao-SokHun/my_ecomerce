@@ -144,6 +144,60 @@ const formatDateTime24 = (value: Date): string =>
     hour12: false,
   });
 
+const buildPasswordResetEmail = (code: string): { subject: string; text: string; html: string } => {
+  const subject = 'Your SH Shop verification code';
+  const text = [
+    'SH Shop password reset verification',
+    '',
+    `Your verification code is: ${code}`,
+    'This code expires in 10 minutes.',
+    '',
+    'For your security, do not share this code with anyone.',
+    'If you did not request this, you can ignore this email.',
+  ].join('\n');
+  const html = `
+    <div style="margin:0;padding:0;background:#f3f5fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="padding:24px 12px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;">
+              <tr>
+                <td style="padding:20px 24px;background:#1d4ed8;color:#ffffff;font-size:20px;font-weight:700;">
+                  SH Shop
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:24px;">
+                  <p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#111827;">Password reset verification</p>
+                  <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#374151;">
+                    Use the verification code below to reset your SH Shop password.
+                  </p>
+                  <div style="margin:0 auto 16px;max-width:280px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:12px;padding:14px;text-align:center;">
+                    <div style="font-size:30px;letter-spacing:6px;font-weight:700;color:#111827;">${code}</div>
+                  </div>
+                  <p style="margin:0 0 8px;font-size:13px;color:#374151;">
+                    This code is valid for <strong>10 minutes</strong>.
+                  </p>
+                  <p style="margin:0;font-size:13px;color:#6b7280;">
+                    For your security, never share this code. If you did not request it, you can safely ignore this email.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.5;color:#6b7280;">
+                  Need help? Contact SH Shop support at
+                  <a href="mailto:shshopbyonline@gmail.com" style="color:#1d4ed8;text-decoration:none;">shshopbyonline@gmail.com</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+  return { subject, text, html };
+};
+
 const getRequestIp = (req: Request): string => {
   const xfwd = req.headers['x-forwarded-for'];
   if (typeof xfwd === 'string' && xfwd.trim()) return xfwd.split(',')[0].trim();
@@ -680,12 +734,13 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
       const code = String(crypto.randomInt(10000000, 100000000));
+      const mail = buildPasswordResetEmail(code);
       storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
       const sent = await sendEmail({
         to: email,
-        subject: 'SH Shop — Your password reset code',
-        text: `Your SH Shop verification code is ${code}. It expires in 10 minutes.`,
-        html: `<p>Your SH Shop verification code is <b>${code}</b>. It expires in 10 minutes.</p>`,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
       }).catch((err) => {
         console.error('[Auth] Password reset email failed:', err);
         return false;
