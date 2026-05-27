@@ -315,6 +315,48 @@ export default function OrderDetailsPage() {
   }, [isAuthenticated, isAuthChecked, params.id, router, language]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !isAuthenticated || !isAuthChecked) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('aba') !== 'success') return;
+    const id = parseOrderIdFromRoute(String(params.id));
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await paymentApi.getAbaStatus(id);
+        if (cancelled) return;
+        if (data.data?.status === 'PAID') {
+          toast.success(
+            language === 'zh' ? 'ABA 支付已确认' : language === 'km' ? 'ការទូទាត់ ABA បានបញ្ជាក់' : 'ABA payment confirmed'
+          );
+        } else {
+          toast(
+            language === 'zh'
+              ? '支付处理中，请稍候刷新页面'
+              : language === 'km'
+                ? 'ការទូទាត់កំពុងដំណើរការ សូមរង់ចាំ'
+                : 'Payment processing — refresh in a moment if status does not update',
+            { icon: 'ℹ️' }
+          );
+        }
+        router.replace(window.location.pathname);
+        const { data: orderData } = await orderApi.getById(id);
+        setOrder(orderData.data);
+        const { data: invData } = await orderApi.getInvoice(id, language);
+        setInvoice(invData.data);
+      } catch {
+        if (!cancelled) {
+          toast.error(
+            language === 'zh' ? '无法确认 ABA 支付' : language === 'km' ? 'មិនអាចបញ្ជាក់ការទូទាត់ ABA' : 'Could not confirm ABA payment'
+          );
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isAuthChecked, params.id, router, language]);
+
+  useEffect(() => {
     settingApi
       .get()
       .then(({ data }) => {

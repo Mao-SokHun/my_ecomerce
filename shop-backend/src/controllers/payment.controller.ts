@@ -223,26 +223,29 @@ export const createAbaPayment = async (req: AuthRequest, res: Response, next: Ne
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || firstName;
 
-    const itemsSummary = Buffer.from(
-      JSON.stringify(order.items.map(i => ({
-        name: i.product.name,
+    const itemsJson = JSON.stringify(
+      order.items.map((i) => ({
+        name: String(i.product.name).slice(0, 100),
         quantity: i.quantity,
-        price: Number(i.price),
-      })))
-    ).toString('base64');
+        price: Number(i.price).toFixed(2),
+      }))
+    );
+    const itemsSummary = Buffer.from(itemsJson).toString('base64');
 
     const payload = buildCheckoutPayload({
       transactionId: order.orderNumber,
       amount: Number(order.total).toFixed(2),
+      shipping: Number(order.shippingCost || 0).toFixed(2),
       firstName,
       lastName,
-      phone: order.user.phone || '',
-      email: order.user.email || '',
+      phone: order.user.phone || '0000000000',
+      email: order.user.email || 'customer@shophub.local',
       items: itemsSummary,
       returnUrl: `${frontendUrl}/dashboard/orders/${order.id}?aba=success`,
       cancelUrl: `${frontendUrl}/dashboard/orders/${order.id}?aba=cancelled`,
       callbackUrl: `${backendUrl}/api/payments/aba/callback`,
       currency: 'USD',
+      paymentOption: 'abapay',
     });
 
     await prisma.order.update({
