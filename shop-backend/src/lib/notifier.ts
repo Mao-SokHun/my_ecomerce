@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import axios from 'axios';
+import { Resend } from 'resend';
 
 interface EmailPayload {
   to: string;
@@ -21,6 +22,20 @@ interface TelegramPayload {
 }
 
 export const sendEmail = async (payload: EmailPayload): Promise<boolean> => {
+  const resendApiKey = process.env.RESEND_API_KEY?.trim();
+  const resendFrom = process.env.RESEND_FROM?.trim();
+  if (resendApiKey && resendFrom) {
+    const resend = new Resend(resendApiKey);
+    await resend.emails.send({
+      from: resendFrom,
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text,
+    });
+    return true;
+  }
+
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
@@ -37,6 +52,9 @@ export const sendEmail = async (payload: EmailPayload): Promise<boolean> => {
     port,
     secure: port === 465,
     auth: { user, pass },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
   });
 
   await transporter.sendMail({
