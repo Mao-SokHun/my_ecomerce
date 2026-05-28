@@ -10,6 +10,7 @@ import { categoryApi } from '@/lib/api';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { CategorySkeleton } from '@/components/ui/Skeleton';
+import { CategoryScrollBar } from '@/components/home/CategoryScrollBar';
 
 export function CategoryGrid() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -66,7 +67,14 @@ export function CategoryGrid() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3 sm:gap-4">
+      {/* Mobile: horizontal category bar */}
+      <div className="sm:hidden mb-5">
+        <CategoryScrollBar
+          categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+        />
+      </div>
+
+      <div className="hidden sm:grid sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3 sm:gap-4">
         {categories.map((category, i) => (
           <motion.div
             key={category.id}

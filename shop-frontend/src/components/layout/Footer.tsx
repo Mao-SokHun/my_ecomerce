@@ -125,7 +125,7 @@ export function Footer() {
     Array.isArray(footerInfo.phones) && footerInfo.phones.length > 0
       ? footerInfo.phones.filter(Boolean)
       : ['0974944390', '0885459115'];
-  const email = footerInfo.email || 'sokhunmao390@gmail.com';
+  const email = footerInfo.email || 'shshopbyonline@gmail.com';
   const address = footerInfo.address || '247 Beong Salang St, Toul Kork, Phnom Penh';
   /** SH-Shop accepts Visa card and Bakong only — fixed badges (not driven by legacy admin lists). */
   const displayPaymentBadges = ['Visa', 'Bakong'];
@@ -141,8 +141,8 @@ export function Footer() {
   const displayPhones = phones.length >= 2 ? phones : ['0974944390', '0885459115'];
 
   return (
-    <footer className="bg-surface-950 text-gray-300 mt-20">
-      <div className="page-container py-16">
+    <footer className="bg-surface-950 text-gray-300 mt-12 sm:mt-20">
+      <div className="page-container py-10 sm:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
@@ -237,8 +237,8 @@ export function Footer() {
             </ul>
             <div className="mt-6">
               <p className="text-sm text-gray-400 mb-3">{t(language, 'footerNewsletter')}</p>
-              <form onSubmit={handleNewsletter} className="flex gap-2">
-                <div className="flex-1 space-y-2">
+              <form onSubmit={handleNewsletter} className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 space-y-2 min-w-0">
                   <input
                     type="email"
                     value={newsletterEmail}
@@ -254,7 +254,7 @@ export function Footer() {
                     className="w-full px-3 py-2 text-sm bg-surface-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary-500"
                   />
                 </div>
-                <button type="submit" className="px-4 py-2 h-fit text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+                <button type="submit" className="w-full sm:w-auto px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shrink-0">
                   {t(language, 'footerSubscribe')}
                 </button>
               </form>
@@ -262,7 +262,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <p className="text-sm text-gray-500">
             {footerInfo.copyright || t(language, 'footerRights')}
           </p>

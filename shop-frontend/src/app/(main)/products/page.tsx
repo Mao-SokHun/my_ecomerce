@@ -9,6 +9,7 @@ import {
 import { Product, Pagination, ApiResponse, Category } from '@/types';
 import { ProductCard } from '@/components/products/ProductCard';
 import { productApi, categoryApi } from '@/lib/api';
+import { CategoryScrollBar } from '@/components/home/CategoryScrollBar';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 
@@ -154,9 +155,18 @@ function ProductsContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8">
+      {categories.length > 0 && (
+        <div className="mb-5 sm:hidden -mx-1">
+          <CategoryScrollBar
+            categories={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+            activeSlug={filters.category}
+          />
+        </div>
+      )}
+
       {/* Header */}
-      <div id="products-pagination-anchor" className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 scroll-mt-24">
+      <div id="products-pagination-anchor" className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-5 sm:mb-6 scroll-mt-28">
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             {filters.search ? `${t(language, 'productsSearchPrefix')} "${filters.search}"` :
@@ -174,9 +184,9 @@ function ProductsContent() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Inline search */}
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Inline search — desktop only (mobile uses navbar search) */}
+          <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -188,11 +198,11 @@ function ProductsContent() {
           </div>
 
           {/* Sort */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none min-w-0">
             <select
               value={filters.sort}
               onChange={(e) => updateFilter('sort', e.target.value)}
-              className="pl-3 pr-8 py-2 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white cursor-pointer"
+              className="w-full sm:w-auto pl-3 pr-8 py-2.5 sm:py-2 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white cursor-pointer min-h-[44px] sm:min-h-0"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -204,10 +214,10 @@ function ProductsContent() {
           {/* Filters toggle */}
           <button
             onClick={() => setFiltersOpen(!filtersOpen)}
-            className="relative flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-white"
+            className="relative flex items-center justify-center gap-2 px-3 py-2.5 sm:py-2 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors dark:text-white min-h-[44px] sm:min-h-0"
           >
-            <SlidersHorizontal className="w-4 h-4" />
-            {t(language, 'productsFilters')}
+            <SlidersHorizontal className="w-4 h-4 shrink-0" />
+            <span className="hidden min-[400px]:inline">{t(language, 'productsFilters')}</span>
             {activeFilterCount > 0 && (
               <span className="w-5 h-5 text-xs font-bold text-white bg-primary-600 rounded-full flex items-center justify-center">
                 {activeFilterCount}

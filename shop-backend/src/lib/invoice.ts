@@ -101,7 +101,7 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
     paymentLabelBakong?: string;
   };
   const shopName = invoiceCfg.shopName || settings?.siteName || 'SH-Shop';
-  const supportEmail = invoiceCfg.supportEmail || 'sokhunmao390@gmail.com';
+  const supportEmail = invoiceCfg.supportEmail || 'shshopbyonline@gmail.com';
   const supportPhone = invoiceCfg.supportPhone || '0974944390 / 0885459115';
   const shopAddress = invoiceCfg.shopAddress || 'N/A';
   const footerNote = invoiceCfg.footerNote || '';

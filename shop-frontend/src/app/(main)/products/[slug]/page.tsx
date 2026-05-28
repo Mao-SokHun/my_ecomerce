@@ -154,9 +154,9 @@ export default function ProductDetailPage() {
   const calculatedPrice = product.price + selectedVariantObjects.reduce((sum, v) => sum + (v.price || 0), 0);
 
   return (
-    <div className="page-container py-8">
+    <div className="page-container py-6 sm:py-8 pb-28 sm:pb-8">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6">
+      <nav className="hidden sm:flex items-center gap-1.5 text-sm text-gray-500 mb-6">
         <Link href="/" className="hover:text-primary-600">{t(language, 'home')}</Link>
         <ChevronRight className="w-4 h-4" />
         <Link href="/products" className="hover:text-primary-600">{t(language, 'products')}</Link>
@@ -217,7 +217,7 @@ export default function ProductDetailPage() {
           </h1>
 
           {/* Rating */}
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3">
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
@@ -314,8 +314,8 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 mt-6">
+          {/* Actions — desktop */}
+          <div className="hidden sm:flex gap-3 mt-6">
             <button
               onClick={handleAddToCart}
               disabled={cartLoading || product.stock === 0}
@@ -486,11 +486,45 @@ export default function ProductDetailPage() {
         </div>
       )}
 
+      {/* Sticky add-to-cart — mobile */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-surface-950/95 backdrop-blur-md px-3 py-3 safe-bottom">
+        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-black text-gray-900 dark:text-white tabular-nums leading-tight">
+              {formatPrice(calculatedPrice)}
+            </p>
+            {product.stock > 0 && product.stock <= 10 && (
+              <p className="text-[11px] text-orange-500 truncate">{t(language, 'onlyLeft').replace('{count}', String(product.stock))}</p>
+            )}
+          </div>
+          <button
+            onClick={handleAddToCart}
+            disabled={cartLoading || product.stock === 0}
+            className="btn-primary flex-1 max-w-[12rem] py-3 text-sm shrink-0"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            {cartLoading ? t(language, 'adding') : t(language, 'addToCart')}
+          </button>
+          <button
+            onClick={handleWishlist}
+            type="button"
+            className={`w-11 h-11 shrink-0 flex items-center justify-center border rounded-xl ${
+              isWishlisted
+                ? 'border-red-500 bg-red-50 text-red-500'
+                : 'border-gray-200 dark:border-gray-700 text-gray-500'
+            }`}
+            aria-label={t(language, 'wishlist')}
+          >
+            <Heart className="w-5 h-5" fill={isWishlisted ? 'currentColor' : 'none'} />
+          </button>
+        </div>
+      </div>
+
       {/* Related products */}
       {related.length > 0 && (
-        <div className="mt-16">
-          <h2 className="section-title mb-6">Related Products</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="mt-12 sm:mt-16">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-5 sm:mb-6">Related Products</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

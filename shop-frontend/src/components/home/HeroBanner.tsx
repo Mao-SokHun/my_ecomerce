@@ -213,7 +213,20 @@ export function HeroBanner() {
           ))}
         </div>
 
-        {/* Feature badges */}
+        {/* Feature badges — mobile compact row */}
+        <div className="flex flex-wrap gap-2 mt-6 sm:mt-8 lg:hidden">
+          {[
+            { icon: Truck, text: t(language, 'freeShipping50') },
+            { icon: ShieldCheck, text: t(language, 'securePayment') },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur rounded-full text-white/85 text-[11px] sm:text-xs font-medium">
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="leading-snug">{text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Feature badges — desktop */}
         <div className="absolute bottom-8 right-0 hidden lg:flex flex-col gap-3">
           {[
             { icon: Truck, text: t(language, 'freeShipping50') },

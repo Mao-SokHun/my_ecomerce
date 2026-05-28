@@ -1,7 +1,8 @@
 # ShopHub E-Commerce
 
 Full-stack e-commerce project with:
-- `shop-frontend`: Next.js frontend
+- `shop-frontend`: Next.js web storefront
+- `shop-mobile`: Expo app (iOS & Android) with liquid-glass UI
 - `shop-backend`: Express + Prisma backend
 
 ## Tech Stack
@@ -15,6 +16,7 @@ Full-stack e-commerce project with:
 ```text
 .
 ├─ shop-frontend/
+├─ shop-mobile/
 └─ shop-backend/
 ```
 

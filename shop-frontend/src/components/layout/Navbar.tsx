@@ -71,6 +71,15 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setIsUserMenuOpen(false);
@@ -166,11 +175,11 @@ export function Navbar() {
           setSearchQuery={setSearchQuery}
           onSubmitSearch={submitProductSearch}
         >
-        <div className="flex items-center gap-4 h-16">
+        <div className="flex items-center gap-2 sm:gap-4 h-14 sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 flex-shrink-0 rounded-lg transition-opacity duration-200 ease-smooth-out hover:opacity-90 active:opacity-80">
-            <Image src="/logo.png" alt={brandName} width={34} height={34} className="rounded-full" priority />
-            <span className="text-lg font-bold text-gray-900 dark:text-white hidden sm:block">
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0 min-w-0 rounded-lg transition-opacity duration-200 ease-smooth-out hover:opacity-90 active:opacity-80">
+            <Image src="/logo.png" alt={brandName} width={32} height={32} className="rounded-full sm:w-[34px] sm:h-[34px]" priority />
+            <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate max-w-[6.5rem] sm:max-w-none hidden min-[400px]:block">
               {brandName}
             </span>
           </Link>
@@ -268,11 +277,11 @@ export function Navbar() {
           <NavbarSearchDesktop />
 
           {/* Actions */}
-          <div className="flex items-center gap-1 ml-auto">
+          <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
+              className="p-2.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -281,7 +290,7 @@ export function Navbar() {
             {/* Cart */}
             <button
               onClick={openCart}
-              className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
+              className="relative p-2.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
               aria-label="Open cart"
             >
               <ShoppingCart className="w-5 h-5" />
@@ -421,7 +430,7 @@ export function Navbar() {
                   href="/register"
                   onMouseEnter={() => prefetchRoute('/register')}
                   onFocus={() => prefetchRoute('/register')}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all duration-200 ease-smooth-out"
+                  className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-all duration-200 ease-smooth-out"
                 >
                   {t(language, 'signUp')}
                 </Link>
@@ -431,7 +440,9 @@ export function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
+              className="lg:hidden p-2.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition-all duration-200 ease-smooth-out"
+              aria-expanded={isMobileMenuOpen}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -450,113 +461,127 @@ export function Navbar() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="lg:hidden fixed inset-0 top-16 bg-black/30 backdrop-blur-sm z-40"
+                className="lg:hidden fixed inset-0 top-[7.25rem] md:top-16 bg-black/40 backdrop-blur-sm z-40"
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                className="lg:hidden fixed left-3 right-3 top-[4.5rem] bg-white dark:bg-surface-900 shadow-2xl rounded-2xl overflow-hidden z-50 origin-top max-h-[calc(100vh-5.5rem)] overflow-y-auto"
+                initial={{ opacity: 0, x: '100%' }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: '100%' }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="lg:hidden fixed inset-y-0 right-0 w-[min(100%,20rem)] bg-white dark:bg-surface-900 shadow-2xl z-50 flex flex-col safe-top safe-bottom"
               >
-                {/* Navigation links */}
-                <div className="px-4 pt-5 pb-3">
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t(language, 'navShop')}</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-surface-800"
+                    aria-label="Close menu"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+                  <div className="grid grid-cols-2 gap-2">
                     <Link
                       href="/"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20 dark:hover:text-primary-400 rounded-xl transition-all duration-200"
+                      className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
                     >
                       {t(language, 'navHome')}
                     </Link>
                     <Link
                       href="/products?featured=true"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex-1 text-center px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20 dark:hover:text-primary-400 rounded-xl transition-all duration-200"
+                      className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
                     >
                       {t(language, 'navDeals')}
                     </Link>
                   </div>
-                </div>
 
-                {/* Divider */}
-                <div className="h-px bg-gray-100 dark:bg-gray-800 mx-4" />
-
-                {/* Category section */}
-                <div className="px-4 pt-4 pb-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                      {t(language, 'navShop')}
-                    </h3>
-                    <Link
-                      href="/products"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-xs font-medium text-primary-600 dark:text-primary-400"
-                    >
-                      {t(language, 'viewAll')} →
-                    </Link>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {shopNavCategories.map((cat, idx) => {
-                      const href = `/products?category=${encodeURIComponent(cat.slug)}`;
-                      return (
-                        <motion.div
-                          key={cat.slug}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: idx * 0.03, duration: 0.2 }}
-                        >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        {t(language, 'shopByCategory')}
+                      </h3>
+                      <Link
+                        href="/products"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-xs font-medium text-primary-600 dark:text-primary-400"
+                      >
+                        {t(language, 'viewAll')}
+                      </Link>
+                    </div>
+                    <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-1">
+                      <Link
+                        href="/products"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold text-sm"
+                      >
+                        <Package className="w-4 h-4 shrink-0" />
+                        {t(language, 'allProducts')}
+                      </Link>
+                      {shopNavCategories.map((cat) => {
+                        const href = `/products?category=${encodeURIComponent(cat.slug)}`;
+                        return (
                           <Link
+                            key={cat.slug}
                             href={href}
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-3 bg-gray-50 dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 rounded-xl text-gray-700 dark:text-gray-300 transition-all duration-200"
+                            className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 text-sm font-medium leading-snug"
                           >
-                            <span className="text-lg leading-none w-6 flex justify-center shrink-0" aria-hidden>
+                            <span className="text-lg w-7 text-center shrink-0" aria-hidden>
                               {shopCategoryIcon(cat.slug)}
                             </span>
-                            <span className="text-sm font-medium leading-tight truncate">
+                            <span className="flex-1 min-w-0">
                               {shopCategoryLabel(language, cat.slug, cat.name)}
                             </span>
                           </Link>
-                        </motion.div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                      {language === 'km' ? 'ភាសា' : language === 'zh' ? '语言' : 'Language'}
+                    </p>
+                    <div className="flex gap-2">
+                      {languageOptions.map((option) => (
+                        <button
+                          key={`mobile-lang-${option.value}`}
+                          type="button"
+                          onClick={() => setLanguage(option.value)}
+                          className={`flex-1 py-2.5 text-sm font-medium rounded-xl text-center min-h-[44px] transition-all duration-200 ${
+                            language === option.value
+                              ? 'bg-primary-600 text-white shadow-sm'
+                              : 'bg-gray-50 dark:bg-surface-800 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="h-px bg-gray-100 dark:bg-gray-800 mx-4 mt-2" />
-
-                {/* Language selector (mobile) */}
-                <div className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {languageOptions.map((option) => (
-                      <button
-                        key={`mobile-lang-${option.value}`}
-                        type="button"
-                        onClick={() => setLanguage(option.value)}
-                        className={`flex-1 py-2 text-sm font-medium rounded-xl text-center transition-all duration-200 ${
-                          language === option.value
-                            ? 'bg-primary-600 text-white shadow-sm'
-                            : 'bg-gray-50 dark:bg-surface-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sign in button for unauthenticated */}
                 {!isAuthenticated && (
-                  <div className="px-4 pb-5">
+                  <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
                     <Link
                       href="/login"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="btn-primary w-full py-3 rounded-xl text-center font-semibold shadow-lg block"
+                      className="btn-primary w-full py-3 rounded-xl text-center font-semibold block"
                     >
                       {t(language, 'signIn')}
+                    </Link>
+                    <Link
+                      href="/register"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="btn-secondary w-full py-3 rounded-xl text-center font-semibold block"
+                    >
+                      {t(language, 'signUp')}
                     </Link>
                   </div>
                 )}

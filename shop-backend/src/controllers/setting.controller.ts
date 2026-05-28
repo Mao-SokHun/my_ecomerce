@@ -23,7 +23,7 @@ const defaultLayoutInfo = (siteName = 'SH-Shop') => ({
     brandDescription: '',
     address: '',
     phones: ['0974944390', '0885459115'],
-    email: 'sokhunmao390@gmail.com',
+    email: 'shshopbyonline@gmail.com',
     socialLinks: [],
     shopLinks: [],
     accountLinks: [],
@@ -68,7 +68,7 @@ const defaultLayoutInfo = (siteName = 'SH-Shop') => ({
   },
   invoice: {
     shopName: siteName,
-    supportEmail: 'sokhunmao390@gmail.com',
+    supportEmail: 'shshopbyonline@gmail.com',
     supportPhone: '0974944390 / 0885459115',
     shopAddress: 'Phnom Penh, Cambodia',
     footerNote: 'Thank you for your order.',

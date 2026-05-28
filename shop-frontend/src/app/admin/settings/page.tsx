@@ -94,7 +94,7 @@ const defaultForm = (): AdminSettingsForm => ({
     brandDescription: 'Online shopping',
     address: 'Phnom Penh',
     phones: ['0974944390', '0885459115'],
-    email: 'sokhunmao390@gmail.com',
+    email: 'shshopbyonline@gmail.com',
     socialLinks: [{ name: 'Facebook', url: 'https://facebook.com' }],
     shopLinks: [{ label: 'All Products', href: '/products' }],
     accountLinks: [{ label: 'My Account', href: '/dashboard' }],
@@ -146,7 +146,7 @@ const defaultForm = (): AdminSettingsForm => ({
   },
   invoice: {
     shopName: 'SH-Shop',
-    supportEmail: 'sokhunmao390@gmail.com',
+    supportEmail: 'shshopbyonline@gmail.com',
     supportPhone: '0974944390 / 0885459115',
     shopAddress: 'Phnom Penh, Cambodia',
     footerNote: 'Thank you for your order.',

@@ -323,7 +323,7 @@ export function NavbarSearchMobile() {
   } = useSearchCtx();
 
   return (
-    <div className="pb-3 md:hidden">
+    <div className="pb-2 md:hidden">
       <form onSubmit={handleSubmit} role="search" aria-label={t(language, 'searchPlaceholder')}>
         <div className="relative" onFocus={() => openPanel('mobile')} onBlur={scheduleClose}>
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />

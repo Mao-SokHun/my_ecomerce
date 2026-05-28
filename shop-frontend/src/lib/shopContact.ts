@@ -1,7 +1,7 @@
 /** Default when API has no contact data */
-export const FALLBACK_SHOP_CONTACT_LINE = 'sokhunmao390@gmail.com | 0974944390 / 0885459115';
+export const FALLBACK_SHOP_CONTACT_LINE = 'shshopbyonline@gmail.com | 0974944390 / 0885459115';
 
-const FALLBACK_EMAIL = 'sokhunmao390@gmail.com';
+const FALLBACK_EMAIL = 'shshopbyonline@gmail.com';
 const FALLBACK_PHONES = ['0974944390', '0885459115'];
 const FALLBACK_ADDRESS = '247 Beong Salang St, Toul Kork, Phnom Penh';
 

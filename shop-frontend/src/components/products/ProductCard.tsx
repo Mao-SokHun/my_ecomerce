@@ -91,7 +91,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
-      className="group relative h-full card hover:shadow-2xl transition-all duration-200 ease-smooth-out cursor-pointer motion-reduce:transition-none"
+      className="group relative h-full card hover:shadow-2xl transition-all duration-200 ease-smooth-out cursor-pointer motion-reduce:transition-none max-sm:hover:shadow-premium max-sm:hover:translate-y-0"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
       {/* Image */}
@@ -148,15 +148,17 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           </motion.button>
         </div>
 
-        {/* Quick add — hidden from pointer events until hover (touch: passes through to card) */}
-        <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-smooth-out translate-y-2 group-hover:translate-y-0 z-10 motion-reduce:transition-none">
+        {/* Quick add — always visible on touch; hover on desktop */}
+        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 z-10 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0 transition-all duration-200 ease-smooth-out motion-reduce:transition-none">
           <button
             onClick={handleAddToCart}
             disabled={isAddingToCart || product.stock === 0}
-            className="w-full btn-primary py-3 active:scale-[0.98] group/btn"
+            className="w-full btn-primary py-2.5 sm:py-3 text-xs sm:text-sm active:scale-[0.98] group/btn shadow-lg"
           >
-            <ShoppingCart className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform duration-200 ease-smooth-out mr-1" />
-            {isAddingToCart ? t(language, 'adding') : product.stock === 0 ? t(language, 'outOfStock') : t(language, 'addToCart')}
+            <ShoppingCart className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform duration-200 ease-smooth-out mr-1 shrink-0" />
+            <span className="truncate">
+              {isAddingToCart ? t(language, 'adding') : product.stock === 0 ? t(language, 'outOfStock') : t(language, 'addToCart')}
+            </span>
           </button>
         </div>
       </div>

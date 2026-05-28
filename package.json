@@ -12,6 +12,9 @@
     "build": "npm run build --prefix shop-frontend",
     "start": "npm run start --prefix shop-frontend",
     "lint": "npm run lint --prefix shop-frontend",
+    "dev:mobile": "npm run start --prefix shop-mobile",
+    "android": "npm run android --prefix shop-mobile",
+    "ios": "npm run ios --prefix shop-mobile",
     "docker:db": "docker compose up -d postgres",
     "docker:db:down": "docker compose down"
   }
