@@ -12,7 +12,7 @@ const parseCsv = (value?: string): string[] =>
     .filter(Boolean);
 
 const resolveTargets = (): string[] =>
-  parseCsv(process.env.TELEGRAM_CHAT_IDS || process.env.TELEGRAM_CHAT_ID);
+  parseCsv(process.env.TELEGRAM_USER_CHAT_ID || process.env.TELEGRAM_CHAT_IDS || process.env.TELEGRAM_CHAT_ID);
 
 const formatDateTime24 = (value: Date): string =>
   value.toLocaleString('en-US', {
@@ -95,7 +95,15 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
         .filter((l) => l !== undefined)
         .join('\n');
 
-      await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text: telegramText })));
+      await Promise.allSettled(
+        targets.map((chatId) =>
+          sendTelegramMessage({
+            chatId,
+            text: telegramText,
+            botToken: process.env.TELEGRAM_USER_BOT_TOKEN,
+          })
+        )
+      );
     }
 
     res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry });
