@@ -9,6 +9,7 @@ shopdb-database/
 *.log
 *.tsbuildinfo
 .env
+.txt
 .env.*
 !.env.example
 !.env.local.example
