@@ -1,0 +1,367 @@
+================================================================================
+  FREELANCER.COM PROJECT LISTING — FULL E-COMMERCE PLATFORM FOR SALE
+================================================================================
+
+PROJECT TITLE (suggested):
+Full-Stack E-Commerce Platform | Web Store + Mobile App + Admin Dashboard
+
+
+SHORT SUMMARY (for Freelancer headline / first paragraph):
+--------------------------------------------------------------------------------
+Production-ready, full-stack online shopping platform built with modern
+technologies. Includes customer web store, powerful admin dashboard, and
+native mobile app (iOS & Android). Supports international card payments
+(Stripe / Visa / Mastercard), multi-language UI, coupons, order management,
+product variants, reviews, wishlist, and real-time admin notifications.
+
+Ideal for businesses, startups, and agencies worldwide that want a
+complete e-commerce solution without 6+ months of development — deploy
+anywhere and customize for any country or market.
+
+
+================================================================================
+WHAT YOU GET
+================================================================================
+
+Complete source code for 3 applications:
+
+  1. shop-frontend   — Next.js 15 web storefront + admin panel
+  2. shop-backend    — Node.js / Express REST API + Prisma ORM
+  3. shop-mobile     — Expo React Native app (iOS & Android)
+
+Plus:
+  • PostgreSQL database schema + Prisma migrations
+  • Seed scripts (categories, sample products, admin user)
+  • SQL backup / restore tools for catalog data
+  • Deployment guides (Vercel + Render — works globally)
+  • Environment variable templates (.env.example)
+  • README documentation and project structure diagram
+
+
+================================================================================
+TECHNOLOGY STACK
+================================================================================
+
+Frontend (Web):
+  • Next.js 15, React 19, TypeScript
+  • Tailwind CSS, Framer Motion
+  • Zustand (state management)
+  • TanStack React Query
+  • Axios API client
+
+Backend:
+  • Node.js, Express, TypeScript
+  • Prisma ORM
+  • PostgreSQL
+  • JWT authentication + role-based access (USER / ADMIN)
+  • Helmet, CORS, rate limiting, compression
+
+Mobile:
+  • Expo / React Native
+  • Modern liquid-glass UI design
+  • Same backend API as web store
+
+Database:
+  • PostgreSQL (relational, production-grade)
+  • Full migrations included
+
+Deployment (tested worldwide):
+  • Frontend: Vercel (or any Node hosting)
+  • Backend + DB: Render, Railway, AWS, DigitalOcean, etc.
+  • Optional: Docker support
+
+
+================================================================================
+CUSTOMER FEATURES (WEB + MOBILE)
+================================================================================
+
+Authentication & Account:
+  • Register / login (email or phone)
+  • Google Sign-In
+  • Facebook Login
+  • Forgot password (email verification)
+  • User profile, avatar upload, change password
+  • Customer dashboard with order history
+
+Product Catalog:
+  • Product listing with search, filters, and categories
+  • Featured products, related products, search suggestions
+  • Product detail page with variants (size, color, etc.)
+  • Product reviews and star ratings
+  • Wishlist
+
+Shopping Cart & Checkout:
+  • Add to cart, update quantity, remove items
+  • Guest cart + logged-in user cart (synced to server)
+  • Full checkout flow with shipping address
+  • Flexible address system (street, city, state, postal code)
+  • Multiple shipping carriers with configurable fees
+  • Coupon / discount codes (percent or fixed amount)
+  • Order total calculated and validated on backend (tamper-proof)
+
+Payments:
+  • Stripe — Visa, Mastercard, Amex, and 135+ currencies worldwide
+  • Payment status tracking and webhooks
+  • Additional regional payment gateways included (see bonus section)
+
+Orders:
+  • Order history and detailed order pages
+  • Order cancellation by customer
+  • Invoice / receipt download
+  • Payment confirmation flow
+
+Other:
+  • Multi-language UI (English + easily add any language)
+  • Dark / light theme toggle
+  • Live support chat widget
+  • Newsletter / lead capture
+  • Legal pages (cookies, privacy policy, terms)
+  • Fully responsive (mobile, tablet, desktop)
+
+
+================================================================================
+ADMIN PANEL FEATURES
+================================================================================
+
+Dashboard:
+  • Sales overview — orders, revenue, users, products
+  • Revenue charts and order status breakdown
+  • Low stock alerts and inventory value
+  • Recent orders and top-selling products
+  • Real-time unread notification badges
+
+Product Management:
+  • Create, edit, delete products
+  • Categories and subcategories (unlimited depth)
+  • Product variants, stock levels, pricing
+  • Image upload (Cloudinary cloud or local storage)
+  • Featured products toggle
+
+Order Management:
+  • View and filter all orders
+  • Update order status (pending → processing → shipped → delivered)
+  • Track payment status per order
+
+User Management:
+  • View all registered users
+  • Assign roles (Customer / Admin)
+  • Activate or deactivate accounts
+
+Marketing & Sales:
+  • Coupon management (percent / fixed, expiry date, usage limits)
+  • Newsletter / leads subscriber list
+  • Advertisement banner management
+
+Support:
+  • Support inbox for customer inquiries
+  • Mark conversations as seen
+
+Settings:
+  • Store settings (shipping fees, carriers, payment options)
+  • Header / logo / branding configuration
+  • Admin panel language switcher
+
+
+================================================================================
+INTEGRATIONS & NOTIFICATIONS
+================================================================================
+
+  • Stripe — global card payments (Visa, Mastercard, Amex, 135+ currencies)
+  • Cloudinary — cloud image hosting (optional, CDN-ready)
+  • Telegram Bot — instant alerts for new orders, payments, registrations
+  • SMTP email — password reset and order notifications (any email provider)
+  • Twilio SMS — optional SMS notifications
+  • Google OAuth / Facebook OAuth — one-click social login
+
+
+================================================================================
+SECURITY FEATURES
+================================================================================
+
+  • JWT authentication with refresh tokens
+  • Password hashing (bcrypt, 12 rounds)
+  • Role-based authorization (admin-only routes protected server-side)
+  • Rate limiting on login, payment, and contact form endpoints
+  • CORS restricted to your configured domain
+  • Helmet security headers
+  • Server-side input validation
+  • All secrets stored in environment variables (never in source code)
+  • File upload restrictions (type, size, no SVG)
+
+
+================================================================================
+DATABASE MODULES
+================================================================================
+
+  Users, Addresses, Products, Product Variants, Categories,
+  Cart, Cart Items, Orders, Order Items, Reviews, Wishlist,
+  Coupons, Leads, Support Inquiries, Advertisements,
+  Seller Profiles, Store Settings, Location Data (extensible)
+
+
+================================================================================
+BONUS: REGIONAL / LOCAL MARKET ADD-ONS (already built in)
+================================================================================
+
+The platform includes ready-made integrations for specific markets.
+These are optional — disable or replace them for any country:
+
+  • Multi-language UI: English, Chinese, and Khmer (easy to add more)
+  • Hierarchical address picker (province → district → commune → village)
+      — can be replaced with any country's address format
+  • KHQR / Bakong QR payment (Cambodia)
+  • ABA PayWay payment gateway (Cambodia / regional banks)
+  • Full Cambodia location database (25 provinces, 14,000+ villages)
+      — demonstrates extensible location system for any country
+
+These add-ons show the platform is production-tested in a real market
+and can be adapted for USA, UK, EU, Australia, Middle East, Africa, etc.
+
+
+================================================================================
+WHAT IS INCLUDED IN THE SALE
+================================================================================
+
+  ✓ Full source code (frontend + backend + mobile)
+  ✓ Database schema and all migrations
+  ✓ Seed data scripts
+  ✓ Catalog backup / restore scripts
+  ✓ .env.example files with full documentation
+  ✓ README and step-by-step deployment guide
+  ✓ Project structure diagram (Draw.io)
+
+  ✗ Hosting accounts (buyer deploys on their own Vercel / AWS / etc.)
+  ✗ Domain name
+  ✗ Third-party API keys (Stripe, Telegram, Cloudinary — buyer's own accounts)
+  ✗ App Store / Google Play developer accounts
+
+
+================================================================================
+DEPLOYMENT STATUS
+================================================================================
+
+The project has been tested and deployed live on:
+  • Vercel (frontend — works in any region)
+  • Render (backend + PostgreSQL — works in any region)
+
+Buyer can deploy to their own accounts in minutes using the included guides.
+Estimated setup time for an experienced developer: 2–4 hours.
+Works on any cloud: AWS, Google Cloud, DigitalOcean, Railway, Heroku, etc.
+
+
+================================================================================
+IDEAL BUYER
+================================================================================
+
+  • Small/medium business launching an online store worldwide
+  • Developer or agency buying a white-label e-commerce base
+  • Startup needing MVP fast without hiring a full dev team
+  • Entrepreneur in USA, UK, EU, Australia, Middle East, Africa, Asia, etc.
+  • Anyone who wants web + mobile + admin in one package
+
+
+================================================================================
+WHY BUY THIS INSTEAD OF BUILDING FROM SCRATCH
+================================================================================
+
+  • Saves 4–8 months of development time and $15,000–$50,000+ in dev costs
+  • Production-tested — not a tutorial or demo project
+  • Web store + mobile app + admin panel in one package
+  • Stripe payments ready for 135+ countries out of the box
+  • Multi-language architecture — add any language easily
+  • Scalable modern stack (Next.js, Express, PostgreSQL, TypeScript)
+  • Clean, well-organized code — easy to customize and extend
+  • Regional payment add-ons included as bonus (KHQR, ABA PayWay)
+
+
+================================================================================
+SUGGESTED FREELANCER POSTING — COPY/PASTE SECTIONS
+================================================================================
+
+--- TITLE ---
+Full-Stack E-Commerce Platform | Web + Mobile App + Admin Panel | Production Ready
+
+
+--- DESCRIPTION (short version for Freelancer) ---
+I am selling a complete, production-ready e-commerce platform suitable
+for any country or market worldwide.
+
+WHAT'S INCLUDED:
+• Customer web store (Next.js 15 + React 19)
+• Admin dashboard (products, orders, users, coupons, analytics)
+• Mobile app for iOS & Android (Expo / React Native)
+• REST API backend (Node.js + Express + PostgreSQL + Prisma)
+
+KEY FEATURES:
+• Stripe payments — Visa, Mastercard, 135+ currencies worldwide
+• Google & Facebook social login
+• Multi-language UI (English + easy to add any language)
+• Product variants, reviews, wishlist, coupons
+• Full checkout with shipping carriers and address management
+• Admin dashboard with sales analytics and real-time notifications
+• Telegram / email / SMS notification integrations
+• JWT auth, role-based admin access, rate limiting, security headers
+
+TECH STACK:
+Next.js 15, React 19, TypeScript, Tailwind CSS, Node.js, Express,
+Prisma, PostgreSQL, Expo React Native.
+
+BONUS:
+Regional payment gateways (KHQR, ABA PayWay) and hierarchical address
+system already built in — demonstrates extensibility for any market.
+
+DELIVERY:
+Full source code, database migrations, seed scripts, deployment guide.
+Deploy on Vercel + Render (or any cloud) in 2–4 hours.
+
+Perfect for startups, agencies, or businesses that want a modern online
+store without building from zero. Works globally — customize for any country.
+
+Contact me for live demo, screenshots, and pricing.
+
+
+--- SKILLS / TAGS (for Freelancer) ---
+Next.js, React, Node.js, Express, PostgreSQL, Prisma, TypeScript,
+E-Commerce, Mobile App, Expo, React Native, Stripe, Admin Panel,
+REST API, Full Stack, Web Application, Online Store, Shopping Cart,
+White Label, SaaS
+
+
+--- DELIVERABLES ---
+1. Complete source code (GitHub repository transfer or ZIP file)
+2. PostgreSQL database schema + all migrations
+3. Setup and deployment documentation (step-by-step)
+4. Optional: 1–2 hours handover call / deployment assistance (negotiable)
+
+
+--- PRICING NOTE (fill in yourself) ---
+Suggested price range for similar full-stack e-commerce projects on
+Freelancer: $1,500 – $8,000+ depending on:
+  • Whether you include deployment support
+  • Customization / white-label rights
+  • Mobile app included or web-only tier
+  • Your target market (USA/EU buyers typically pay more)
+
+Tip: Offer two tiers:
+  • Basic — source code + docs ($1,500–$3,000)
+  • Premium — source code + deployment + 2hr support ($3,000–$8,000+)
+
+
+================================================================================
+DEMO / SCREENSHOTS CHECKLIST (prepare before posting)
+================================================================================
+
+Prepare these to increase sales (especially for international buyers):
+  [ ] Live demo URL (web storefront — use English as default language)
+  [ ] Admin panel screenshots (dashboard, products, orders)
+  [ ] Mobile app screenshots (iOS and Android)
+  [ ] Checkout + Stripe payment flow screenshot
+  [ ] Multi-language switcher screenshot (shows global readiness)
+  [ ] Dashboard analytics screenshot
+  [ ] Tech stack / architecture diagram
+  [ ] 2–3 minute screen recording walkthrough (English narration)
+
+
+================================================================================
+END OF LISTING DOCUMENT
+================================================================================

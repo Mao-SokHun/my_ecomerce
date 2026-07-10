@@ -49,6 +49,16 @@ function isAllowedVercelOrigin(origin: string): boolean {
   }
 }
 
+/** RFC1918 + loopback — for dev testing from phone/tablet on the same Wi‑Fi. */
+function isPrivateLanHost(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true;
+  return (
+    /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
+    /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+  );
+}
+
 // Security & middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -66,16 +76,12 @@ app.use(
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
       if (isAllowedVercelOrigin(origin)) return callback(null, true);
-      // Dev: allow same machine on LAN (e.g. http://192.168.x.x:3000) when testing from phone / network IP.
+      // Dev: allow frontend on LAN (e.g. http://10.12.0.170:3000 or http://192.168.x.x:3000) from phone.
       if (process.env.NODE_ENV !== 'production' && origin) {
         try {
           const u = new URL(origin);
           const port = u.port || (u.protocol === 'https:' ? '443' : '80');
-          const isLan =
-            u.hostname === 'localhost' ||
-            u.hostname === '127.0.0.1' ||
-            /^192\.168\.\d{1,3}\.\d{1,3}$/.test(u.hostname);
-          if (isLan && port === '3000') return callback(null, true);
+          if (isPrivateLanHost(u.hostname) && port === '3000') return callback(null, true);
         } catch {
           /* ignore */
         }

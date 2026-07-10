@@ -146,6 +146,9 @@ export interface Order {
   paymentMethod?: string;
   subtotal: number;
   discount: number;
+  couponCode?: string | null;
+  couponDiscountType?: string | null;
+  couponDiscountValue?: number | null;
   shippingCost: number;
   /** Courier chosen at checkout: VET | JNT */
   shippingCarrier?: string | null;
@@ -176,6 +179,9 @@ export interface Invoice {
   note?: string;
   subtotal: number;
   discount: number;
+  couponCode?: string | null;
+  couponDiscountType?: string | null;
+  couponDiscountValue?: number | null;
   shippingCost: number;
   shippingCarrier?: string | null;
   shippingCarrierLabel?: string | null;

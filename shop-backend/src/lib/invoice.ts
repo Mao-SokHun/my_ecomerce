@@ -42,6 +42,9 @@ export interface InvoiceDetails {
   note?: string;
   subtotal: number;
   discount: number;
+  couponCode?: string | null;
+  couponDiscountType?: string | null;
+  couponDiscountValue?: number | null;
   shippingCost: number;
   /** Raw order value: VET | JNT */
   shippingCarrier?: string | null;
@@ -182,6 +185,12 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
     ? `Shipping (${shippingCarrierLabel}): ${formatMoney(order.shippingCost)}`
     : `Shipping: ${formatMoney(order.shippingCost)}`;
 
+  const discountLine = order.discount > 0
+    ? order.couponCode
+      ? `Discount (Coupon: ${order.couponCode}): -${formatMoney(order.discount)}`
+      : `Discount: -${formatMoney(order.discount)}`
+    : null;
+
   const textInvoice = [
     `Invoice: ${invoiceNumber}`,
     `Order Number: ${order.orderNumber}`,
@@ -192,7 +201,7 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
     itemsRows || 'No items',
     '',
     `Subtotal: ${formatMoney(order.subtotal)}`,
-    `Discount: -${formatMoney(order.discount)}`,
+    ...(discountLine ? [discountLine] : []),
     shippingLine,
     `Total: ${formatMoney(order.total)}`,
     '',
@@ -240,7 +249,12 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" />
       <div style="text-align: right;">
         <p>Subtotal: <strong>${formatMoney(order.subtotal)}</strong></p>
-        <p>Discount: <strong>-${formatMoney(order.discount)}</strong></p>
+        ${order.discount > 0 ? `
+        <p style="color:#dc2626;">
+          ${order.couponCode
+            ? `Discount (Coupon: <strong>${order.couponCode}</strong>)`
+            : 'Discount'}: <strong>-${formatMoney(order.discount)}</strong>
+        </p>` : ''}
         <p>Shipping${shippingCarrierLabel ? ` (${shippingCarrierLabel})` : ''}: <strong>${formatMoney(
           order.shippingCost
         )}</strong></p>
@@ -270,6 +284,9 @@ export const getInvoiceDetails = async (orderId: string, lang: AppLang = 'km'): 
     note: order.notes || undefined,
     subtotal: order.subtotal,
     discount: order.discount,
+    couponCode: order.couponCode,
+    couponDiscountType: order.couponDiscountType,
+    couponDiscountValue: order.couponDiscountValue,
     shippingCost: order.shippingCost,
     shippingCarrier: order.shippingCarrier,
     shippingCarrierLabel,
@@ -291,15 +308,21 @@ export const sendInvoiceNotification = async (orderId: string): Promise<void> =>
   const invoice = await getInvoiceDetails(orderId);
   if (!invoice) return;
 
-  try {
-    await sendEmail({
-      to: invoice.customerEmail,
-      subject: `Your Invoice ${invoice.invoiceNumber}`,
-      html: invoice.htmlInvoice,
-      text: invoice.textInvoice,
-    });
-  } catch (error) {
-    console.error('[Invoice] Email send failed:', error);
+  if (!invoice.customerEmail) {
+    console.warn(`[Invoice] Skipping email for order ${invoice.orderNumber} — customer has no email address.`);
+  } else {
+    try {
+      console.log(`[Invoice] Sending email to ${invoice.customerEmail} for order ${invoice.orderNumber}...`);
+      await sendEmail({
+        to: invoice.customerEmail,
+        subject: `Your Invoice ${invoice.invoiceNumber}`,
+        html: invoice.htmlInvoice,
+        text: invoice.textInvoice,
+      });
+      console.log(`[Invoice] Email sent successfully to ${invoice.customerEmail}`);
+    } catch (error) {
+      console.error('[Invoice] Email send failed:', error);
+    }
   }
 
   if (invoice.customerPhone) {

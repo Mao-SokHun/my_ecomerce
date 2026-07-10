@@ -60,6 +60,14 @@ export default function OrderDetailsPage() {
       (item, idx) =>
         `${idx + 1}. ${item.name} x${item.quantity} = ${formatPrice(item.price * item.quantity, language)}`
     );
+    const discountLine =
+      (order.discount ?? 0) > 0
+        ? [
+            order.couponCode
+              ? `${t(language, 'couponDiscount').replace('{code}', order.couponCode)}: -${formatPrice(order.discount, language)}`
+              : `${t(language, 'couponDiscountNoCode')}: -${formatPrice(order.discount, language)}`,
+          ]
+        : [];
     return [
       `${t(language, 'orderLabel')}: ${order.orderNumber}`,
       `${t(language, 'dateLabel')}: ${formatDate(order.createdAt, language)}`,
@@ -72,6 +80,7 @@ export default function OrderDetailsPage() {
       ...lines,
       '',
       `${t(language, 'subtotal')}: ${formatPrice(order.subtotal, language)}`,
+      ...discountLine,
       `${t(language, 'shipping')}${
         order.shippingCarrier
           ? ` (${order.shippingCarrier === 'JNT' ? 'J&T' : 'VET'})`
@@ -237,6 +246,13 @@ export default function OrderDetailsPage() {
 
             <div class="summary">
               <div class="row"><span>${t(language, 'subtotal')}</span><span>${formatPrice(invoice.subtotal, language)}</span></div>
+              ${(invoice.discount ?? 0) > 0 ? `
+              <div class="row" style="color:#dc2626;">
+                <span>${invoice.couponCode
+                  ? escapeHtml(t(language, 'couponDiscount').replace('{code}', invoice.couponCode))
+                  : escapeHtml(t(language, 'couponDiscountNoCode'))}</span>
+                <span>-${formatPrice(invoice.discount, language)}</span>
+              </div>` : ''}
               <div class="row"><span>${t(language, 'shipping')}${
                 invoice.shippingCarrierLabel
                   ? ` (${escapeHtml(invoice.shippingCarrierLabel)})`
@@ -752,6 +768,16 @@ export default function OrderDetailsPage() {
 
             <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
               <p className="flex justify-between"><span>{t(language, 'subtotal')}</span><span>{formatPrice(invoice.subtotal, language)}</span></p>
+              {(invoice.discount ?? 0) > 0 && (
+                <p className="flex justify-between text-red-600 dark:text-red-400">
+                  <span className="flex items-center gap-1">
+                    {invoice.couponCode
+                      ? t(language, 'couponDiscount').replace('{code}', invoice.couponCode)
+                      : t(language, 'couponDiscountNoCode')}
+                  </span>
+                  <span>-{formatPrice(invoice.discount, language)}</span>
+                </p>
+              )}
               <p className="flex justify-between">
                 <span>
                   {t(language, 'shipping')}
