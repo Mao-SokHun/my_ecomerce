@@ -3,17 +3,78 @@ name: Build & Deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   # ========================================
-  # Option 1: Deploy to YOUR PC (local Docker Desktop)
+  # Job 1: Build Validation (CI)
+  # Runs on every push and pull request to ensure build correctness
+  # ========================================
+  validate:
+    name: Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            shop-backend/package-lock.json
+            shop-frontend/package-lock.json
+
+      - name: Validate Backend Build
+        run: |
+          cd shop-backend
+          npm ci
+          npm run build
+
+      - name: Validate Frontend Build
+        run: |
+          cd shop-frontend
+          npm ci
+          npm run build
+
+  # ========================================
+  # Job 2: Cloud Auto-Deploy (Render & Vercel)
+  # Triggers deployment webhooks on successful main branch pushes
+  # ========================================
+  deploy-cloud:
+    name: Deploy to Cloud (Render & Vercel)
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+
+    steps:
+      - name: Trigger Render Backend Deploy
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        run: |
+          echo "Triggering Render deployment..."
+          curl -sS "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          echo "Render deployment triggered successfully!"
+
+      - name: Trigger Vercel Frontend Deploy
+        if: ${{ secrets.VERCEL_DEPLOY_HOOK_URL != '' }}
+        run: |
+          echo "Triggering Vercel deployment..."
+          curl -X POST -sS "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+          echo "Vercel deployment triggered successfully!"
+
+  # ========================================
+  # Job 3: Deploy to Local Docker (Option)
   # Uses self-hosted runner installed on your machine
   # ========================================
   deploy-local:
     name: Deploy to Local Docker
+    needs: validate
     runs-on: self-hosted
-    if: ${{ !vars.USE_REMOTE_SERVER }}
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !vars.USE_REMOTE_SERVER && !vars.USE_CLOUD_DEPLOY
 
     steps:
       - name: Checkout code
@@ -31,13 +92,14 @@ jobs:
           echo "Deployment complete!"
 
   # ========================================
-  # Option 2: Deploy to REMOTE server (VPS/Cloud)
+  # Job 4: Deploy to Remote Server (Option)
   # Uses SSH to connect to a remote server
   # ========================================
   deploy-remote:
     name: Deploy to Remote Server
+    needs: validate
     runs-on: ubuntu-latest
-    if: ${{ vars.USE_REMOTE_SERVER == 'true' }}
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.USE_REMOTE_SERVER == 'true' && !vars.USE_CLOUD_DEPLOY
 
     steps:
       - name: Checkout code
@@ -99,3 +161,4 @@ jobs:
             docker compose exec -T backend npx prisma migrate deploy
             docker compose ps
             echo "Deployment complete!"
+
