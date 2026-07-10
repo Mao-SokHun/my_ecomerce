@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
+import { useEffect, useRef, useMemo, useState } from 'react';
+import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { supportApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
@@ -21,78 +21,110 @@ export default function SupportChatWidget() {
   const { language } = useLanguageStore();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: 'bot',
-      text:
-        language === 'km'
-          ? 'សួស្តី! តើខ្ញុំអាចជួយអ្វីបាន?'
-          : language === 'zh'
-            ? '您好！我可以帮您什么？'
-            : 'Hi! How can I help you?',
-    },
-  ]);
-  const [fallbackStreak, setFallbackStreak] = useState(0);
-  const talkToHumanLabel =
-    language === 'km' ? 'ជជែកជាមួយមនុស្សពិត' : language === 'zh' ? '转人工客服' : 'Talk to human';
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const humanHandoffText = useMemo(
-    () =>
+  const label = {
+    title: language === 'km' ? 'ជំនួយ' : language === 'zh' ? '客服支持' : 'Support',
+    greeting:
       language === 'km'
-        ? `ខ្ញុំមិនច្បាស់ទេ។ សូមចុច ${talkToHumanLabel} ដើម្បីផ្ញើសារ​ទៅ admin support inbox។`
+        ? 'សួស្តី! តើខ្ញុំអាចជួយអ្វីបាន? (សរសេរសំណួររបស់អ្នក — យើងនឹងតបមកវិញ)'
         : language === 'zh'
-          ? `我不太确定。请点击${talkToHumanLabel}把问题发送到管理员支持收件箱。`
-          : `I am not fully sure. Tap ${talkToHumanLabel} to send this to admin support inbox.`,
-    [language, talkToHumanLabel]
-  );
-
-  const logUnanswered = async (question: string) => {
-    try {
-      await supportApi.createInquiry({
-        name: user?.name || 'Guest User',
-        phone: user?.phone || 'N/A',
-        question,
-        priority: inferPriority(question),
-        transcript: messages.slice(-8).map((m) => `${m.role}: ${m.text}`).join('\n'),
-      });
-    } catch {
-      // silent
-    }
+          ? '您好！请描述您的问题，我们会尽快回复您。'
+          : 'Hi! Describe your issue and we\'ll get back to you shortly.',
+    placeholder:
+      language === 'km' ? 'សរសេរសារ...' : language === 'zh' ? '输入消息...' : 'Type your message...',
+    send: language === 'km' ? 'ផ្ញើ' : language === 'zh' ? '发送' : 'Send',
+    talkToHuman:
+      language === 'km' ? 'ផ្ញើទៅ Admin ផ្ទាល់' : language === 'zh' ? '发送给管理员' : 'Send to Admin',
+    sent:
+      language === 'km'
+        ? '✅ Admin ទទួលបានសាររបស់អ្នកហើយ! យើងនឹងទំនាក់ទំនងតាម Telegram ឬទូរស័ព្ទ។'
+        : language === 'zh'
+          ? '✅ 管理员已收到您的消息！我们将通过 Telegram 或电话与您联系。'
+          : '✅ Admin received your message! We\'ll contact you via Telegram or phone.',
+    needPhone:
+      language === 'km'
+        ? '⚠️ សូមផ្ដល់លេខទូរស័ព្ទ ឬ email ក្នុងសារ ដើម្បីឱ្យ admin ទំនាក់ទំនងមកវិញ។'
+        : language === 'zh'
+          ? '⚠️ 请在消息中提供您的手机号或邮箱，以便我们联系您。'
+          : '⚠️ Please include your phone or email so admin can reach you.',
   };
 
-  const send = async (inputText?: string) => {
-    const text = (inputText ?? input).trim();
-    if (!text) return;
-    const next: Msg[] = [...messages, { role: 'user', text }];
-    setMessages(next);
-    setInput('');
+  const [messages, setMessages] = useState<Msg[]>([{ role: 'bot', text: label.greeting }]);
 
-    if (/ORD-[A-Z0-9-]+/i.test(text)) {
-      const orderNo = text.match(/ORD-[A-Z0-9-]+/i)?.[0] || '';
+  // Auto-scroll to bottom on new message
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const contactInfo = useMemo(
+    () => ({
+      name: user?.name || 'Guest',
+      phone: user?.phone || '',
+      email: user?.email || '',
+    }),
+    [user]
+  );
+
+  const submitToAdmin = async (question: string, forceSubmit = false) => {
+    const transcript = messages.slice(-12).map((m) => `${m.role === 'user' ? 'អតិថិជន' : 'Bot'}: ${m.text}`).join('\n');
+    try {
+      await supportApi.createInquiry({
+        name: contactInfo.name,
+        phone: contactInfo.phone || contactInfo.email || 'N/A',
+        question,
+        priority: inferPriority(question),
+        language,
+        source: forceSubmit ? 'manual-button' : 'chat-widget',
+        transcript,
+      });
+      setSubmitted(true);
+      setMessages((prev) => [...prev, { role: 'bot', text: label.sent }]);
+    } catch {
       setMessages((prev) => [
         ...prev,
         {
           role: 'bot',
           text:
             language === 'km'
-              ? `ខ្ញុំបានរកឃើញលេខកម្មង់ ${orderNo}។ បើចង់ឲ្យ admin ពិនិត្យ សូមចុច ${talkToHumanLabel}។`
+              ? '❌ ផ្ញើមិនបាន សូមព្យាយាមម្ដងទៀត។'
               : language === 'zh'
-                ? `我识别到订单号 ${orderNo}。如需人工处理，请点击${talkToHumanLabel}。`
-                : `I detected order number ${orderNo}. Tap ${talkToHumanLabel} for admin follow-up.`,
+                ? '❌ 发送失败，请重试。'
+                : '❌ Failed to send. Please try again.',
         },
       ]);
-      setFallbackStreak(0);
+    }
+  };
+
+  const send = async (inputText?: string) => {
+    const text = (inputText ?? input).trim();
+    if (!text || sending || submitted) return;
+    setSending(true);
+
+    const next: Msg[] = [...messages, { role: 'user', text }];
+    setMessages(next);
+    setInput('');
+
+    // Small delay to feel natural
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Always forward to admin DB + Telegram
+    await submitToAdmin(text, false);
+
+    setSending(false);
+  };
+
+  const handleTalkToHuman = async () => {
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.text || input.trim();
+    if (!lastUserMsg) {
+      setMessages((prev) => [...prev, { role: 'bot', text: label.needPhone }]);
       return;
     }
-
-    const generic = language === 'km' ? 'សូមពិពណ៌នាបន្ថែមបន្តិចទៀត។' : language === 'zh' ? '请再详细说明一点。' : 'Please share a bit more detail.';
-    setMessages((prev) => [...prev, { role: 'bot', text: generic }]);
-    const streak = fallbackStreak + 1;
-    setFallbackStreak(streak);
-    if (streak >= 2) {
-      setMessages((prev) => [...prev, { role: 'bot', text: humanHandoffText }]);
-      await logUnanswered(text);
-    }
+    setSending(true);
+    await submitToAdmin(lastUserMsg, true);
+    setSending(false);
   };
 
   if (!open) {
@@ -100,53 +132,88 @@ export default function SupportChatWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full bg-primary-600 text-white shadow-lg flex items-center justify-center"
+        aria-label="Open support chat"
+        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-primary-600 text-white shadow-xl flex items-center justify-center hover:bg-primary-700 transition-colors"
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-6 h-6" />
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-[340px] max-w-[calc(100vw-24px)] card p-3">
-      <div className="flex items-center justify-between mb-2">
-        <p className="font-semibold text-sm">
-          {language === 'km' ? 'ជំនួយ' : language === 'zh' ? '客服支持' : 'Support'}
-        </p>
-        <button type="button" onClick={() => setOpen(false)} className="text-gray-500">
+    <div className="fixed bottom-5 right-5 z-50 w-[360px] max-w-[calc(100vw-24px)] card p-0 overflow-hidden shadow-2xl flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-primary-600 text-white">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-4 h-4" />
+          <p className="font-semibold text-sm">{label.title}</p>
+          <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Online" />
+        </div>
+        <button type="button" onClick={() => setOpen(false)} className="opacity-80 hover:opacity-100">
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="h-64 overflow-y-auto border rounded-lg p-2 space-y-2 bg-gray-50 dark:bg-surface-900">
+
+      {/* Messages */}
+      <div className="flex-1 h-64 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-surface-900">
         {messages.map((m, i) => (
-          <div key={i} className={`text-xs p-2 rounded-lg ${m.role === 'user' ? 'bg-primary-600 text-white ml-10' : 'bg-white dark:bg-surface-800 mr-10'}`}>
+          <div
+            key={i}
+            className={`text-xs p-2.5 rounded-xl leading-relaxed max-w-[85%] ${
+              m.role === 'user'
+                ? 'bg-primary-600 text-white ml-auto'
+                : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700'
+            }`}
+          >
             {m.text}
           </div>
         ))}
+        {sending && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>{language === 'km' ? 'កំពុងផ្ញើ...' : language === 'zh' ? '发送中...' : 'Sending...'}</span>
+          </div>
+        )}
+        <div ref={bottomRef} />
       </div>
-      <div className="mt-2 flex gap-2">
-        <button
-          type="button"
-          onClick={() => logUnanswered(input || talkToHumanLabel)}
-          className="btn-secondary text-xs px-2"
-        >
-          {talkToHumanLabel}
-        </button>
-      </div>
-      <div className="mt-2 flex gap-2">
-        <input
-          className="input text-xs flex-1 h-9"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') send();
-          }}
-          placeholder={language === 'km' ? 'សរសេរសារ...' : language === 'zh' ? '输入消息...' : 'Type message...'}
-        />
-        <button type="button" onClick={() => send()} className="btn-primary h-9 px-3">
-          <Send className="w-3.5 h-3.5" />
-        </button>
-      </div>
+
+      {/* Action button */}
+      {!submitted && (
+        <div className="px-3 pt-2">
+          <button
+            type="button"
+            onClick={handleTalkToHuman}
+            disabled={sending}
+            className="w-full btn-secondary text-xs py-2 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-900/50 hover:bg-primary-50 dark:hover:bg-primary-950/30 transition"
+          >
+            {label.talkToHuman}
+          </button>
+        </div>
+      )}
+
+      {/* Input */}
+      {!submitted && (
+        <div className="flex gap-2 p-3">
+          <input
+            className="input text-xs flex-1 h-9"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) send();
+            }}
+            placeholder={label.placeholder}
+            disabled={sending}
+          />
+          <button
+            type="button"
+            onClick={() => send()}
+            disabled={sending || !input.trim()}
+            className="btn-primary h-9 px-3 disabled:opacity-50"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

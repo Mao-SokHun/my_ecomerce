@@ -1,21 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../middleware/auth';
+import prisma from '../lib/prisma';
+import { sendTelegramMessage } from '../lib/notifier';
 
-type Inquiry = {
-  id: string;
-  name: string;
-  phone: string;
-  question: string;
-  priority: 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL';
-  transcript: string;
-  createdAt: string;
+// ─── Telegram helpers ────────────────────────────────────────────────────────
+
+const parseCsv = (value?: string): string[] =>
+  String(value || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+const resolveTargets = (): string[] =>
+  parseCsv(process.env.TELEGRAM_CHAT_IDS || process.env.TELEGRAM_CHAT_ID);
+
+const formatDateTime24 = (value: Date): string =>
+  value.toLocaleString('en-US', {
+    timeZone: 'Asia/Phnom_Penh',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+const priorityLabel = (p: string): string => {
+  if (p === 'ORDER') return '📦 ការបញ្ជាទិញ';
+  if (p === 'PAYMENT') return '💳 ការទូទាត់';
+  if (p === 'PRODUCT') return '🛍️ ផលិតផល';
+  return '💬 ទូទៅ';
 };
 
-const inquiries: Inquiry[] = [];
-const MAX_INQUIRIES = 500;
-const MAX_FIELD_LEN = 4000;
-
-const inferPriority = (text: string): Inquiry['priority'] => {
+const inferPriority = (text: string): 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL' => {
   const s = String(text || '').toLowerCase();
   if (/(ord-|order|tracking|ship|deliver|cancel)/.test(s)) return 'ORDER';
   if (/(pay|payment|bakong|visa|master|refund|card)/.test(s)) return 'PAYMENT';
@@ -23,33 +40,64 @@ const inferPriority = (text: string): Inquiry['priority'] => {
   return 'GENERAL';
 };
 
+// ─── Controllers ─────────────────────────────────────────────────────────────
+
 export const createSupportInquiry = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, phone, question, priority, transcript } = req.body as {
+    const { name, phone, question, priority, language, source, transcript } = req.body as {
       name?: string;
       phone?: string;
       question?: string;
-      priority?: Inquiry['priority'];
+      priority?: string;
+      language?: string;
+      source?: string;
       transcript?: string;
     };
-    if (!name || !phone || !question) {
-      res.status(400).json({ success: false, message: 'Name, phone and question are required' });
+
+    if (!question || String(question).trim().length < 2) {
+      res.status(400).json({ success: false, message: 'Question is required' });
       return;
     }
-    const p = priority || inferPriority(question);
-    const inquiry: Inquiry = {
-      id: `inq_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      name: String(name).slice(0, MAX_FIELD_LEN),
-      phone: String(phone).slice(0, 64),
-      question: `[PRIORITY:${p}] ${String(question).slice(0, MAX_FIELD_LEN)}`,
-      priority: p,
-      transcript: String(transcript || '').slice(0, MAX_FIELD_LEN),
-      createdAt: new Date().toISOString(),
-    };
-    inquiries.unshift(inquiry);
-    if (inquiries.length > MAX_INQUIRIES) {
-      inquiries.length = MAX_INQUIRIES;
+
+    const p = (priority || inferPriority(question)) as 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL';
+
+    // Save to DB (SupportInquiry model in schema.prisma)
+    const inquiry = await prisma.supportInquiry.create({
+      data: {
+        name: String(name || 'Guest').slice(0, 128),
+        phone: String(phone || 'N/A').slice(0, 32),
+        question: String(question).slice(0, 4000),
+        priority: p,
+        language: String(language || 'km').slice(0, 8),
+        source: String(source || 'chat-widget').slice(0, 64),
+        status: 'open',
+        transcript: transcript ? String(transcript).slice(0, 8000) : null,
+      },
+    });
+
+    // Notify admin via Telegram
+    const targets = resolveTargets();
+    if (targets.length > 0) {
+      const telegramText = [
+        `🆘 ការសួរថ្មីពី Chat Widget`,
+        `ប្រភព: ${inquiry.source || 'chat-widget'}`,
+        `ថ្ងៃ/ម៉ោង: ${formatDateTime24(inquiry.createdAt)}`,
+        `អតិថិជន: ${inquiry.name}`,
+        `ទូរស័ព្ទ: ${inquiry.phone}`,
+        `ប្រភេទ: ${priorityLabel(inquiry.priority || 'GENERAL')}`,
+        ``,
+        `❓ សំណួរ:`,
+        String(question).slice(0, 500),
+        inquiry.transcript
+          ? [``, `📜 Transcript:`, String(inquiry.transcript).slice(0, 800)].join('\n')
+          : '',
+      ]
+        .filter((l) => l !== undefined)
+        .join('\n');
+
+      await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text: telegramText })));
     }
+
     res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry });
   } catch (error) {
     next(error);
@@ -58,7 +106,55 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
 
 export const listSupportInquiries = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    res.json({ success: true, data: inquiries });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
+    const status = req.query.status ? String(req.query.status) : undefined;
+    const priority = req.query.priority ? String(req.query.priority) : undefined;
+
+    const where = {
+      ...(status ? { status } : {}),
+      ...(priority ? { priority } : {}),
+    };
+
+    const [inquiries, total] = await Promise.all([
+      prisma.supportInquiry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.supportInquiry.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: inquiries,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateSupportInquiryStatus = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { status } = req.body as { status?: string };
+    if (!status) {
+      res.status(400).json({ success: false, message: 'Status is required' });
+      return;
+    }
+    const updated = await prisma.supportInquiry.update({
+      where: { id },
+      data: { status: String(status) },
+    });
+    res.json({ success: true, data: updated });
   } catch (error) {
     next(error);
   }

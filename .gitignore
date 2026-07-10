@@ -9,11 +9,16 @@ shopdb-database/
 *.log
 *.tsbuildinfo
 .env
-.txt
 .env.*
 !.env.example
 !.env.local.example
 render.yaml
+
+# Deployment env reference files — contain real secrets, never commit
+render-env.txt
+vercel-env.txt
+*-env.txt
+
 
 # SSL certificates
 *.pem

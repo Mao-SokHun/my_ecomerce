@@ -266,10 +266,21 @@ export const uploadApi = {
 };
 
 export const supportApi = {
-  createInquiry: (data: { name: string; phone: string; question: string; priority?: 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL'; transcript?: string }) =>
-    api.post('/support/inquiries', data),
-  getInquiries: () => api.get('/support/inquiries'),
+  createInquiry: (data: {
+    name?: string;
+    phone?: string;
+    question: string;
+    priority?: 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL';
+    language?: string;
+    source?: string;
+    transcript?: string;
+  }) => api.post('/support/inquiries', data),
+  getInquiries: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
+    api.get('/support/inquiries', { params }),
+  updateStatus: (id: string, status: string) =>
+    api.patch(`/support/inquiries/${id}/status`, { status }),
 };
+
 
 export const leadApi = {
   subscribe: (data: { email: string; phone?: string }) => api.post('/leads/subscribe', data),
