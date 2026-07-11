@@ -28,22 +28,22 @@ const formatDateTime24 = (value: Date): string =>
 
 const khOrderStatus = (value: string): string => {
   const v = String(value || '').toUpperCase();
-  if (v === 'PENDING') return 'កំពុងរង់ចាំ';
-  if (v === 'CONFIRMED') return 'បានបញ្ជាក់';
-  if (v === 'PROCESSING') return 'កំពុងរៀបចំ';
-  if (v === 'SHIPPED') return 'បានដឹកចេញ';
-  if (v === 'DELIVERED') return 'បានដឹកដល់';
-  if (v === 'CANCELLED') return 'បានបោះបង់';
-  if (v === 'REFUNDED') return 'សងប្រាក់វិញ';
+  if (v === 'PENDING') return '⏳ កំពុងរង់ចាំ (Pending)';
+  if (v === 'CONFIRMED') return '✅ បានបញ្ជាក់ (Confirmed)';
+  if (v === 'PROCESSING') return '⚙️ កំពុងរៀបចំ (Processing)';
+  if (v === 'SHIPPED') return '🚚 បានដឹកចេញ (Shipped)';
+  if (v === 'DELIVERED') return '🎉 បានដឹកដល់ (Delivered)';
+  if (v === 'CANCELLED') return '❌ បានបោះបង់ (Cancelled)';
+  if (v === 'REFUNDED') return '💵 សងប្រាក់វិញ (Refunded)';
   return value || 'មិនមាន';
 };
 
 const khPaymentStatus = (value: string): string => {
   const v = String(value || '').toUpperCase();
-  if (v === 'PAID') return 'បានបង់';
-  if (v === 'PENDING') return 'មិនទាន់បង់';
-  if (v === 'FAILED') return 'បង់បរាជ័យ';
-  if (v === 'REFUNDED') return 'បានសងប្រាក់វិញ';
+  if (v === 'PAID') return '🟢 បានបង់ប្រាក់ (Paid)';
+  if (v === 'PENDING') return '🔴 មិនទាន់បង់ប្រាក់ (Pending)';
+  if (v === 'FAILED') return '❌ បង់ប្រាក់បរាជ័យ (Failed)';
+  if (v === 'REFUNDED') return '💵 បានសងប្រាក់វិញ (Refunded)';
   return value || 'មិនមាន';
 };
 
@@ -56,9 +56,9 @@ const khShippingCarrier = (value?: string | null): string => {
 
 const khPaymentType = (value?: string | null): string => {
   const v = String(value || '').toLowerCase();
-  if (v === 'bakong') return 'បង់តាមបាគង (KHQR)';
-  if (v === 'card') return 'បង់តាម Visa/Master card';
-  if (v === 'aba') return 'បង់តាម ABA PayWay';
+  if (v === 'bakong') return '🏦 បង់តាមបាគង (KHQR)';
+  if (v === 'card') return '💳 បង់តាម Visa/Master card';
+  if (v === 'aba') return '🏛️ បង់តាម ABA PayWay';
   return 'មិនមាន';
 };
 
@@ -75,7 +75,7 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
-  const title = event === 'NEW_ORDER' ? 'មានការកម្មង់ថ្មី' : 'បង់ប្រាក់បានជោគជ័យ';
+  const title = event === 'NEW_ORDER' ? 'មានការកម្មង់ថ្មី (New Order)' : 'បង់ប្រាក់បានជោគជ័យ (Payment Paid)';
   const eventTime = event === 'PAYMENT_PAID' ? order.updatedAt : order.createdAt;
   const shippingAddress = order.address
     ? [order.address.province, order.address.district, order.address.commune, order.address.village].filter(Boolean).join(', ')
@@ -91,39 +91,42 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
           : formatMoney(Number(order.couponDiscountValue || 0))
       })`
     : 'មិនមាន';
+
   const itemsBlock = order.items
     .map(
       (i, idx) =>
-        `${idx + 1}) ${i.name}\n` +
+        `<b>${idx + 1}. ${i.name}</b>\n` +
         `   - ចំនួន: ${i.quantity}\n` +
-        `   - តម្លៃ/មួយ: ${formatMoney(i.price)}\n` +
-        `   - សរុប: ${formatMoney(i.price * i.quantity)}`
+        `   - តម្លៃ: ${formatMoney(i.price)} | សរុប: ${formatMoney(i.price * i.quantity)}`
     )
     .join('\n');
+
   const totalUnits = order.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
   const totalLines = order.items.length;
 
   const text = [
-    `🔔 ${title}`,
-    `លេខកម្មង់: ${order.orderNumber}`,
-    `ថ្ងៃ/ម៉ោង: ${formatDateTime24(eventTime)}`,
-    `អតិថិជន: ${customerName} (${customerEmail})`,
-    `ទូរស័ព្ទ: ${customerPhone}`,
-    `អាសយដ្ឋានដឹកជញ្ជូន: ${shippingAddress || 'មិនមាន'}`,
-    `លេខផ្ទះ/ផ្លូវ: ${roadNumber}`,
-    `ប្រភេទបង់ប្រាក់: ${khPaymentType(order.paymentMethod)}`,
-    `ស្ថានភាពបង់ប្រាក់: ${khPaymentStatus(order.paymentStatus)}`,
-    `ស្ថានភាពកម្មង់: ${khOrderStatus(order.status)}`,
-    `ក្រុមហ៊ុនដឹកជញ្ជូន: ${khShippingCarrier(order.shippingCarrier)}`,
-    `Coupon: ${couponLabel}`,
-    `តម្លៃដើម: ${formatMoney(order.subtotal)}`,
-    `បញ្ចុះតម្លៃ: -${formatMoney(order.discount)}`,
-    `ថ្លៃដឹកជញ្ជូន: ${formatMoney(order.shippingCost)}`,
-    `តម្លៃសរុប: ${formatMoney(order.total)}`,
-    `សរុបមុខទំនិញ: ${totalLines} មុខ`,
-    `សរុបចំនួន: ${totalUnits}`,
-    '',
-    'មុខទំនិញ:',
+    `🔔 <b>${title}</b>`,
+    ``,
+    `📝 <b>លេខកម្មង់:</b> <code>${order.orderNumber}</code>`,
+    `📅 <b>ថ្ងៃ/ម៉ោង:</b> <i>${formatDateTime24(eventTime || new Date())}</i>`,
+    `👤 <b>អតិថិជន:</b> ${customerName} (${customerEmail})`,
+    `📞 <b>ទូរស័ព្ទ:</b> <code>${customerPhone}</code>`,
+    `📍 <b>អាសយដ្ឋានដឹកជញ្ជូន:</b> ${shippingAddress}`,
+    `🏠 <b>លេខផ្ទះ/ផ្លូវ:</b> ${roadNumber}`,
+    ``,
+    `💳 <b>ប្រភេទបង់ប្រាក់:</b> ${khPaymentType(order.paymentMethod)}`,
+    `💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${khPaymentStatus(order.paymentStatus)}`,
+    `📦 <b>ស្ថានភាពកម្មង់:</b> ${khOrderStatus(order.status)}`,
+    `🚚 <b>ក្រុមហ៊ុនដឹកជញ្ជូន:</b> ${khShippingCarrier(order.shippingCarrier)}`,
+    `🎫 <b>Coupon:</b> ${couponLabel}`,
+    ``,
+    `💰 <b>តម្លៃដើម:</b> ${formatMoney(order.subtotal)}`,
+    `🎟️ <b>បញ្ចុះតម្លៃ:</b> -${formatMoney(order.discount)}`,
+    `🚚 <b>ថ្លៃដឹកជញ្ជូន:</b> ${formatMoney(order.shippingCost)}`,
+    `💵 <b>តម្លៃសរុប:</b> <b>${formatMoney(order.total)}</b>`,
+    `🛒 <b>មុខទំនិញសរុប:</b> ${totalLines} មុខ (จำนวน ${totalUnits})`,
+    ``,
+    `🛍️ <b>មុខទំនិញ៖</b>`,
     itemsBlock || 'មិនមានទំនិញ',
   ].join('\n');
 
@@ -140,13 +143,18 @@ export const notifyAdminUserCancelledOrder = async (orderId: string): Promise<vo
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
+  const customerName = order.user?.name || 'មិនមាន';
+  const customerPhone = order.user?.phone || 'មិនមាន';
+
   const text = [
-    '⚠️ អតិថិជនបានបោះបង់ Order',
-    `លេខកម្មង់: ${order.orderNumber}`,
-    `ថ្ងៃ/ម៉ោង: ${formatDateTime24(new Date())}`,
-    `អតិថិជន: ${order.user?.name || 'មិនមាន'} (${order.user?.phone || 'មិនមាន'})`,
-    `ស្ថានភាពបង់ប្រាក់: ${khPaymentStatus(order.paymentStatus)}`,
-    `ស្ថានភាពកម្មង់: ${khOrderStatus(order.status)}`,
+    '⚠️ <b>អតិថិជនបានបោះបង់ការបញ្ជាទិញ (Order Cancelled)</b>',
+    ``,
+    `📝 <b>លេខកម្មង់:</b> <code>${order.orderNumber}</code>`,
+    `📅 <b>ថ្ងៃ/ម៉ោង:</b> <i>${formatDateTime24(new Date())}</i>`,
+    `👤 <b>អតិថិជន:</b> ${customerName}`,
+    `📞 <b>ទូរស័ព្ទ:</b> <code>${customerPhone}</code>`,
+    `💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${khPaymentStatus(order.paymentStatus)}`,
+    `📦 <b>ស្ថានភាពកម្មង់:</b> ${khOrderStatus(order.status)}`,
   ].join('\n');
 
   await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));
@@ -165,14 +173,19 @@ export const notifyAdminOrderStatusChanged = async (
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
+  const customerName = order.user?.name || 'មិនមាន';
+  const customerPhone = order.user?.phone || 'មិនមាន';
+
   const text = [
-    '🛠️ Admin បានកែប្រែស្ថានភាព Order',
-    `លេខកម្មង់: ${order.orderNumber}`,
-    `ថ្ងៃ/ម៉ោង: ${formatDateTime24(new Date())}`,
-    `អតិថិជន: ${order.user?.name || 'មិនមាន'} (${order.user?.phone || 'មិនមាន'})`,
-    `ស្ថានភាពចាស់: ${khOrderStatus(oldStatus)}`,
-    `ស្ថានភាពថ្មី: ${khOrderStatus(newStatus)}`,
-    `ស្ថានភាពបង់ប្រាក់: ${khPaymentStatus(order.paymentStatus)}`,
+    '🛠️ <b>ការកែប្រែស្ថានភាពការបញ្ជាទិញ (Status Updated)</b>',
+    ``,
+    `📝 <b>លេខកម្មង់:</b> <code>${order.orderNumber}</code>`,
+    `📅 <b>ថ្ងៃ/ម៉ោង:</b> <i>${formatDateTime24(new Date())}</i>`,
+    `👤 <b>អតិថិជន:</b> ${customerName}`,
+    `📞 <b>ទូរស័ព្ទ:</b> <code>${customerPhone}</code>`,
+    `🔄 <b>ស្ថានភាពចាស់:</b> ${khOrderStatus(oldStatus)}`,
+    `➡️ <b>ស្ថានភាពថ្មី:</b> <b>${khOrderStatus(newStatus)}</b>`,
+    `💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${khPaymentStatus(order.paymentStatus)}`,
   ].join('\n');
 
   await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));

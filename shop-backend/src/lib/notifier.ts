@@ -99,6 +99,7 @@ export const sendTelegramMessage = async (payload: TelegramPayload): Promise<boo
   await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
     chat_id: payload.chatId,
     text: payload.text,
+    parse_mode: 'HTML',
   });
 
   return true;
