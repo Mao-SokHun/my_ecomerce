@@ -127,7 +127,8 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
     itemsBlock || 'មិនមានទំនិញ',
   ].join('\n');
 
-  await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));
+  const botToken = event === 'PAYMENT_PAID' ? process.env.TELEGRAM_PAYMENT_BOT_TOKEN : undefined;
+  await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text, botToken })));
 };
 
 export const notifyAdminUserCancelledOrder = async (orderId: string): Promise<void> => {

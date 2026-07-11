@@ -123,20 +123,36 @@ model NewsletterLead {
 }
 
 model SupportInquiry {
-  id         String    @id @default(dbgenerated("next_prefixed_id('sup', 'support_inquiries_id_seq')"))
-  name       String?
-  phone      String?
-  question   String    @db.Text
-  priority   String?
-  language   String?
-  source     String?
-  status     String?
-  transcript String?   @db.Text
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime?
+  id           String           @id @default(dbgenerated("next_prefixed_id('sup', 'support_inquiries_id_seq')"))
+  name         String?
+  phone        String?
+  question     String           @db.Text
+  priority     String?
+  language     String?
+  source       String?
+  status       String?
+  transcript   String?          @db.Text
+  sessionToken String?          @db.VarChar(128)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime?
+  messages     SupportMessage[]
 
   @@map("support_inquiries")
 }
+
+model SupportMessage {
+  id         String   @id @default(cuid())
+  inquiryId  String
+  sender     String   // "USER" | "ADMIN"
+  senderName String
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  inquiry    SupportInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@map("support_messages")
+}
+
 
 model Address {
   id         String   @id @default(dbgenerated("next_prefixed_id('addr', 'addresses_id_seq')"))

@@ -274,11 +274,23 @@ export const supportApi = {
     language?: string;
     source?: string;
     transcript?: string;
-  }) => api.post('/support/inquiries', data),
+  }) => api.post<{ success: boolean; data: { id: string; name?: string; phone?: string; question: string }; sessionToken: string }>('/support/inquiries', data),
   getInquiries: (params?: { page?: number; limit?: number; status?: string; priority?: string }) =>
     api.get('/support/inquiries', { params }),
   updateStatus: (id: string, status: string) =>
     api.patch(`/support/inquiries/${id}/status`, { status }),
+  getMessages: (id: string, sessionToken?: string) =>
+    api.get(`/support/inquiries/${id}/messages`, {
+      headers: sessionToken ? { 'X-Session-Token': sessionToken } : {},
+    }),
+  createMessage: (id: string, text: string, sessionToken?: string) =>
+    api.post(
+      `/support/inquiries/${id}/messages`,
+      { text },
+      {
+        headers: sessionToken ? { 'X-Session-Token': sessionToken } : {},
+      }
+    ),
 };
 
 

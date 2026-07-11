@@ -3,14 +3,20 @@ import {
   createSupportInquiry,
   listSupportInquiries,
   updateSupportInquiryStatus,
+  getSupportMessages,
+  createSupportMessage,
 } from '../controllers/support.controller';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, optionalAuth } from '../middleware/auth';
 import { publicContactFormLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 
 // Public: any visitor or logged-in user can submit a support inquiry
 router.post('/inquiries', publicContactFormLimiter, createSupportInquiry);
+
+// Message routes: accessible by visitors (via session token) or admins
+router.get('/inquiries/:id/messages', optionalAuth, getSupportMessages);
+router.post('/inquiries/:id/messages', optionalAuth, createSupportMessage);
 
 // Admin-only: list with pagination + filters
 router.get('/inquiries', authenticate, requireAdmin, listSupportInquiries);
@@ -19,3 +25,4 @@ router.get('/inquiries', authenticate, requireAdmin, listSupportInquiries);
 router.patch('/inquiries/:id/status', authenticate, requireAdmin, updateSupportInquiryStatus);
 
 export default router;
+

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { sendTelegramMessage } from '../lib/notifier';
@@ -60,6 +61,7 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
     }
 
     const p = (priority || inferPriority(question)) as 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL';
+    const sessionToken = crypto.randomBytes(32).toString('hex');
 
     // Save to DB (SupportInquiry model in schema.prisma)
     const inquiry = await prisma.supportInquiry.create({
@@ -71,7 +73,18 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
         language: String(language || 'km').slice(0, 8),
         source: String(source || 'chat-widget').slice(0, 64),
         status: 'open',
+        sessionToken,
         transcript: transcript ? String(transcript).slice(0, 8000) : null,
+      },
+    });
+
+    // Create the first support message
+    await prisma.supportMessage.create({
+      data: {
+        inquiryId: inquiry.id,
+        sender: 'USER',
+        senderName: inquiry.name || 'Guest',
+        text: inquiry.question,
       },
     });
 
@@ -106,11 +119,103 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
       );
     }
 
-    res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry });
+    res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry, sessionToken });
   } catch (error) {
     next(error);
   }
 };
+
+export const getSupportMessages = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const rawToken = req.headers['x-session-token'] || req.query.sessionToken;
+    const sessionToken = rawToken ? String(rawToken) : undefined;
+    const adminUser = req.user;
+
+    const inquiry = await prisma.supportInquiry.findUnique({
+      where: { id },
+    });
+
+    if (!inquiry) {
+      res.status(404).json({ success: false, message: 'Inquiry not found' });
+      return;
+    }
+
+    const isAdmin = adminUser?.role === 'ADMIN';
+    const isOwner = inquiry.sessionToken && inquiry.sessionToken === sessionToken;
+
+    if (!isAdmin && !isOwner) {
+      res.status(403).json({ success: false, message: 'Access denied' });
+      return;
+    }
+
+    const messages = await prisma.supportMessage.findMany({
+      where: { inquiryId: id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    res.json({ success: true, data: messages });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createSupportMessage = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const id = String(req.params.id);
+    const { text } = req.body as { text?: string };
+    const rawToken = req.headers['x-session-token'] || req.query.sessionToken;
+    const sessionToken = rawToken ? String(rawToken) : undefined;
+    const adminUser = req.user;
+
+    if (!text || String(text).trim().length === 0) {
+      res.status(400).json({ success: false, message: 'Message text is required' });
+      return;
+    }
+
+    const inquiry = await prisma.supportInquiry.findUnique({
+      where: { id },
+    });
+
+    if (!inquiry) {
+      res.status(404).json({ success: false, message: 'Inquiry not found' });
+      return;
+    }
+
+    const isAdmin = adminUser?.role === 'ADMIN';
+    const isOwner = inquiry.sessionToken && inquiry.sessionToken === sessionToken;
+
+    if (!isAdmin && !isOwner) {
+      res.status(403).json({ success: false, message: 'Access denied' });
+      return;
+    }
+
+    const sender = isAdmin ? 'ADMIN' : 'USER';
+    const senderName = isAdmin ? (adminUser.name || 'Admin') : (inquiry.name || 'Guest');
+
+    const message = await prisma.supportMessage.create({
+      data: {
+        inquiryId: id,
+        sender,
+        senderName,
+        text,
+      },
+    });
+
+    await prisma.supportInquiry.update({
+      where: { id },
+      data: {
+        updatedAt: new Date(),
+        status: isAdmin ? 'in_progress' : 'open',
+      },
+    });
+
+    res.status(201).json({ success: true, data: message });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 export const listSupportInquiries = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
