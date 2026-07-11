@@ -65,7 +65,7 @@ export default function AdminCouponsPage() {
         minOrder: form.minOrder ? Number(form.minOrder) : undefined,
         maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : undefined,
         usageLimit: form.usageLimit ? Number(form.usageLimit) : undefined,
-        expiresAt: form.expiresAt || undefined,
+        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
       };
     try {
       if (editingCouponId) {
@@ -105,7 +105,14 @@ export default function AdminCouponsPage() {
       minOrder: coupon.minOrder != null ? String(coupon.minOrder) : '',
       maxDiscount: coupon.maxDiscount != null ? String(coupon.maxDiscount) : '',
       usageLimit: coupon.usageLimit != null ? String(coupon.usageLimit) : '',
-      expiresAt: coupon.expiresAt ? new Date(coupon.expiresAt).toISOString().slice(0, 16) : '',
+      expiresAt: coupon.expiresAt ? (() => {
+        const d = new Date(coupon.expiresAt);
+        return d.getFullYear() + '-' +
+          String(d.getMonth() + 1).padStart(2, '0') + '-' +
+          String(d.getDate()).padStart(2, '0') + 'T' +
+          String(d.getHours()).padStart(2, '0') + ':' +
+          String(d.getMinutes()).padStart(2, '0');
+      })() : '',
     });
   };
 
