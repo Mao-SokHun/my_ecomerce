@@ -53,17 +53,21 @@ jobs:
 
     steps:
       - name: Trigger Render Backend Deploy
-        if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
         run: |
           echo "Triggering Render deployment..."
-          curl -sS "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+          curl -sS "${{ env.RENDER_DEPLOY_HOOK_URL }}"
           echo "Render deployment triggered successfully!"
 
       - name: Trigger Vercel Frontend Deploy
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK_URL != '' }}
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        if: env.VERCEL_DEPLOY_HOOK_URL != ''
         run: |
           echo "Triggering Vercel deployment..."
-          curl -X POST -sS "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+          curl -X POST -sS "${{ env.VERCEL_DEPLOY_HOOK_URL }}"
           echo "Vercel deployment triggered successfully!"
 
   # ========================================
