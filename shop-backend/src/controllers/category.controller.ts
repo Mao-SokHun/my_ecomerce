@@ -3,9 +3,19 @@ import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 import { generateSlug } from '../utils/helpers';
+import { apiCache } from '../lib/memoryCache';
 
 export const getCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const cacheKey = 'categories:all';
+    const cachedData = apiCache.get(cacheKey);
+
+    if (cachedData) {
+      res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+      res.json({ success: true, data: cachedData });
+      return;
+    }
+
     const categories = await prisma.category.findMany({
       where: { isActive: true, parentId: null, deletedAt: null },
       include: {
@@ -45,6 +55,8 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
       };
     });
 
+    apiCache.set(cacheKey, data, 300); // 5 minutes cache
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
     res.json({ success: true, data });
   } catch (error) {
     next(error);
@@ -85,6 +97,7 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
       data: { name, slug, description, image, parentId, sortOrder: sortOrder || 0 },
     });
 
+    apiCache.invalidatePrefix('categories:');
     res.status(201).json({ success: true, message: 'Category created', data: category });
   } catch (error) {
     next(error);
@@ -108,6 +121,7 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
       },
     });
 
+    apiCache.invalidatePrefix('categories:');
     res.json({ success: true, message: 'Category updated', data: category });
   } catch (error) {
     next(error);
@@ -132,6 +146,7 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
       }
     });
 
+    apiCache.invalidatePrefix('categories:');
     res.json({ success: true, message: 'Category deleted' });
   } catch (error) {
     next(error);

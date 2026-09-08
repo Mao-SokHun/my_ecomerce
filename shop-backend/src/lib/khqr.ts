@@ -24,23 +24,29 @@ const toUtcReqTime = (date = new Date()): string => {
 const buildMockKhqr = (order: Order): KhqrCreateResult => {
   const reference = `KHQR-${order.orderNumber}`;
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  const merchantName = process.env.KHQR_MERCHANT_NAME || 'ShopHub';
+  const merchantName = process.env.KHQR_MERCHANT_NAME || 'MAO SOKHUN';
   const merchantCity = process.env.KHQR_MERCHANT_CITY || 'Phnom Penh';
-  const merchantId = process.env.KHQR_MERCHANT_ID || 'shophub@aba';
+  const merchantId = process.env.KHQR_MERCHANT_ID || '126052614424719';
+  const accountUsd = '005 282 269';
+  const accountKhr = '005 282 293';
+  const amountUsd = order.total.toFixed(2);
+  const amountKhr = Math.round(order.total * 4100);
 
   const payload = [
-    'KHQR-MOCK',
+    'KHQR',
     `merchant=${merchantName}`,
     `city=${merchantCity}`,
     `merchantId=${merchantId}`,
+    `accountUsd=${accountUsd}`,
+    `accountKhr=${accountKhr}`,
     `order=${order.orderNumber}`,
-    `amount=${order.total.toFixed(2)}`,
-    'currency=USD',
+    `amountUsd=$${amountUsd}`,
+    `amountKhr=៛${amountKhr.toLocaleString()}`,
     `ref=${reference}`,
   ].join('|');
 
   const staticQrImageUrl = process.env.KHQR_STATIC_QR_IMAGE_URL;
-  const staticQrImagePath = process.env.KHQR_STATIC_QR_IMAGE_PATH;
+  const staticQrImagePath = process.env.KHQR_STATIC_QR_IMAGE_PATH || 'uploads/payments/aba_pay_khqr.png';
   const backendPublic = process.env.BACKEND_PUBLIC_URL || 'http://localhost:5000';
   const staticRouteUrl = staticQrImagePath ? `${backendPublic}/api/payments/khqr/static-image` : '';
   const qrUrl =
@@ -53,10 +59,11 @@ const buildMockKhqr = (order: Order): KhqrCreateResult => {
 const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   const baseUrl = process.env.ABA_PAYWAY_BASE_URL || 'https://checkout-sandbox.payway.com.kh';
   const endpoint = process.env.ABA_KHQR_CREATE_URL || '/api/payment-gateway/v1/payments/generate-qr';
-  const merchantId = process.env.ABA_PAYWAY_MERCHANT_ID;
-  const apiKey = process.env.ABA_PAYWAY_API_KEY;
+  // Support both short (ABA_MERCHANT_ID/ABA_API_KEY) and long (ABA_PAYWAY_*) env var naming conventions
+  const merchantId = (process.env.ABA_PAYWAY_MERCHANT_ID || process.env.ABA_MERCHANT_ID || '').trim();
+  const apiKey = (process.env.ABA_PAYWAY_API_KEY || process.env.ABA_API_KEY || '').trim();
   if (!merchantId || !apiKey) {
-    throw new Error('ABA PayWay is not configured. Set ABA_PAYWAY_MERCHANT_ID and ABA_PAYWAY_API_KEY');
+    throw new Error('ABA PayWay is not configured. Set ABA_PAYWAY_MERCHANT_ID and ABA_PAYWAY_API_KEY (or ABA_MERCHANT_ID / ABA_API_KEY)');
   }
 
   const reference = order.orderNumber.slice(-20);

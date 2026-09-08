@@ -10,15 +10,30 @@ import { ProductSkeleton } from '@/components/ui/Skeleton';
 import { productApi } from '@/lib/api';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
+import { getLocalCache } from '@/lib/clientCache';
 
 export function FeaturedProducts() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const { language } = useLanguageStore();
+
+  const [products, setProducts] = useState<Product[]>(() => {
+    const cached = getLocalCache<Product[]>(`featured_products_${language}`);
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+    const fallback = getLocalCache<Product[]>('featured_products_km') || getLocalCache<Product[]>('featured_products_en');
+    return Array.isArray(fallback) ? fallback : [];
+  });
+
+  const [loading, setLoading] = useState(() => {
+    const cached = getLocalCache<Product[]>(`featured_products_${language}`);
+    return !(Array.isArray(cached) && cached.length > 0);
+  });
 
   useEffect(() => {
     productApi.getFeatured(language)
-      .then(({ data }) => setProducts(data.data || []))
+      .then(({ data }) => {
+        if (Array.isArray(data?.data) && data.data.length > 0) {
+          setProducts(data.data);
+        }
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [language]);

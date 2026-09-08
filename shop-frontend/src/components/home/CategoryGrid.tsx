@@ -11,16 +11,25 @@ import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { CategorySkeleton } from '@/components/ui/Skeleton';
 import { CategoryScrollBar } from '@/components/home/CategoryScrollBar';
+import { getLocalCache, PRELOADED_CATEGORIES } from '@/lib/clientCache';
 
 export function CategoryGrid() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const cached = getLocalCache<Category[]>('categories_all');
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+    return PRELOADED_CATEGORIES;
+  });
   const { language } = useLanguageStore();
   const countLocale = language === 'km' ? 'km-KH' : language === 'zh' ? 'zh-CN' : 'en-US';
 
   useEffect(() => {
     categoryApi
       .getAll()
-      .then(({ data }) => setCategories(Array.isArray(data?.data) ? data.data : []))
+      .then(({ data }) => {
+        if (Array.isArray(data?.data) && data.data.length > 0) {
+          setCategories(data.data);
+        }
+      })
       .catch(console.error);
   }, []);
 

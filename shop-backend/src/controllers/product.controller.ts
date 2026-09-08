@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
 import { generateSlug, paginate, paginateResponse, str } from '../utils/helpers';
 import { PRODUCT_NAME_TRANSLATIONS } from '../data/productNameTranslations';
+import { apiCache } from '../lib/memoryCache';
 
 type ProductLang = 'km' | 'en' | 'zh';
 
@@ -329,6 +330,7 @@ export const createProduct = async (
       include: { category: true, variants: true },
     });
 
+    apiCache.invalidatePrefix('products:');
     res.status(201).json({ success: true, message: 'Product created', data: product });
   } catch (error) {
     next(error);
@@ -410,6 +412,7 @@ export const updateProduct = async (
       include: { category: true, variants: true },
     });
 
+    apiCache.invalidatePrefix('products:');
     res.json({ success: true, message: 'Product updated', data: product });
   } catch (error) {
     next(error);
@@ -429,6 +432,7 @@ export const deleteProduct = async (
       data: { isActive: false },
     });
 
+    apiCache.invalidatePrefix('products:');
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
     next(error);
@@ -438,6 +442,15 @@ export const deleteProduct = async (
 export const getFeaturedProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const lang = resolveLang(req.query.lang);
+    const cacheKey = `products:featured:${lang}`;
+    const cached = apiCache.get(cacheKey);
+
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+      res.json({ success: true, data: cached });
+      return;
+    }
+
     const products = await prisma.product.findMany({
       where: { isFeatured: true, isActive: true },
       take: 8,
@@ -449,13 +462,15 @@ export const getFeaturedProducts = async (req: Request, res: Response, next: Nex
         category: { select: { id: true, name: true, slug: true } },
       },
     });
-    res.json({
-      success: true,
-      data: products.map((p) => ({
-        ...p,
-        name: localizeProductName(p.slug, p.name, lang),
-      })),
-    });
+
+    const data = products.map((p) => ({
+      ...p,
+      name: localizeProductName(p.slug, p.name, lang),
+    }));
+
+    apiCache.set(cacheKey, data, 300); // 5 minutes cache
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

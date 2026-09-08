@@ -12,6 +12,7 @@ import { productApi, categoryApi } from '@/lib/api';
 import { CategoryScrollBar } from '@/components/home/CategoryScrollBar';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
+import { getLocalCache, PRELOADED_CATEGORIES } from '@/lib/clientCache';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -28,7 +29,11 @@ function ProductsContent() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const cached = getLocalCache<Category[]>('categories_all');
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+    return PRELOADED_CATEGORIES;
+  });
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');

@@ -1,6 +1,6 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import Image from 'next/image';
 import { cn, getInitials } from '@/lib/utils';
 
@@ -44,26 +44,37 @@ export function UserAvatar({ name, src, size = 'md', className, priority, photoA
   const initials = getInitials(displayName) || displayName.slice(0, 2).toUpperCase() || '?';
   const s = SIZE_STYLES[size];
 
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  const showImage = Boolean(src && !hasError);
+
   return (
     <div
       className={cn(
-        'relative shrink-0 rounded-full overflow-hidden flex items-center justify-center text-white',
+        'relative shrink-0 rounded-full overflow-hidden flex items-center justify-center text-white select-none',
         'ring-2 ring-white/95 dark:ring-gray-600/90 shadow-premium',
         'motion-safe:transition-transform motion-safe:duration-200',
         s.box,
-        src ? 'bg-gray-100 dark:bg-gray-800' : '',
+        showImage ? 'bg-gray-100 dark:bg-gray-800' : '',
         className,
       )}
-      style={!src ? gradientForName(displayName) : undefined}
+      style={!showImage ? gradientForName(displayName) : undefined}
     >
-      {src ? (
+      {showImage && src ? (
         <Image
           src={src}
           alt={photoAlt !== undefined ? photoAlt : displayName}
           fill
+          unoptimized
+          referrerPolicy="no-referrer"
           className="object-cover"
           sizes={s.imageSizes}
           priority={priority}
+          onError={() => setHasError(true)}
         />
       ) : (
         <span className={cn('tabular-nums drop-shadow-sm', s.text)}>{initials}</span>

@@ -51,6 +51,7 @@ enum AuthProvider {
   LOCAL
   GOOGLE
   FACEBOOK
+  TELEGRAM
 }
 
 // ==================== MODELS ====================

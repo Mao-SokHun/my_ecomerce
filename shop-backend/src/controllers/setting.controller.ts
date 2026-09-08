@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
+import { apiCache } from '../lib/memoryCache';
 
 const defaultFees = (base: number) => ({
   shippingFee: base,
@@ -58,15 +59,15 @@ const defaultLayoutInfo = (siteName = 'SH-Shop') => ({
       {
         tag: 'New members',
         title: 'First Order',
-        description: 'Special discount for new accounts',
-        cta: 'Join Now',
-        ctaHref: '/register',
-        gradientFrom: 'from-amber-500',
-        gradientTo: 'to-orange-600',
+        description: 'Save $5 on your first checkout',
+        cta: 'Claim Voucher',
+        ctaHref: '/products',
+        gradientFrom: 'from-emerald-600',
+        gradientTo: 'to-teal-800',
       },
     ],
   },
-  invoice: {
+  receipt: {
     shopName: siteName,
     supportEmail: 'shshopbyonline@gmail.com',
     supportPhone: '0974944390 / 0885459115',
@@ -82,6 +83,15 @@ const defaultLayoutInfo = (siteName = 'SH-Shop') => ({
  */
 export const getSettings = async (req: Request, res: Response) => {
   try {
+    const cacheKey = 'settings:global';
+    const cached = apiCache.get(cacheKey);
+
+    if (cached) {
+      res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+      res.json({ success: true, data: cached });
+      return;
+    }
+
     let settings = await prisma.siteSettings.findUnique({
       where: { id: 'default' },
     });
@@ -98,6 +108,8 @@ export const getSettings = async (req: Request, res: Response) => {
       });
     }
 
+    apiCache.set(cacheKey, settings, 300);
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
     res.json({ success: true, data: settings });
   } catch (error) {
     console.error('getSettings error:', error);
@@ -139,6 +151,7 @@ export const updateSettings = async (req: Request, res: Response) => {
       },
     });
 
+    apiCache.invalidatePrefix('settings:');
     res.json({ success: true, message: 'Settings updated successfully', data: settings });
   } catch (error) {
     console.error('updateSettings error:', error);

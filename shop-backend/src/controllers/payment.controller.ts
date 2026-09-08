@@ -75,8 +75,7 @@ export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const getKhqrStaticImage = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const staticPath = process.env.KHQR_STATIC_QR_IMAGE_PATH;
-    if (!staticPath) throw new AppError('KHQR static image path is not configured', 404);
+    const staticPath = process.env.KHQR_STATIC_QR_IMAGE_PATH || 'uploads/payments/aba_pay_khqr.png';
     const absolutePath = path.isAbsolute(staticPath)
       ? staticPath
       : path.resolve(process.cwd(), staticPath);
@@ -114,7 +113,10 @@ export const getKhqrStatus = async (req: AuthRequest, res: Response, next: NextF
 export const khqrWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const signature = req.headers['x-khqr-signature'] as string | undefined;
-    const rawBody = JSON.stringify(req.body || {});
+    // Use the preserved raw request body (set by express.raw middleware) for accurate HMAC verification.
+    // Falls back to JSON.stringify only when no signature is expected (mock/dev mode).
+    const rawBody = (req as unknown as Record<string, unknown>).__rawBody as string | undefined
+      ?? JSON.stringify(req.body || {});
     if (!verifyKhqrWebhookSignature(rawBody, signature)) {
       throw new AppError('Invalid webhook signature', 401);
     }
@@ -391,6 +393,46 @@ export const checkAbaPaymentStatus = async (req: AuthRequest, res: Response, nex
         data: { status: order.paymentStatus, orderId: order.id },
       });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getBlockchainVerification = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const orderId = String(req.params.orderId);
+    const order = await prisma.order.findFirst({
+      where: req.user!.role === 'ADMIN' ? { id: orderId } : { id: orderId, userId: req.user!.id },
+    });
+
+    if (!order) throw new AppError('Order not found', 404);
+
+    const { generateSmartContractReceipt } = await import('../lib/blockchain');
+    const receipt = generateSmartContractReceipt(order);
+
+    res.json({
+      success: true,
+      data: receipt,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyBlockchainTransaction = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { receipt } = req.body;
+    if (!receipt || !receipt.txHash) {
+      throw new AppError('Receipt object with txHash is required', 400);
+    }
+
+    const { verifySmartContractReceipt } = await import('../lib/blockchain');
+    const result = verifySmartContractReceipt(receipt);
+
+    res.json({
+      success: true,
+      data: result,
+    });
   } catch (error) {
     next(error);
   }

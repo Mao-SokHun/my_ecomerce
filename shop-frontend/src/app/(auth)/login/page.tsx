@@ -14,6 +14,7 @@ import axios from 'axios';
 import { authApi } from '@/lib/api';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
+import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton';
 
 function loginErrorMessage(error: unknown, lang: AppLanguage): string {
   if (axios.isAxiosError(error)) {
@@ -243,6 +244,7 @@ function LoginForm() {
         </div>
 
         <div className="space-y-3 w-full">
+          <TelegramLoginButton redirectTo={redirect} />
           <FacebookLoginButton redirectTo={redirect} />
           <GoogleSignInButton redirectTo={redirect} />
         </div>

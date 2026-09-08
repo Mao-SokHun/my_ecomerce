@@ -92,14 +92,14 @@ export default function AdminSupportInboxPage() {
       });
   };
 
-  // Poll inquiry list
+  // Poll inquiry list every 4s
   useEffect(() => {
     loadInquiries();
-    const timer = setInterval(() => loadInquiries(true), 8000);
+    const timer = setInterval(() => loadInquiries(true), 4000);
     return () => clearInterval(timer);
   }, []);
 
-  // Poll active chat messages
+  // Poll active chat messages every 1.5s
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
@@ -109,7 +109,7 @@ export default function AdminSupportInboxPage() {
     loadMessages(selectedId);
     const messagesTimer = setInterval(() => {
       loadMessages(selectedId, true);
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(messagesTimer);
   }, [selectedId]);

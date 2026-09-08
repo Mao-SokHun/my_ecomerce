@@ -4,6 +4,7 @@ import {
   login,
   googleLogin,
   facebookLogin,
+  telegramLogin,
   getMe,
   updateProfile,
   changePassword,
@@ -21,6 +22,7 @@ router.post('/login', login);
 router.post('/refresh', refreshTokenHandler);
 router.post('/google', googleLogin);
 router.post('/facebook', facebookLogin);
+router.post('/telegram', telegramLogin);
 router.get('/me', authenticate, getMe);
 router.put('/profile', authenticate, updateProfile);
 router.put('/password', authenticate, changePassword);

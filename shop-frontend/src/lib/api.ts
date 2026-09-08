@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { deduplicateRequest, setLocalCache } from './clientCache';
 
 /** Browser: default `/api` (rewritten to Express in next.config). Override with NEXT_PUBLIC_API_URL for prod. */
 function resolveApiBaseUrl(): string {
@@ -95,6 +96,17 @@ export const authApi = {
     clientLatitude?: number;
     clientLongitude?: number;
   }) => api.post('/auth/facebook', data),
+  telegramLogin: (data: {
+    id: number | string;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+    auth_date?: number | string;
+    hash?: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/telegram', data),
   googleLogin: (data: {
     credential: string;
     clientLatitude?: number;
@@ -121,7 +133,14 @@ export const productApi = {
   /** Lightweight autocomplete / instant search (name, brand, category, slug). */
   suggest: (params: { q: string; limit?: number; lang?: string }) =>
     api.get('/products/suggestions', { params }),
-  getFeatured: (lang: 'km' | 'en' | 'zh' = 'km') => api.get('/products/featured', { params: { lang } }),
+  getFeatured: (lang: 'km' | 'en' | 'zh' = 'km') =>
+    deduplicateRequest(`product_featured_${lang}`, async () => {
+      const res = await api.get('/products/featured', { params: { lang } });
+      if (res.data?.data) {
+        setLocalCache(`featured_products_${lang}`, res.data.data);
+      }
+      return res;
+    }),
   getBySlug: (slug: string, lang: 'km' | 'en' | 'zh' = 'km') => api.get(`/products/${slug}`, { params: { lang } }),
   getRelated: (slug: string, lang: 'km' | 'en' | 'zh' = 'km') => api.get(`/products/${slug}/related`, { params: { lang } }),
   create: (data: unknown) => api.post('/products', data),
@@ -131,7 +150,14 @@ export const productApi = {
 
 // Categories
 export const categoryApi = {
-  getAll: () => api.get('/categories'),
+  getAll: () =>
+    deduplicateRequest('category_all', async () => {
+      const res = await api.get('/categories');
+      if (res.data?.data) {
+        setLocalCache('categories_all', res.data.data);
+      }
+      return res;
+    }),
   getBySlug: (slug: string) => api.get(`/categories/${slug}`),
   create: (data: unknown) => api.post('/categories', data),
   update: (id: string, data: unknown) => api.put(`/categories/${id}`, data),
@@ -183,6 +209,8 @@ export const paymentApi = {
   mockConfirmKhqr: (orderId: string) => api.post(`/payments/khqr/mock-confirm/${orderId}`),
   createAba: (orderId: string) => api.post('/payments/aba/create', { orderId }),
   getAbaStatus: (orderId: string) => api.get(`/payments/aba/status/${orderId}`),
+  getBlockchainReceipt: (orderId: string) => api.get(`/payments/blockchain/${orderId}`),
+  verifyBlockchainReceipt: (receipt: unknown) => api.post('/payments/blockchain/verify', { receipt }),
 };
 
 // Reviews
@@ -249,7 +277,14 @@ export const adminApi = {
 
 // Site Settings
 export const settingApi = {
-  get: () => api.get('/settings'),
+  get: () =>
+    deduplicateRequest('site_settings', async () => {
+      const res = await api.get('/settings');
+      if (res.data?.data) {
+        setLocalCache('site_settings', res.data.data);
+      }
+      return res;
+    }),
   update: (data: unknown) => api.put('/settings', data),
 };
 
@@ -282,10 +317,11 @@ export const supportApi = {
   getMessages: (id: string, sessionToken?: string) =>
     api.get(`/support/inquiries/${id}/messages`, {
       headers: sessionToken ? { 'X-Session-Token': sessionToken } : {},
+      params: sessionToken ? { sessionToken } : {},
     }),
   createMessage: (id: string, text: string, sessionToken?: string) =>
     api.post(
-      `/support/inquiries/${id}/messages`,
+      `/support/inquiries/${id}/messages${sessionToken ? `?sessionToken=${encodeURIComponent(sessionToken)}` : ''}`,
       { text },
       {
         headers: sessionToken ? { 'X-Session-Token': sessionToken } : {},

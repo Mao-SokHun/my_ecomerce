@@ -9,6 +9,8 @@ import {
   createAbaPayment,
   abaCallback,
   checkAbaPaymentStatus,
+  getBlockchainVerification,
+  verifyBlockchainTransaction,
 } from '../controllers/payment.controller';
 import {
   paymentRateLimiter,
@@ -29,9 +31,14 @@ router.post('/aba/callback', webhookRateLimiter, abaIpWhitelist, sanitizePayment
 router.use(authenticate);
 router.post('/khqr/create', paymentRateLimiter, logPaymentAttempt, createKhqr);
 router.get('/khqr/status/:orderId', getKhqrStatus);
-router.post('/khqr/mock-confirm/:orderId', paymentRateLimiter, logPaymentAttempt, mockConfirmKhqrPayment);
+// ⚠️ Mock confirm only available outside production — in production, payment status is set by webhook only.
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/khqr/mock-confirm/:orderId', paymentRateLimiter, logPaymentAttempt, mockConfirmKhqrPayment);
+}
 router.post('/aba/create', paymentRateLimiter, logPaymentAttempt, sanitizePaymentInputs, createAbaPayment);
 router.get('/aba/status/:orderId', checkAbaPaymentStatus);
+router.get('/blockchain/:orderId', getBlockchainVerification);
+router.post('/blockchain/verify', sanitizePaymentInputs, verifyBlockchainTransaction);
 
 export default router;
 

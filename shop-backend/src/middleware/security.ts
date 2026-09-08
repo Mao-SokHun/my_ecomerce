@@ -54,15 +54,27 @@ export const abaIpWhitelist = (req: Request, res: Response, next: NextFunction):
 
 /* ─────────── 3. Webhook Replay Protection ─────────── */
 
+/**
+ * Two-layer replay protection:
+ *   Layer 1 (fast): In-memory Map — catches retries within the same server session.
+ *                   Cleared on restart — acceptable because Layer 2 is always present.
+ *   Layer 2 (durable): DB check `order.paymentStatus === 'PAID'` in every webhook handler.
+ *                      Survives restarts; even a replayed webhook after restart is a no-op
+ *                      because the DB already reflects the paid state.
+ *
+ * This design avoids needing a separate DB table / Redis while still being secure.
+ * Major payment providers (ABA, KHQR, Stripe) retry webhooks for up to 24 h,
+ * so the replay window is set to 24 h.
+ */
 const processedWebhooks = new Map<string, number>();
-const REPLAY_WINDOW_MS = 30 * 60 * 1000;
+const REPLAY_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 setInterval(() => {
   const cutoff = Date.now() - REPLAY_WINDOW_MS;
   for (const [key, timestamp] of processedWebhooks) {
     if (timestamp < cutoff) processedWebhooks.delete(key);
   }
-}, 5 * 60 * 1000);
+}, 10 * 60 * 1000); // Prune every 10 minutes
 
 export function isWebhookReplay(provider: string, transactionId: string): boolean {
   const key = `${provider}:${transactionId}`;

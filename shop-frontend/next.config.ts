@@ -43,17 +43,17 @@ const nextConfig: NextConfig = {
         value: [
           "default-src 'self'",
           isProd
-            ? "script-src 'self' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net https://js.stripe.com"
-            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net https://js.stripe.com",
+            ? "script-src 'self' 'unsafe-inline' https://accounts.google.com https://connect.facebook.net https://js.stripe.com https://telegram.org https://oauth.telegram.org"
+            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://connect.facebook.net https://js.stripe.com https://telegram.org https://oauth.telegram.org",
           "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
           "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: http:",
           "font-src 'self' data: https://fonts.gstatic.com",
-          `connect-src 'self' ${backendProxyTarget} https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://oauth2.googleapis.com https://api.stripe.com https://r.stripe.com https://pay.google.com https://maps.googleapis.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh`,
-          "frame-src https://accounts.google.com https://www.facebook.com https://js.stripe.com https://hooks.stripe.com https://pay.google.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh",
+          `connect-src 'self' ${backendProxyTarget} https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://oauth2.googleapis.com https://api.stripe.com https://r.stripe.com https://pay.google.com https://maps.googleapis.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org https://telegram.org`,
+          "frame-src https://accounts.google.com https://www.facebook.com https://js.stripe.com https://hooks.stripe.com https://pay.google.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org https://telegram.org",
           "worker-src 'self' blob:",
           "base-uri 'self'",
-          "form-action 'self' https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh",
+          "form-action 'self' https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org",
           "object-src 'none'",
         ].join('; '),
       },
@@ -98,6 +98,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '**.fbcdn.net' },
       { protocol: 'https', hostname: 'graph.facebook.com' },
       { protocol: 'https', hostname: 'lookaside.facebook.com' },
+      { protocol: 'https', hostname: 't.me' },
+      { protocol: 'https', hostname: 'oauth.telegram.org' },
+      { protocol: 'https', hostname: '**.telegram.org' },
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: '127.0.0.1' },
       ...(apiImageHost ? [apiImageHost] : []),

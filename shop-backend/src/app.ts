@@ -90,7 +90,15 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Session-Token',
+      'x-session-token',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
   })
 );
 app.use(compression());
@@ -109,6 +117,13 @@ app.use((req, res, next) => {
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 /** Stripe webhooks require the raw body for signature verification (must be before express.json). */
 app.post('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+/** KHQR webhooks also need raw body for HMAC-SHA256 signature verification. */
+app.post('/api/payments/khqr/webhook', express.raw({ type: 'application/json' }), (req, _res, next) => {
+  // Store raw body on request so the controller can use it for signature verification
+  (req as unknown as Record<string, unknown>).__rawBody =
+    Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body || {});
+  next();
+});
 /** JSON bodies only; file uploads use multipart with separate limits. */
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -139,6 +154,7 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
 app.use('/api/auth/google', authLimiter);
 app.use('/api/auth/facebook', authLimiter);
+app.use('/api/auth/telegram', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 

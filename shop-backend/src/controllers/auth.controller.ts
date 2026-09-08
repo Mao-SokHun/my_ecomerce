@@ -546,7 +546,7 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     if (!data?.id) throw new AppError('Invalid Facebook token', 401);
     const email = (data.email as string | undefined) || `fb_${String(data.id)}@facebook.local`;
     const name = (data.name as string | undefined) || 'Facebook User';
-    const avatar = (data?.picture?.data?.url as string | undefined) || null;
+    const avatar = (data?.picture?.data?.url as string | undefined) || (data?.id ? `https://graph.facebook.com/${data.id}/picture?type=large` : null);
 
     let user = await prisma.user.findUnique({ where: { email } });
     const isNew = !user;
@@ -564,8 +564,9 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
       });
       await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
     } else {
-      const updates: { avatar?: string | null } = {};
-      if (!user.avatar && avatar) updates.avatar = avatar;
+      const updates: { avatar?: string | null; name?: string } = {};
+      if (avatar && user.avatar !== avatar) updates.avatar = avatar;
+      if (name && (!user.name || user.name === 'Facebook User')) updates.name = name;
       if (Object.keys(updates).length) {
         user = await prisma.user.update({ where: { id: user.id }, data: updates });
       }
@@ -587,6 +588,109 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     res.json({
       success: true,
       message: 'Facebook login successful',
+      data: { user: userWithoutPassword, ...tokens },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const telegramLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id, first_name, last_name, username, photo_url, auth_date, hash } = req.body as {
+      id?: string | number;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+      photo_url?: string;
+      auth_date?: string | number;
+      hash?: string;
+    };
+
+    if (!id) {
+      throw new AppError('Telegram user ID is required', 400);
+    }
+
+    const botToken = (
+      process.env.TELEGRAM_LOGIN_BOT_TOKEN ||
+      process.env.TELEGRAM_USER_BOT_TOKEN ||
+      process.env.TELEGRAM_BOT_TOKEN ||
+      ''
+    ).trim();
+
+    // Verify Telegram HMAC-SHA256 signature if hash and botToken are present
+    if (botToken && hash) {
+      const secretKey = crypto.createHash('sha256').update(botToken).digest();
+      const checkArr: string[] = [];
+      const validKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'] as const;
+
+      for (const key of validKeys) {
+        const val = req.body[key];
+        if (val !== undefined && val !== null && String(val).length > 0) {
+          checkArr.push(`${key}=${val}`);
+        }
+      }
+      checkArr.sort();
+      const dataCheckString = checkArr.join('\n');
+      const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+      if (computedHash.toLowerCase() !== String(hash).toLowerCase()) {
+        throw new AppError('Invalid Telegram authentication signature', 401);
+      }
+
+      if (auth_date && Date.now() / 1000 - Number(auth_date) > 86400) {
+        throw new AppError('Telegram authentication session has expired', 401);
+      }
+    }
+
+    const telegramId = String(id);
+    const email = username
+      ? `tg_${username.toLowerCase()}@telegram.local`
+      : `tg_${telegramId}@telegram.local`;
+    const name = [first_name, last_name].filter(Boolean).join(' ') || username || `Telegram User ${telegramId.slice(-4)}`;
+    const avatar = photo_url || null;
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    const isNew = !user;
+
+    if (!user) {
+      const randomPassword = await bcrypt.hash(`tg_${telegramId}_${Date.now()}`, 12);
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          avatar,
+          password: randomPassword,
+          emailVerified: true,
+          provider: 'TELEGRAM',
+        },
+      });
+      await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
+    } else {
+      const updates: { avatar?: string | null; name?: string } = {};
+      if (avatar && user.avatar !== avatar) updates.avatar = avatar;
+      if (name && (!user.name || user.name.startsWith('Telegram User'))) updates.name = name;
+      if (Object.keys(updates).length) {
+        user = await prisma.user.update({ where: { id: user.id }, data: updates });
+      }
+    }
+
+    const tokens = buildTokenPair(user);
+    logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Telegram OAuth', getRequestIp(req));
+    notifyTelegramAuthEvent(
+      req,
+      { id: user.id, name: user.name, email: user.email, phone: user.phone },
+      isNew ? 'REGISTER' : 'LOGIN'
+    ).catch((error) => {
+      console.error('[Auth Notify] Telegram login notification failed:', error);
+    });
+
+    const { password: _, ...userWithoutPassword } = user;
+    void _;
+
+    res.json({
+      success: true,
+      message: 'Telegram login successful',
       data: { user: userWithoutPassword, ...tokens },
     });
   } catch (error) {

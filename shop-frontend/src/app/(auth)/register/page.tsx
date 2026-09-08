@@ -13,6 +13,7 @@ import axios from 'axios';
 import { DISPLAY_NAME_PATTERN, normalizeDisplayName } from '@/lib/utils';
 import { FacebookLoginButton } from '@/components/auth/FacebookLoginButton';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { TelegramLoginButton } from '@/components/auth/TelegramLoginButton';
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -202,6 +203,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-3 w-full">
+          <TelegramLoginButton redirectTo="/" />
           <FacebookLoginButton redirectTo="/" />
           <GoogleSignInButton redirectTo="/" />
         </div>

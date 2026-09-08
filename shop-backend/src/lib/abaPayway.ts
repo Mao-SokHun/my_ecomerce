@@ -5,11 +5,13 @@ const ABA_API_URL = process.env.ABA_PAYWAY_URL || 'https://checkout-sandbox.payw
 const ABA_CHECK_URL = process.env.ABA_PAYWAY_CHECK_URL || 'https://checkout-sandbox.payway.com.kh/api/payment-gateway/v1/payments/check-transaction-2';
 
 function getMerchantId(): string {
-  return (process.env.ABA_MERCHANT_ID || '').trim();
+  // Support both ABA_MERCHANT_ID (short) and ABA_PAYWAY_MERCHANT_ID (long) naming conventions
+  return (process.env.ABA_MERCHANT_ID || process.env.ABA_PAYWAY_MERCHANT_ID || '').trim();
 }
 
 function getApiKey(): string {
-  return (process.env.ABA_API_KEY || '').trim();
+  // Support both ABA_API_KEY (short) and ABA_PAYWAY_API_KEY (long) naming conventions
+  return (process.env.ABA_API_KEY || process.env.ABA_PAYWAY_API_KEY || '').trim();
 }
 
 export function isAbaConfigured(): boolean {
@@ -166,8 +168,9 @@ export async function createAbaPurchase(payload: ReturnType<typeof buildCheckout
 
 export function verifyCallbackHash(transactionId: string, amount: string, receivedHash: string): boolean {
   const merchantId = getMerchantId();
+  // ABA PayWay callback hash spec: MD5(merchant_id + tran_id + amount) — NOT HMAC
   const raw = merchantId + transactionId + amount;
-  const expected = crypto.createHmac('sha512', getApiKey()).update(raw).digest('base64');
+  const expected = crypto.createHash('md5').update(raw).digest('hex');
   return expected === receivedHash;
 }
 

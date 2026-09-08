@@ -13,6 +13,17 @@ export const formatPrice = (price: number, lang: string = 'en', currency: string
   }).format(price);
 };
 
+export const formatKhrPrice = (priceInUsd: number, exchangeRate: number = 4100): string => {
+  const khrAmount = Math.round((priceInUsd || 0) * exchangeRate);
+  return `៛${khrAmount.toLocaleString('en-US')}`;
+};
+
+export const formatDualPrice = (priceInUsd: number, exchangeRate: number = 4100): { usd: string; khr: string; display: string } => {
+  const usd = formatPrice(priceInUsd || 0);
+  const khr = formatKhrPrice(priceInUsd || 0, exchangeRate);
+  return { usd, khr, display: `${usd} (${khr})` };
+};
+
 export const formatDate = (date: string | Date, lang: string = 'en'): string => {
   const locale = lang === 'km' ? 'km-KH' : lang === 'zh' ? 'zh-CN' : 'en-US';
   return new Intl.DateTimeFormat(locale, {

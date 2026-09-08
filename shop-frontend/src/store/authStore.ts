@@ -14,6 +14,15 @@ interface AuthState {
 
   login: (identifier: string, password: string) => Promise<void>;
   loginWithFacebook: (accessToken: string) => Promise<void>;
+  loginWithTelegram: (telegramData: {
+    id: number | string;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+    auth_date?: number | string;
+    hash?: string;
+  }) => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string | undefined, phone: string, password: string) => Promise<void>;
   logout: () => void;
@@ -72,6 +81,29 @@ export const useAuthStore = create<AuthState>()(
           const geo = await getOptionalBrowserGeolocation();
           const { data } = await authApi.facebookLogin({
             accessToken,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          try {
+            const me = await authApi.getMe();
+            if (me.data?.data) set({ user: me.data.data });
+          } catch {
+            /* keep login payload */
+          }
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      loginWithTelegram: async (telegramData) => {
+        set({ isLoading: true });
+        try {
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.telegramLogin({
+            ...telegramData,
             ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
           });
           const { user, token, refreshToken } = data.data;
