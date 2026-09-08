@@ -232,21 +232,21 @@ function LoginForm() {
           </button>
         </form>
 
-        <div className="relative my-5">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200 dark:border-surface-700" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-white dark:bg-surface-900 px-3 text-gray-400">
-              {language === 'km' ? 'ឬ' : language === 'zh' ? '或者' : 'or'}
+            <span className="bg-white dark:bg-surface-900 px-3 text-gray-400 font-medium">
+              {language === 'km' ? 'ឬ ចូលតាមរយៈ' : language === 'zh' ? '或使用社交账号登录' : 'or continue with'}
             </span>
           </div>
         </div>
 
-        <div className="space-y-3 w-full">
-          <TelegramLoginButton redirectTo={redirect} />
-          <FacebookLoginButton redirectTo={redirect} />
-          <GoogleSignInButton redirectTo={redirect} />
+        <div className="flex items-center justify-center gap-3 w-full [&>*]:flex-1">
+          <TelegramLoginButton redirectTo={redirect} variant="icon" />
+          <FacebookLoginButton redirectTo={redirect} variant="icon" />
+          <GoogleSignInButton redirectTo={redirect} variant="icon" />
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-5">

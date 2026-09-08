@@ -39,9 +39,12 @@ const GoogleLogo = () => (
   </svg>
 );
 
-type Props = { redirectTo: string };
+type Props = {
+  redirectTo: string;
+  variant?: 'full' | 'compact' | 'icon';
+};
 
-export function GoogleSignInButton({ redirectTo }: Props) {
+export function GoogleSignInButton({ redirectTo, variant = 'full' }: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
   const { loginWithGoogle } = useAuthStore();
   const router = useRouter();
@@ -118,6 +121,24 @@ export function GoogleSignInButton({ redirectTo }: Props) {
   }, [clientId, loading, language]);
 
   if (!clientId) return null;
+
+  if (variant === 'icon') {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        title="Google"
+        aria-label="Google Sign-In"
+        className="w-full h-12 flex items-center justify-center rounded-xl border border-gray-200/80 bg-white
+                   dark:bg-surface-800 dark:border-surface-700
+                   hover:bg-gray-50 hover:border-gray-300 dark:hover:border-surface-600 hover:shadow-md hover:scale-[1.03]
+                   active:scale-95 transition-all duration-200 disabled:opacity-50"
+      >
+        <GoogleLogo />
+      </button>
+    );
+  }
 
   const label = loading
     ? (language === 'km' ? 'កំពុងចូល...' : language === 'zh' ? '登录中...' : 'Signing in...')

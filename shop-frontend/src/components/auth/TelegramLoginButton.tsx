@@ -23,9 +23,12 @@ declare global {
   }
 }
 
-type Props = { redirectTo: string };
+type Props = {
+  redirectTo: string;
+  variant?: 'full' | 'compact' | 'icon';
+};
 
-export function TelegramLoginButton({ redirectTo }: Props) {
+export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
   const botUsername = (
     process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ||
     'new_user_sh_shop_bot'
@@ -155,6 +158,33 @@ export function TelegramLoginButton({ redirectTo }: Props) {
 
     window.addEventListener('message', handleMessage);
   };
+
+  if (variant === 'icon') {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={handleDirectLogin}
+          disabled={loading}
+          title="Telegram"
+          aria-label="Telegram Login"
+          className="w-full h-12 flex items-center justify-center rounded-xl border border-gray-200/80 bg-white
+                     dark:bg-surface-800 dark:border-surface-700 text-[#229ED9]
+                     hover:bg-[#229ED9]/10 hover:border-[#229ED9] hover:shadow-md hover:scale-[1.03]
+                     active:scale-95 transition-all duration-200 disabled:opacity-50"
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin text-[#229ED9]" />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-[#229ED9] text-white flex items-center justify-center shadow-sm">
+              <Send className="w-3.5 h-3.5 ml-[-1px] mt-[1px]" />
+            </div>
+          )}
+        </button>
+        <div ref={widgetContainerRef} className="hidden" />
+      </div>
+    );
+  }
 
   const label = loading
     ? (language === 'km' ? 'កំពុងចូល...' : language === 'zh' ? '登录中...' : 'Signing in...')
