@@ -31,6 +31,11 @@ export function TelegramLoginButton({ redirectTo }: Props) {
     'new_user_sh_shop_bot'
   ).trim().replace(/^@/, '');
 
+  const botId = (
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT_ID ||
+    '8799740724'
+  ).trim();
+
   const { loginWithTelegram } = useAuthStore();
   const router = useRouter();
   const { language } = useLanguageStore();
@@ -110,7 +115,7 @@ export function TelegramLoginButton({ redirectTo }: Props) {
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
 
-    const authUrl = `https://oauth.telegram.org/auth?bot_id=${encodeURIComponent(botUsername)}&origin=${encodeURIComponent(
+    const authUrl = `https://oauth.telegram.org/auth?bot_id=${encodeURIComponent(botId)}&origin=${encodeURIComponent(
       window.location.origin
     )}&embed=1&request_access=write`;
 
