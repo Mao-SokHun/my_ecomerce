@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd shop-frontend && npm install && npm run build",
+  "outputDirectory": "shop-frontend/.next",
+  "framework": "nextjs"
+}
