@@ -73,13 +73,14 @@ const nextConfig: NextConfig = {
       { source: '/uploads/:path*', destination: `${backendProxyTarget}/uploads/:path*` },
     ];
   },
-  /** Reduces stale chunk 404 / ChunkLoadError after HMR on Windows (pairs with NEXT_DISABLE_WEBPACK_CACHE). */
-  webpack: (config, { dev }) => {
-    if (dev) {
-      config.cache = false;
-    }
-    return config;
-  },
+  ...(process.env.NODE_ENV === 'development'
+    ? {
+        webpack: (config: any, { dev }: any) => {
+          if (dev) config.cache = false;
+          return config;
+        },
+      }
+    : {}),
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
