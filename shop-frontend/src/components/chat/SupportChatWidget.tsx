@@ -44,7 +44,7 @@ export default function SupportChatWidget() {
       if (user.name && !clientName) setClientName(user.name);
       if (user.phone && !clientPhone) setClientPhone(user.phone);
     }
-  }, [user]);
+  }, [user, clientName, clientPhone]);
 
   // FAQ Data definition
   const faqList: FAQItem[] = [
@@ -150,7 +150,7 @@ export default function SupportChatWidget() {
         setMessages([{ role: 'bot', text: label.greeting }]);
       }
     }
-  }, [language]);
+  }, [language, label.greeting]);
 
   // Auto-scroll to bottom
   useEffect(() => {

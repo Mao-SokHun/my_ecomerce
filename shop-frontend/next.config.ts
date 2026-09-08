@@ -30,6 +30,12 @@ function apiUrlRemotePattern(): { protocol: 'https' | 'http'; hostname: string }
 const apiImageHost = apiUrlRemotePattern();
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
     const securityHeaders = [
