@@ -85,6 +85,25 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
     };
   }, [handleTelegramAuth]);
 
+  // Check URL hash fallback on mount if popup redirected
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.hash) return;
+    try {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const tgAuthResult = params.get('tgAuthResult');
+      if (tgAuthResult) {
+        const decoded = JSON.parse(atob(tgAuthResult));
+        if (decoded && decoded.id) {
+          handleTelegramAuth(decoded);
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [handleTelegramAuth]);
+
   // Load official script into hidden/background container for SDK initialization
   useEffect(() => {
     if (!botUsername || !widgetContainerRef.current) return;
@@ -107,12 +126,6 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
 
   const handleDirectLogin = () => {
     if (loading) return;
-
-    // Check if official iframe button inside container can be triggered
-    const iframe = widgetContainerRef.current?.querySelector('iframe');
-    if (iframe) {
-      iframe.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
 
     const width = 550;
     const height = 480;
@@ -157,13 +170,6 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
     };
 
     window.addEventListener('message', handleMessage);
-
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
-        window.removeEventListener('message', handleMessage);
-      }
-    }, 1000);
   };
 
   if (variant === 'icon') {
