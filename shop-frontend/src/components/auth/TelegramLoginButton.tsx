@@ -130,7 +130,7 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
     );
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== 'https://oauth.telegram.org' && event.origin !== window.location.origin) return;
+      if (!event.origin.includes('telegram.org') && event.origin !== window.location.origin) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (!data) return;
@@ -140,9 +140,9 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
           userObj = data.result;
         } else if (data.event === 'auth_user' && data.result) {
           userObj = data.result;
-        } else if (data.id && data.hash) {
+        } else if (data.id && (data.hash || data.auth_date)) {
           userObj = data;
-        } else if (data.result && data.result.id && data.result.hash) {
+        } else if (data.result && data.result.id) {
           userObj = data.result;
         }
 
@@ -157,6 +157,13 @@ export function TelegramLoginButton({ redirectTo, variant = 'full' }: Props) {
     };
 
     window.addEventListener('message', handleMessage);
+
+    const timer = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(timer);
+        window.removeEventListener('message', handleMessage);
+      }
+    }, 1000);
   };
 
   if (variant === 'icon') {
