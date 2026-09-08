@@ -3,7 +3,7 @@
  * Eliminates skeleton delay when loading categories, featured products, and settings.
  */
 
-import { Category, Product } from '@/types';
+import { Category } from '@/types';
 
 const CACHE_PREFIX = 'sh_cache_v1_';
 
@@ -99,8 +99,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 48,
     sortOrder: 1,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-fashion',
@@ -111,8 +109,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 64,
     sortOrder: 2,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-home-living',
@@ -123,8 +119,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 32,
     sortOrder: 3,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-sports',
@@ -135,8 +129,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 26,
     sortOrder: 4,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-beauty',
@@ -147,8 +139,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 38,
     sortOrder: 5,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-groceries',
@@ -159,8 +149,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 42,
     sortOrder: 6,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-books',
@@ -171,8 +159,6 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 20,
     sortOrder: 7,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
   {
     id: 'cat-automotive',
@@ -183,7 +169,5 @@ export const PRELOADED_CATEGORIES: Category[] = [
     totalProducts: 18,
     sortOrder: 8,
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   },
 ];

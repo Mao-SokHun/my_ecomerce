@@ -7,14 +7,11 @@ import {
   Cpu,
   CheckCircle2,
   Copy,
-  ExternalLink,
   X,
   Lock,
   FileCode,
   KeyRound,
   RefreshCw,
-  Layers,
-  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { paymentApi } from '@/lib/api';

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark, ExternalLink, ShieldCheck, Cpu } from 'lucide-react';
+import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark, ExternalLink, ShieldCheck } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';

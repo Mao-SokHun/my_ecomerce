@@ -4,7 +4,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
-  provider?: 'LOCAL' | 'GOOGLE' | 'FACEBOOK';
+  provider?: 'LOCAL' | 'GOOGLE' | 'FACEBOOK' | 'TELEGRAM';
   role: 'USER' | 'ADMIN';
   isActive?: boolean;
   createdAt: string;
