@@ -56,7 +56,8 @@ export function TelegramLoginButton({ redirectTo }: Props) {
       loginWithTelegram(userData)
         .then(() => {
           toast.success(t(language, 'telegramLoginSuccess') || 'Telegram login successful');
-          router.push(redirectTo);
+          const target = redirectTo && redirectTo !== '/login' ? redirectTo : '/';
+          window.location.href = target;
         })
         .catch((error: unknown) => {
           const msg = axios.isAxiosError(error)
@@ -68,7 +69,7 @@ export function TelegramLoginButton({ redirectTo }: Props) {
           setLoading(false);
         });
     },
-    [language, loginWithTelegram, redirectTo, router]
+    [language, loginWithTelegram, redirectTo]
   );
 
   useEffect(() => {
@@ -129,8 +130,21 @@ export function TelegramLoginButton({ redirectTo }: Props) {
       if (event.origin !== 'https://oauth.telegram.org' && event.origin !== window.location.origin) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data && data.event === 'auth_result' && data.result) {
-          handleTelegramAuth(data.result);
+        if (!data) return;
+
+        let userObj: any = null;
+        if (data.event === 'auth_result' && data.result) {
+          userObj = data.result;
+        } else if (data.event === 'auth_user' && data.result) {
+          userObj = data.result;
+        } else if (data.id && data.hash) {
+          userObj = data;
+        } else if (data.result && data.result.id && data.result.hash) {
+          userObj = data.result;
+        }
+
+        if (userObj) {
+          handleTelegramAuth(userObj);
           popup?.close();
           window.removeEventListener('message', handleMessage);
         }
