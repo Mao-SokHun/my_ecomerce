@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
-  LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
+  LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, ChevronRight, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
   Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2,
 } from 'lucide-react';
@@ -189,13 +189,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     navItems.find((item) => item.href !== '/admin' && pathname.startsWith(`${item.href}/`)) ||
     (pathname.startsWith('/admin/settings') ? navItems.find((i) => i.href === '/admin/settings') : undefined);
   const pageTitle = adminT(language, currentNav?.key || 'navDashboard');
-  const headerKicker = language === 'km' ? 'មជ្ឈមណ្ឌលគ្រប់គ្រង' : language === 'zh' ? '控制中心' : 'Control Center';
-  const headerHint =
-    language === 'km'
-      ? `${headerKicker} / ${pageTitle}`
-      : language === 'zh'
-        ? `${headerKicker} / ${pageTitle}`
-        : `${headerKicker} / ${pageTitle}`;
 
   return (
     <div
@@ -431,23 +424,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex-1 min-w-0">
-            <p
-              className={`text-[10px] font-semibold text-slate-400 dark:text-slate-500 ${
-                isKhmer ? '' : 'uppercase tracking-[0.14em]'
-              }`}
-            >
-              {headerKicker}
-            </p>
-            <p
-              className={`leading-[1.1] text-gray-900 dark:text-white truncate ${
-                isKhmer ? 'text-[20px] font-semibold tracking-normal' : 'text-[26px] font-extrabold tracking-tight'
-              }`}
-            >
-              {pageTitle}
-            </p>
-            <p className={`hidden lg:block mt-0.5 truncate text-slate-500 dark:text-slate-400 ${isKhmer ? 'text-[12px]' : 'text-xs'}`}>
-              {headerHint}
-            </p>
+            {/* Clean Breadcrumb Hierarchy */}
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 font-medium">
+              <Link
+                href="/admin"
+                className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1 shrink-0"
+              >
+                <span>{language === 'km' ? 'ផ្ទាំងគ្រប់គ្រង' : language === 'zh' ? '管理后台' : 'Admin'}</span>
+              </Link>
+              {pathname !== '/admin' && (
+                <>
+                  <ChevronRight className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
+                  <span className="text-slate-700 dark:text-slate-300 font-semibold truncate max-w-[140px] sm:max-w-none">
+                    {pageTitle}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Main Page Title + Live Badge */}
+            <div className="flex items-center gap-2 mt-0.5">
+              <h1
+                className={`text-slate-900 dark:text-white font-extrabold truncate leading-tight ${
+                  isKhmer ? 'text-base sm:text-lg' : 'text-lg sm:text-xl tracking-tight'
+                }`}
+              >
+                {pageTitle}
+              </h1>
+              {pathname === '/admin' && (
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Sync
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-50/80 dark:bg-surface-800/70 border border-slate-200/70 dark:border-gray-700/70">
             {/* Notification Bell with Dynamic Low Stock & Orders Badge */}
