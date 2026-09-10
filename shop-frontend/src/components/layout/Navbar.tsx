@@ -209,47 +209,59 @@ export function Navbar() {
               <AnimatePresence>
                 {isShopMenuOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                     onMouseLeave={() => setIsShopMenuOpen(false)}
-                    className="absolute top-full left-0 mt-2 min-w-[18rem] w-max max-w-[min(24rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] overflow-y-auto overflow-x-hidden bg-white dark:bg-surface-900 shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-gray-200 dark:border-surface-700 rounded-3xl py-3 z-50 ring-1 ring-black/5"
+                    className="absolute top-full left-0 mt-2 min-w-[20rem] w-max max-w-[min(26rem,calc(100vw-2rem))] max-h-[min(72vh,32rem)] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-900 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] border border-slate-200 dark:border-slate-800 rounded-3xl p-2.5 z-50 ring-1 ring-slate-900/5"
                   >
                     <Link
                       href="/products"
                       onMouseEnter={() => prefetchRoute('/products')}
                       onFocus={() => prefetchRoute('/products')}
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out rounded-2xl mx-1.5"
+                      className="group flex items-center gap-3.5 px-3.5 py-3 text-sm text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/80 hover:bg-primary-50 dark:hover:bg-primary-950/60 transition-all duration-200 ease-smooth-out rounded-2xl mb-1.5 border border-slate-100 dark:border-slate-700/60"
                       onClick={() => setIsShopMenuOpen(false)}
                     >
-                      <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-primary-500/25 group-hover:scale-105 transition-transform">
                         <Package className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-sm text-gray-900 dark:text-white">{t(language, 'allProducts')}</span>
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400">{t(language, 'browseAll')}</span>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                          {t(language, 'allProducts')}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {t(language, 'browseAll')}
+                        </span>
                       </div>
                     </Link>
-                    <div className="h-px bg-gray-100 dark:bg-surface-800 my-2 mx-4 shrink-0" />
-                    {shopNavCategories.map((cat) => {
-                      const href = `/products?category=${encodeURIComponent(cat.slug)}`;
-                      return (
-                        <Link
-                          key={cat.slug}
-                          href={href}
-                          onMouseEnter={() => prefetchRoute(href)}
-                          onFocus={() => prefetchRoute(href)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800/80 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out rounded-xl mx-1.5 font-medium"
-                          onClick={() => setIsShopMenuOpen(false)}
-                        >
-                          <span className="text-xl leading-none w-8 flex justify-center shrink-0" aria-hidden>
-                            {shopCategoryIcon(cat.slug)}
-                          </span>
-                          <span className="leading-snug font-semibold text-gray-900 dark:text-gray-100">{shopCategoryLabel(language, cat.slug, cat.name)}</span>
-                        </Link>
-                      );
-                    })}
+
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      {language === 'km' ? 'ប្រភេទទំនិញ' : 'Categories'}
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {shopNavCategories.map((cat) => {
+                        const href = `/products?category=${encodeURIComponent(cat.slug)}`;
+                        return (
+                          <Link
+                            key={cat.slug}
+                            href={href}
+                            onMouseEnter={() => prefetchRoute(href)}
+                            onFocus={() => prefetchRoute(href)}
+                            className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-150 rounded-xl font-medium"
+                            onClick={() => setIsShopMenuOpen(false)}
+                          >
+                            <span className="text-xl leading-none w-7 flex justify-center shrink-0" aria-hidden>
+                              {shopCategoryIcon(cat.slug)}
+                            </span>
+                            <span className="leading-snug font-semibold text-slate-800 dark:text-slate-200">
+                              {shopCategoryLabel(language, cat.slug, cat.name)}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
