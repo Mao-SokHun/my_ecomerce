@@ -14,13 +14,38 @@ import { adminT } from '@/lib/admin-i18n';
 export default function AdminUsersPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_users');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_users');
+        if (cached) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    if (!search && users.length === 0) setLoading(true);
     adminApi.getUsers({ search: search || undefined })
-      .then(({ data }) => setUsers(data.data || []))
+      .then(({ data }) => {
+        const list = data.data || [];
+        setUsers(list);
+        if (!search) {
+          try {
+            sessionStorage.setItem('admin_cached_users', JSON.stringify(list));
+          } catch {}
+        }
+      })
       .finally(() => setLoading(false));
   }, [search]);
 

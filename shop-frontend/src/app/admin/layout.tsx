@@ -36,8 +36,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-  const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(null);
+  const isDirectAdmin = user?.role === 'ADMIN';
+  const [isCheckingAccess, setIsCheckingAccess] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('auth-storage');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.state?.user?.role === 'ADMIN') return false;
+        }
+      } catch {}
+    }
+    return !isDirectAdmin;
+  });
+  const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('auth-storage');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.state?.user?.role === 'ADMIN') return parsed.state.user;
+        }
+      } catch {}
+    }
+    return null;
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -59,23 +82,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!isAuthChecked) return;
-    const verifyAdminAccess = async () => {
-      try {
-        const { data } = await authApi.getMe();
+
+    if (!user && !adminUser) {
+      router.push('/login');
+      setIsCheckingAccess(false);
+      return;
+    }
+
+    if (user && user.role !== 'ADMIN') {
+      router.push('/');
+      setIsCheckingAccess(false);
+      return;
+    }
+
+    let mounted = true;
+    authApi
+      .getMe()
+      .then(({ data }) => {
+        if (!mounted) return;
         const me = data.data as { name: string; role: string };
         if (me?.role !== 'ADMIN') {
           router.push('/');
           return;
         }
         setAdminUser(me);
-      } catch {
-        router.push('/login');
-      } finally {
-        setIsCheckingAccess(false);
-      }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        if (!user || user.role !== 'ADMIN') {
+          router.push('/login');
+        }
+      })
+      .finally(() => {
+        if (mounted) setIsCheckingAccess(false);
+      });
+
+    return () => {
+      mounted = false;
     };
-    verifyAdminAccess();
-  }, [isAuthChecked, router]);
+  }, [isAuthChecked, user, adminUser, router]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -178,8 +223,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setCompactSidebar((prev) => !prev);
   };
 
-  if (!isAuthChecked || isCheckingAccess) return null;
-  if (!adminUser && user?.role !== 'ADMIN') return null;
+  const hasAdminAccess = user?.role === 'ADMIN' || adminUser?.role === 'ADMIN';
+
+  if (!hasAdminAccess && (!isAuthChecked || isCheckingAccess)) {
+    return (
+      <div className="min-h-screen bg-slate-100 dark:bg-surface-950 flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 text-white flex items-center justify-center shadow-lg animate-pulse">
+            <Store className="w-5 h-5" />
+          </div>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 animate-pulse">
+            {language === 'km' ? 'កំពុងផ្ទៀងផ្ទាត់សិទ្ធិ...' : 'Authenticating...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAdminAccess) return null;
   const activeUser = user || adminUser;
   const langLabel = language === 'km' ? 'ខ្មែរ' : language === 'zh' ? '中文' : 'English';
   const settingsActive = pathname.startsWith('/admin/settings');

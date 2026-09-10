@@ -10,13 +10,35 @@ type Lead = { id: string; email: string; phone?: string | null; createdAt: strin
 export default function AdminLeadsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const [rows, setRows] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<Lead[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_leads');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_leads');
+        if (cached) return false;
+      } catch {}
+    }
+    return true;
+  });
 
   useEffect(() => {
     leadApi
       .getAll()
-      .then(({ data }) => setRows(data.data || []))
+      .then(({ data }) => {
+        const list = data.data || [];
+        setRows(list);
+        try {
+          sessionStorage.setItem('admin_cached_leads', JSON.stringify(list));
+        } catch {}
+      })
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
     adminApi.markSeen('leads').catch(() => {});

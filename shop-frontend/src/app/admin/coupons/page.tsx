@@ -41,8 +41,24 @@ export default function AdminCouponsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
   const isZh = language === 'zh';
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [coupons, setCoupons] = useState<Coupon[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_coupons');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_coupons');
+        if (cached) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     code: '',
@@ -56,17 +72,23 @@ export default function AdminCouponsPage() {
   });
   const [editingCouponId, setEditingCouponId] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
+  const load = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     adminApi
       .getCoupons()
-      .then(({ data }) => setCoupons(data.data || []))
+      .then(({ data }) => {
+        const list = data.data || [];
+        setCoupons(list);
+        try {
+          sessionStorage.setItem('admin_cached_coupons', JSON.stringify(list));
+        } catch {}
+      })
       .catch(() => toast.error('Failed to load coupons'))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    load();
+    load(coupons.length > 0);
   }, [load]);
 
   // Live Calculator Simulation
