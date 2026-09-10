@@ -258,147 +258,180 @@ export default function AdminProductsPage() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  const totalCount = products.length;
+  const activeCount = products.filter((p) => p.isActive).length;
+  const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const outOfStockCount = products.filter((p) => p.stock <= 0).length;
+  const featuredCount = products.filter((p) => p.isFeatured).length;
+
   return (
-    <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
-          <p className="text-gray-500 text-sm">{products.length} products</p>
-        </div>
-        <button onClick={openCreate} className="btn-primary text-sm">
-          <Plus className="w-4 h-4" /> Add Product
+    <div
+      className="space-y-6"
+      style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
+    >
+      {/* KPI Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <button
+          type="button"
+          onClick={() => setFilterMode('all')}
+          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+            filterMode === 'all'
+              ? 'bg-primary-50/80 dark:bg-primary-950/40 border-primary-500/40 shadow-sm ring-1 ring-primary-500/20'
+              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {isKhmer ? 'ទំនិញសរុប' : 'Total Catalog'}
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalCount}</span>
+            <span className="text-xs text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterMode('active')}
+          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+            filterMode === 'active'
+              ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20'
+              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            {isKhmer ? 'កំពុងលក់ (Active)' : 'Active Selling'}
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{activeCount}</span>
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterMode('low_stock')}
+          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+            filterMode === 'low_stock'
+              ? 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-500/50 shadow-sm ring-2 ring-amber-500/30'
+              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-amber-300'
+          }`}
+        >
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <span>⚠️</span>
+            <span>{isKhmer ? 'សល់ស្តុកតិច (≤5)' : 'Low Stock (≤5)'}</span>
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-amber-700 dark:text-amber-300">{lowStockCount}</span>
+            {lowStockCount > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                {isKhmer ? 'ប្រញាប់' : 'Urgent'}
+              </span>
+            )}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterMode('out_of_stock')}
+          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+            filterMode === 'out_of_stock'
+              ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-500/50 shadow-sm ring-2 ring-rose-500/30'
+              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-rose-300'
+          }`}
+        >
+          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+            <span>🔴</span>
+            <span>{isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}</span>
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-rose-700 dark:text-rose-300">{outOfStockCount}</span>
+            {outOfStockCount > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                {isKhmer ? 'ដាច់ស្តុក' : 'Restock'}
+              </span>
+            )}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterMode('featured')}
+          className={`flex flex-col p-4 rounded-2xl border transition-all text-left col-span-2 sm:col-span-1 ${
+            filterMode === 'featured'
+              ? 'bg-purple-50/80 dark:bg-purple-950/40 border-purple-500/40 shadow-sm ring-1 ring-purple-500/20'
+              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+            <span>⭐</span>
+            <span>{isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}</span>
+          </span>
+          <div className="flex items-baseline justify-between mt-1">
+            <span className="text-2xl font-black text-purple-700 dark:text-purple-300">{featuredCount}</span>
+            <span className="text-xs text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
+          </div>
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-5 sm:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products..."
-            className="input pl-9 text-sm w-full"
-          />
+      {/* Main Controls Card */}
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm p-4 sm:p-5 backdrop-blur-xl space-y-4">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
+          {/* Search bar with instant clear */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand, Category...' : 'Search products by name, brand, category...'}
+              className="input pl-10 pr-9 text-sm w-full h-11 rounded-2xl bg-slate-50 dark:bg-surface-800/80 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-surface-800"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-semibold text-sm shadow-md shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add New Product'}</span>
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        {/* Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+          <span className="text-xs font-semibold text-slate-400 mr-1.5">{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
           {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => setFilterMode(mode)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium border transition-colors ${
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-semibold transition-all duration-150 ${
                 filterMode === mode
-                  ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 shadow-xs'
-                  : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary-300'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                  : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
               }`}
             >
-              {mode === 'all' ? (isKhmer ? 'ទាំងអស់' : 'All') :
-               mode === 'featured' ? 'Featured' :
-               mode === 'low_stock' ? (isKhmer ? '⚠️ សល់ស្តុកតិច (≤5)' : '⚠️ Low Stock (≤5)') :
-               mode === 'out_of_stock' ? (isKhmer ? '🔴 អស់ស្តុក (0)' : '🔴 Out of Stock (0)') :
-               mode === 'active' ? (isKhmer ? 'សកម្ម' : 'Active only') :
-               (isKhmer ? 'អសកម្ម' : 'Inactive')}
+              {mode === 'all' ? (isKhmer ? `ទាំងអស់ (${totalCount})` : `All (${totalCount})`) :
+               mode === 'featured' ? `⭐ Featured (${featuredCount})` :
+               mode === 'low_stock' ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'} (${lowStockCount})` :
+               mode === 'out_of_stock' ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'} (${outOfStockCount})` :
+               mode === 'active' ? (isKhmer ? `សកម្ម (${activeCount})` : `Active (${activeCount})`) :
+               (isKhmer ? `អសកម្ម (${totalCount - activeCount})` : `Inactive (${totalCount - activeCount})`)}
             </button>
           ))}
-        </div>
-      </div>
-
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                {['Product', 'Category', 'Price', 'Stock', 'Featured', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={`product-row-skeleton-${i}`}>
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <td key={`product-cell-skeleton-${i}-${j}`} className="py-3 px-4"><div className="h-4 bg-gray-100 dark:bg-surface-800 rounded animate-pulse" /></td>
-                    ))}
-                  </tr>
-                ))
-              ) : products.map((product) => (
-                <tr key={product.id} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-surface-800/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                        {product.thumbnail && (
-                          <Image src={product.thumbnail} alt={product.name} fill className="object-cover" sizes="40px" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white line-clamp-1">{product.name}</p>
-                        <p className="text-xs text-gray-400">{product.brand}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-500">{product.category.name}</td>
-                  <td className="py-3 px-4">
-                    <span className="font-bold text-gray-900 dark:text-white">{formatPrice(product.price)}</span>
-                    {product.comparePrice && (
-                      <span className="text-xs text-gray-400 line-through ml-1">{formatPrice(product.comparePrice)}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {product.stock === 0 ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
-                          0 ({isKhmer ? 'អស់ស្តុក' : 'Out of Stock'})
-                        </span>
-                      ) : product.stock <= 5 ? (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse">
-                          {product.stock} ({isKhmer ? 'សល់តិច' : 'Low'})
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                          {product.stock}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => openRestock(product)}
-                        className="p-1 rounded-md text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition border border-primary-200 dark:border-primary-800/60"
-                        title={isKhmer ? 'បំពេញស្តុកទំនិញ' : 'Restock / Adjust Stock'}
-                      >
-                        + {isKhmer ? 'ស្តុក' : 'Stock'}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4">
-                    {product.isFeatured ? (
-                      <span className="badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Featured</span>
-                    ) : (
-                      <span className="text-gray-400 text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`badge ${product.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600'}`}>
-                      {product.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-1">
-                      <Link href={`/products/${product.slug}`} target="_blank" className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                      <button onClick={() => openEdit(product)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(product.id, product.name)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
 
