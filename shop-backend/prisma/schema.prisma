@@ -78,9 +78,10 @@ model User {
   wishlist         Wishlist[]
   sellerProfile    SellerProfile?
   auditLogs        AuditLog[]
-  lastSeenOrdersAt DateTime?
-  lastSeenUsersAt  DateTime?
-  lastSeenLeadsAt  DateTime?
+  lastSeenOrdersAt  DateTime?
+  lastSeenUsersAt   DateTime?
+  lastSeenLeadsAt   DateTime?
+  lastSeenSupportAt DateTime?
 
   @@index([phone])
   @@map("users")

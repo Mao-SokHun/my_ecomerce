@@ -66,16 +66,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifOpen, setNotifOpen] = useState(false);
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null }>({
+  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; chat: number | null }>({
     orders: null,
     users: null,
     leads: null,
     lowStock: null,
+    chat: null,
   });
-  const [badgeFlash, setBadgeFlash] = useState<{ orders: boolean; users: boolean; leads: boolean }>({
+  const [badgeFlash, setBadgeFlash] = useState<{ orders: boolean; users: boolean; leads: boolean; chat: boolean }>({
     orders: false,
     users: false,
     leads: false,
+    chat: false,
   });
   /** Bumped when visiting a section (mark-seen) so in-flight poll responses cannot overwrite fresh counts. */
   const unreadPullGenerationRef = useRef(0);
@@ -132,6 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let prevLeads = -1;
     let prevOrders = -1;
     let prevUsers = -1;
+    let prevChat = -1;
     const pull = async () => {
       const gen = ++unreadPullGenerationRef.current;
       try {
@@ -143,34 +146,57 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           users: Number(counts.users || 0),
           leads: Number(counts.leads || 0),
           lowStock: Number(counts.lowStock || 0),
+          chat: Number(counts.chat || 0),
         });
         const nextOrders = Number(counts.orders || 0);
         const nextUsers = Number(counts.users || 0);
         const nextLeads = Number(counts.leads || 0);
+        const nextChat = Number(counts.chat || 0);
+
         if (prevOrders >= 0 && nextOrders > prevOrders) {
           setBadgeFlash((prev) => ({ ...prev, orders: true }));
           setTimeout(() => setBadgeFlash((prev) => ({ ...prev, orders: false })), 1200);
+          toast(
+            language === 'km' ? `🛒 មានការបញ្ជាទិញថ្មី ${nextOrders - prevOrders} !` : `🛒 ${nextOrders - prevOrders} new order(s)!`,
+            { icon: '📦', duration: 5000, id: 'new-order-alert', style: { fontWeight: 600 } }
+          );
         }
         if (prevUsers >= 0 && nextUsers > prevUsers) {
           setBadgeFlash((prev) => ({ ...prev, users: true }));
           setTimeout(() => setBadgeFlash((prev) => ({ ...prev, users: false })), 1200);
+          toast(
+            language === 'km' ? `👤 អតិថិជនថ្មី ${nextUsers - prevUsers} នាក់ !` : `👤 ${nextUsers - prevUsers} new user(s) registered!`,
+            { icon: '🎉', duration: 4000, id: 'new-user-alert' }
+          );
         }
         if (prevLeads >= 0 && nextLeads > prevLeads) {
           setBadgeFlash((prev) => ({ ...prev, leads: true }));
           setTimeout(() => setBadgeFlash((prev) => ({ ...prev, leads: false })), 1200);
+          toast(
+            language === 'km' ? `📧 មាន subscriber ថ្មី ${nextLeads - prevLeads} !` : `📧 ${nextLeads - prevLeads} new subscriber(s)!`,
+            { icon: '✉️', duration: 4000, id: 'new-lead-alert' }
+          );
         }
-        if (prevLeads >= 0 && Number(counts.leads || 0) > prevLeads) {
-          toast.success(language === 'km' ? 'មាន subscriber ថ្មី' : language === 'zh' ? '有新的订阅用户' : 'New subscriber arrived');
+        if (prevChat >= 0 && nextChat > prevChat) {
+          setBadgeFlash((prev) => ({ ...prev, chat: true }));
+          setTimeout(() => setBadgeFlash((prev) => ({ ...prev, chat: false })), 2000);
+          toast(
+            language === 'km'
+              ? `💬 អតិថិជនផ្ញើសារថ្មី ${nextChat - prevChat} !`
+              : `💬 ${nextChat - prevChat} new chat message(s)!`,
+            { icon: '🆘', duration: 6000, id: 'new-chat-alert', style: { fontWeight: 700, background: '#fef3c7', color: '#92400e' } }
+          );
         }
         prevOrders = nextOrders;
         prevUsers = nextUsers;
         prevLeads = nextLeads;
+        prevChat = nextChat;
       } catch {
         // ignore
       }
     };
     pull();
-    const timer = setInterval(pull, 8000);
+    const timer = setInterval(pull, 6000);
     return () => {
       mounted = false;
       clearInterval(timer);
@@ -186,7 +212,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ? 'users'
           : pathname === '/admin/leads' || pathname.startsWith('/admin/leads/')
             ? 'leads'
-            : null;
+            : pathname === '/admin/support-inbox'
+              ? 'support'
+              : null;
     if (!type) return;
 
     let cancelled = false;
@@ -202,6 +230,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           users: Number(counts.users || 0),
           leads: Number(counts.leads || 0),
           lowStock: Number(counts.lowStock || 0),
+          chat: Number(counts.chat || 0),
         });
       } catch {
         // keep last known counts
@@ -536,9 +565,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 title={isKhmer ? 'ការជូនដំណឹង & ការព្រមានស្តុក' : 'Notifications & Stock Alerts'}
               >
                 <Bell className="w-4 h-4" />
-                {((liveCounts.lowStock ?? 0) > 0 || (liveCounts.orders ?? 0) > 0) && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-surface-900 animate-pulse">
-                    {(liveCounts.lowStock ?? 0) + (liveCounts.orders ?? 0)}
+                {((liveCounts.lowStock ?? 0) > 0 || (liveCounts.orders ?? 0) > 0 || (liveCounts.chat ?? 0) > 0) && (
+                  <span className={`absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-surface-900 ${
+                    (liveCounts.chat ?? 0) > 0 ? 'bg-amber-500 animate-bounce' : 'bg-rose-500 animate-pulse'
+                  }`}>
+                    {(liveCounts.chat ?? 0) + (liveCounts.lowStock ?? 0) + (liveCounts.orders ?? 0)}
                   </span>
                 )}
               </button>
@@ -563,6 +594,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </div>
 
                   <div className="p-3 space-y-2.5 max-h-80 overflow-y-auto">
+                  {/* Chat Messages Alert */}
+                    {(liveCounts.chat ?? 0) > 0 ? (
+                      <div className="p-3 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/60">
+                        <div className="flex items-start gap-2.5">
+                          <MessageSquare className={`w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5 ${badgeFlash.chat ? 'animate-bounce' : ''}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                              {isKhmer
+                                ? `💬 មានសារ Live Chat ថ្មី ${liveCounts.chat} !`
+                                : `💬 ${liveCounts.chat} unread chat message(s) from customers!`}
+                            </p>
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                              {isKhmer ? 'អតិថិជនកំពុងរង់ចាំការឆ្លើយតប — ចូលទៅ Support Inbox ដើម្បីជួយ' : 'Customers are waiting for your reply'}
+                            </p>
+                            <Link
+                              href="/admin/support-inbox"
+                              onClick={() => setNotifOpen(false)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline mt-2"
+                            >
+                              <span>{isKhmer ? 'ចូល Support Inbox ឆ្លើយ' : 'Open Support Inbox'}</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-100 dark:border-gray-700/50 text-xs text-gray-500 dark:text-gray-400">
+                        <MessageSquare className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span>{isKhmer ? 'មិនមានសារ Chat ថ្មីទេ' : 'No new chat messages'}</span>
+                      </div>
+                    )}
+
                     {/* Stock Alert Item */}
                     {(liveCounts.lowStock ?? 0) > 0 ? (
                       <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">

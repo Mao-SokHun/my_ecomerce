@@ -281,7 +281,7 @@ export const adminApi = {
   updateCoupon: (id: string, data: unknown) => api.put(`/admin/coupons/${id}`, data),
   deleteCoupon: (id: string) => api.delete(`/admin/coupons/${id}`),
   getUnreadCounts: () => api.get('/admin/unread-counts'),
-  markSeen: (type: 'orders' | 'users' | 'leads') => api.post('/admin/mark-seen', { type }),
+  markSeen: (type: 'orders' | 'users' | 'leads' | 'support') => api.post('/admin/mark-seen', { type }),
 };
 
 // Site Settings

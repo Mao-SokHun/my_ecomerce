@@ -2,8 +2,26 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Eye, Upload, Loader2, X, Package } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Eye,
+  Upload,
+  Loader2,
+  X,
+  Package,
+  Star,
+  Sparkles,
+  CheckCircle2,
+  ArrowRight,
+  Minus,
+  RotateCcw,
+  AlertTriangle,
+  ExternalLink,
+} from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productApi, adminApi, uploadApi } from '@/lib/api';
 import { formatPrice, normalizeImageListToFullUrls, resolveToFullImageUrl } from '@/lib/utils';
@@ -19,6 +37,7 @@ export default function AdminProductsPage() {
   }`;
   const modalInputCls = 'input text-sm min-h-[44px]';
   const modalGridCls = 'grid sm:grid-cols-2 gap-4 sm:gap-5';
+
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -48,15 +67,37 @@ export default function AdminProductsPage() {
   });
   const [isFetching, setIsFetching] = useState(false);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterMode, setFilterMode] = useState<'all' | 'featured' | 'low_stock' | 'out_of_stock' | 'active' | 'inactive'>('all');
+
+  // Quick Restock State
   const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
   const [restockAmount, setRestockAmount] = useState<number>(0);
   const [isRestocking, setIsRestocking] = useState(false);
 
+  // Edit/Create Form State
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    comparePrice: '',
+    stock: '',
+    categoryId: '',
+    brand: '',
+    thumbnail: '',
+    isFeatured: false,
+    isActive: true,
+    tags: '',
+    shortDesc: '',
+    imagesStr: '',
+    variants: [] as { id?: string; name: string; value: string; stock: string; price: string }[],
+  });
+  const [saving, setSaving] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+
   useEffect(() => {
-    // Only show full skeleton loader if we have no products displayed at all
     if (products.length === 0) {
       setLoading(true);
     } else {
@@ -64,7 +105,7 @@ export default function AdminProductsPage() {
     }
 
     const params: Record<string, unknown> = {
-      limit: 100,
+      limit: 150,
       search: search.trim() || undefined,
     };
     if (filterMode === 'featured') params.featured = 'true';
@@ -97,7 +138,9 @@ export default function AdminProductsPage() {
       });
   }, [search, filterMode]);
 
-  const openRestock = (product: Product) => {
+  // Open Quick Restock Modal
+  const openRestock = (product: Product, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setRestockingProduct(product);
     setRestockAmount(product.stock);
   };
@@ -110,7 +153,11 @@ export default function AdminProductsPage() {
       await productApi.update(restockingProduct.id, {
         stock: Math.max(0, Number(restockAmount)),
       });
-      toast.success(isKhmer ? `បានធ្វើបច្ចុប្បន្នភាពស្តុក (${restockAmount})` : `Stock updated to ${restockAmount}`);
+      toast.success(
+        isKhmer
+          ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${restockAmount} គ្រឿង ✅`
+          : `Stock for "${restockingProduct.name}" updated to ${restockAmount} ✅`
+      );
       setProducts((prev) =>
         prev.map((p) => (p.id === restockingProduct.id ? { ...p, stock: Math.max(0, Number(restockAmount)) } : p))
       );
@@ -121,14 +168,46 @@ export default function AdminProductsPage() {
       setIsRestocking(false);
     }
   };
-  const [form, setForm] = useState({
-    name: '', description: '', price: '', comparePrice: '', stock: '',
-    categoryId: '', brand: '', thumbnail: '', isFeatured: false, isActive: true,
-    tags: '', shortDesc: '', imagesStr: '',
-    variants: [] as { id?: string; name: string; value: string; stock: string; price: string }[],
-  });
-  const [saving, setSaving] = useState(false);
-  const [uploadBusy, setUploadBusy] = useState(false);
+
+  // Toggle Featured directly from Table
+  const handleToggleFeatured = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextVal = !product.isFeatured;
+    // Optimistic UI update
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: nextVal } : p)));
+    try {
+      await productApi.update(product.id, { isFeatured: nextVal });
+      toast.success(
+        nextVal
+          ? (isKhmer ? `បានដាក់ "${product.name}" ជា Featured ⭐` : `Marked "${product.name}" as Featured ⭐`)
+          : (isKhmer ? `បានដក "${product.name}" ចេញពី Featured` : `Removed "${product.name}" from Featured`)
+      );
+    } catch {
+      // Revert on error
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: !nextVal } : p)));
+      toast.error('Failed to update featured status');
+    }
+  };
+
+  // Toggle Active directly from Table
+  const handleToggleActive = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextVal = !product.isActive;
+    // Optimistic UI update
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: nextVal } : p)));
+    try {
+      await productApi.update(product.id, { isActive: nextVal });
+      toast.success(
+        nextVal
+          ? (isKhmer ? `បានបើកលក់ "${product.name}" 🟢` : `"${product.name}" is now Active 🟢`)
+          : (isKhmer ? `បានបិទលក់ "${product.name}" (Draft) ⚪` : `"${product.name}" is now Inactive (Draft) ⚪`)
+      );
+    } catch {
+      // Revert on error
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: !nextVal } : p)));
+      toast.error('Failed to update active status');
+    }
+  };
 
   const thumbPreviewUrl = useMemo(
     () => (form.thumbnail.trim() ? resolveToFullImageUrl(form.thumbnail.trim()) : ''),
@@ -148,9 +227,9 @@ export default function AdminProductsPage() {
     try {
       const { data } = await uploadApi.uploadProductImage(file, 'products');
       setForm((p) => ({ ...p, thumbnail: data.data.url }));
-      toast.success('រូបតូចបានផ្ទុករួច / Thumbnail uploaded');
+      toast.success(isKhmer ? 'រូបតូចបានផ្ទុករួចរាល់' : 'Thumbnail uploaded');
     } catch {
-      toast.error('ផ្ទុករូបភាពបរាជ័យ / Upload failed');
+      toast.error(isKhmer ? 'ផ្ទុករូបភាពបរាជ័យ' : 'Upload failed');
     } finally {
       setUploadBusy(false);
     }
@@ -173,36 +252,62 @@ export default function AdminProductsPage() {
       }));
       toast.success(
         urls.length === 1
-          ? 'រូបបានបន្ថែម / Image added'
-          : `${urls.length} រូបបានបន្ថែម / images added`
+          ? (isKhmer ? 'រូបភាពបានបន្ថែម' : 'Image added')
+          : (isKhmer ? `${urls.length} រូបភាពបានបន្ថែម` : `${urls.length} images added`)
       );
     } catch {
-      toast.error('ផ្ទុករូបភាពបរាជ័យ / Upload failed');
+      toast.error(isKhmer ? 'ផ្ទុករូបភាពបរាជ័យ' : 'Upload failed');
     } finally {
       setUploadBusy(false);
     }
   };
 
-
   const openCreate = () => {
     setEditingProduct(null);
     setForm({
-      name: '', description: '', price: '', comparePrice: '', stock: '', categoryId: '', brand: '', thumbnail: '', isFeatured: false, isActive: true, tags: '', shortDesc: '', imagesStr: '', variants: [],
+      name: '',
+      description: '',
+      price: '',
+      comparePrice: '',
+      stock: '',
+      categoryId: '',
+      brand: '',
+      thumbnail: '',
+      isFeatured: false,
+      isActive: true,
+      tags: '',
+      shortDesc: '',
+      imagesStr: '',
+      variants: [],
     });
     setShowModal(true);
   };
 
-  const openEdit = (product: Product) => {
+  const openEdit = (product: Product, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setEditingProduct(product);
     setForm({
-      name: product.name, description: product.description, price: String(product.price),
-      comparePrice: String(product.comparePrice || ''), stock: String(product.stock),
-      categoryId: product.categoryId, brand: product.brand || '', thumbnail: product.thumbnail || '',
-      isFeatured: product.isFeatured, isActive: product.isActive,
+      name: product.name,
+      description: product.description,
+      price: String(product.price),
+      comparePrice: String(product.comparePrice || ''),
+      stock: String(product.stock),
+      categoryId: product.categoryId,
+      brand: product.brand || '',
+      thumbnail: product.thumbnail || '',
+      isFeatured: product.isFeatured,
+      isActive: product.isActive,
       tags: Array.isArray(product.tags) ? product.tags.join(', ') : '',
       shortDesc: product.shortDesc || '',
       imagesStr: product.images?.join(', ') || '',
-      variants: product.variants?.map(v => ({ id: v.id, name: v.name, value: v.value, stock: String(v.stock), price: v.price ? String(v.price) : '' })) || [],
+      variants:
+        product.variants?.map((v) => ({
+          id: v.id,
+          name: v.name,
+          value: v.value,
+          stock: String(v.stock),
+          price: v.price ? String(v.price) : '',
+        })) || [],
     });
     setShowModal(true);
   };
@@ -235,28 +340,42 @@ export default function AdminProductsPage() {
 
       if (editingProduct) {
         await productApi.update(editingProduct.id, data);
-        toast.success('Product updated');
+        toast.success(isKhmer ? 'បានកែប្រែទំនិញជោគជ័យ' : 'Product updated');
       } else {
         await productApi.create(data);
-        toast.success('Product created');
+        toast.success(isKhmer ? 'បានបន្ថែមទំនិញថ្មីជោគជ័យ' : 'Product created');
       }
 
       setShowModal(false);
-      const res = await adminApi.getProducts({ limit: 100 });
+      const res = await adminApi.getProducts({ limit: 150 });
       setProducts(res.data.data || []);
     } catch (error: unknown) {
       toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete "${name}"?`)) return;
+  const handleDelete = async (id: string, name: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!window.confirm(isKhmer ? `តើអ្នកពិតជាចង់លុបទំនិញ "${name}" មែនទេ?` : `Delete "${name}"?`)) return;
     try {
       await productApi.delete(id);
       setProducts((prev) => prev.filter((p) => p.id !== id));
-      toast.success('Product deleted');
-    } catch { toast.error('Failed to delete'); }
+      toast.success(isKhmer ? 'បានលុបទំនិញជោគជ័យ' : 'Product deleted');
+    } catch {
+      toast.error(isKhmer ? 'បរាជ័យក្នុងការលុប' : 'Failed to delete');
+    }
   };
+
+  // Filtered Products by search & category
+  const filteredProducts = useMemo(() => {
+    let list = products;
+    if (selectedCategory !== 'all') {
+      list = list.filter((p) => p.categoryId === selectedCategory);
+    }
+    return list;
+  }, [products, selectedCategory]);
 
   const totalCount = products.length;
   const activeCount = products.filter((p) => p.isActive).length;
@@ -274,101 +393,115 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('all')}
-          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
             filterMode === 'all'
-              ? 'bg-primary-50/80 dark:bg-primary-950/40 border-primary-500/40 shadow-sm ring-1 ring-primary-500/20'
-              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+              ? 'bg-primary-50/90 dark:bg-primary-950/40 border-primary-500/50 shadow-md ring-2 ring-primary-500/20'
+              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
           }`}
         >
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            {isKhmer ? 'ទំនិញសរុប' : 'Total Catalog'}
-          </span>
-          <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalCount}</span>
-            <span className="text-xs text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {isKhmer ? 'ទំនិញសរុប' : 'Total Catalog'}
+            </span>
+            <Package className="w-4 h-4 text-slate-400 group-hover:text-primary-500 transition-colors" />
+          </div>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{totalCount}</span>
+            <span className="text-xs font-semibold text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => setFilterMode('active')}
-          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
             filterMode === 'active'
-              ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/20'
-              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+              ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500/50 shadow-md ring-2 ring-emerald-500/20'
+              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-emerald-300 shadow-xs'
           }`}
         >
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            {isKhmer ? 'កំពុងលក់ (Active)' : 'Active Selling'}
-          </span>
-          <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{activeCount}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              {isKhmer ? 'កំពុងលក់ (Active)' : 'Active Selling'}
+            </span>
             <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          </div>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300 tabular-nums">{activeCount}</span>
+            <span className="text-xs font-semibold text-emerald-600/70">{isKhmer ? 'សកម្ម' : 'live'}</span>
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => setFilterMode('low_stock')}
-          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
             filterMode === 'low_stock'
-              ? 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-500/50 shadow-sm ring-2 ring-amber-500/30'
-              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-amber-300'
+              ? 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-500/50 shadow-md ring-2 ring-amber-500/30'
+              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-amber-300 shadow-xs'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
-            <span>⚠️</span>
-            <span>{isKhmer ? 'សល់ស្តុកតិច (≤5)' : 'Low Stock (≤5)'}</span>
-          </span>
-          <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-amber-700 dark:text-amber-300">{lowStockCount}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock (≤5)'}</span>
+            </span>
             {lowStockCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 animate-pulse">
                 {isKhmer ? 'ប្រញាប់' : 'Urgent'}
               </span>
             )}
+          </div>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-amber-700 dark:text-amber-300 tabular-nums">{lowStockCount}</span>
+            <span className="text-xs font-semibold text-amber-600/70">{isKhmer ? 'មុខ' : 'items'}</span>
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => setFilterMode('out_of_stock')}
-          className={`flex flex-col p-4 rounded-2xl border transition-all text-left ${
+          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
             filterMode === 'out_of_stock'
-              ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-500/50 shadow-sm ring-2 ring-rose-500/30'
-              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-rose-300'
+              ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-500/50 shadow-md ring-2 ring-rose-500/30'
+              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-rose-300 shadow-xs'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
-            <span>🔴</span>
-            <span>{isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}</span>
-          </span>
-          <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-rose-700 dark:text-rose-300">{outOfStockCount}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+              <span>🔴</span>
+              <span>{isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}</span>
+            </span>
             {outOfStockCount > 0 && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
                 {isKhmer ? 'ដាច់ស្តុក' : 'Restock'}
               </span>
             )}
           </div>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-rose-700 dark:text-rose-300 tabular-nums">{outOfStockCount}</span>
+            <span className="text-xs font-semibold text-rose-600/70">{isKhmer ? 'មុខ' : 'items'}</span>
+          </div>
         </button>
 
         <button
           type="button"
           onClick={() => setFilterMode('featured')}
-          className={`flex flex-col p-4 rounded-2xl border transition-all text-left col-span-2 sm:col-span-1 ${
+          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left col-span-2 sm:col-span-1 relative overflow-hidden ${
             filterMode === 'featured'
-              ? 'bg-purple-50/80 dark:bg-purple-950/40 border-purple-500/40 shadow-sm ring-1 ring-purple-500/20'
-              : 'bg-white/80 dark:bg-surface-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+              ? 'bg-purple-50/90 dark:bg-purple-950/40 border-purple-500/50 shadow-md ring-2 ring-purple-500/20'
+              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-purple-300 shadow-xs'
           }`}
         >
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
-            <span>⭐</span>
-            <span>{isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}</span>
-          </span>
-          <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-purple-700 dark:text-purple-300">{featuredCount}</span>
-            <span className="text-xs text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>{isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}</span>
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-black text-purple-700 dark:text-purple-300 tabular-nums">{featuredCount}</span>
+            <span className="text-xs font-semibold text-purple-600/70">{isKhmer ? 'លើ Home' : 'on home'}</span>
           </div>
         </button>
       </div>
@@ -397,8 +530,23 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Category Filter + Add Product Button */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {categories.length > 0 && (
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="input h-11 text-xs sm:text-sm font-semibold rounded-2xl bg-slate-50 dark:bg-surface-800/80 border-slate-200 dark:border-slate-700 min-w-[150px]"
+              >
+                <option value="all">{isKhmer ? 'គ្រប់ប្រភេទ (Categories)' : 'All Categories'}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.parent ? `${c.parent.name} › ${c.name}` : c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <button
               type="button"
               onClick={openCreate}
@@ -424,58 +572,532 @@ export default function AdminProductsPage() {
                   : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
               }`}
             >
-              {mode === 'all' ? (isKhmer ? `ទាំងអស់ (${totalCount})` : `All (${totalCount})`) :
-               mode === 'featured' ? `⭐ Featured (${featuredCount})` :
-               mode === 'low_stock' ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'} (${lowStockCount})` :
-               mode === 'out_of_stock' ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'} (${outOfStockCount})` :
-               mode === 'active' ? (isKhmer ? `សកម្ម (${activeCount})` : `Active (${activeCount})`) :
-               (isKhmer ? `អសកម្ម (${totalCount - activeCount})` : `Inactive (${totalCount - activeCount})`)}
+              {mode === 'all'
+                ? isKhmer
+                  ? `ទាំងអស់ (${totalCount})`
+                  : `All (${totalCount})`
+                : mode === 'featured'
+                ? `⭐ Featured (${featuredCount})`
+                : mode === 'low_stock'
+                ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'} (${lowStockCount})`
+                : mode === 'out_of_stock'
+                ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'} (${outOfStockCount})`
+                : mode === 'active'
+                ? isKhmer
+                  ? `សកម្ម (${activeCount})`
+                  : `Active (${activeCount})`
+                : isKhmer
+                ? `អសកម្ម (${totalCount - activeCount})`
+                : `Inactive (${totalCount - activeCount})`}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Product Modal */}
+      {/* Luxury Product Table */}
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
+        {loading ? (
+          <div className="p-12 text-center space-y-4">
+            <div className="w-10 h-10 border-3 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-sm font-semibold text-slate-500 animate-pulse">
+              {isKhmer ? 'កំពុងផ្ទុកបញ្ជីទំនិញ...' : 'Loading products catalog...'}
+            </p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
+              <Package className="w-8 h-8 stroke-1" />
+            </div>
+            <p className="text-base font-bold text-slate-900 dark:text-white">
+              {isKhmer ? 'រកមិនឃើញទំនិញឡើយ' : 'No products found'}
+            </p>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {isKhmer
+                ? 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក ឬចុច "បន្ថែមទំនិញថ្មី" ដើម្បីបង្កើតទំនិញដំបូង'
+                : 'Try adjusting your search or filters, or add a new product to get started.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <th className="py-3.5 px-4 sm:px-6">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="py-3.5 px-4 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
+                  <th className="py-3.5 px-4">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
+                  <th className="py-3.5 px-4">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                  <th className="py-3.5 px-4 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
+                  <th className="py-3.5 px-4 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="py-3.5 px-4 sm:px-6 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
+                {filteredProducts.map((product) => {
+                  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
+                  const isLow = product.stock > 0 && product.stock <= 5;
+                  const isOut = product.stock <= 0;
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
+                    >
+                      {/* Product Name & Thumbnail */}
+                      <td className="py-3 px-4 sm:px-6">
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-md transition-shadow">
+                            {product.thumbnail ? (
+                              <Image
+                                src={product.thumbnail}
+                                alt={product.name}
+                                fill
+                                className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                sizes="48px"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                                <Package className="w-5 h-5" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 max-w-xs sm:max-w-sm">
+                            <p className="font-bold text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                              {product.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {product.brand && (
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                  {product.brand}
+                                </span>
+                              )}
+                              {product.category && (
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate md:hidden">
+                                  • {product.category.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td className="py-3 px-4 hidden md:table-cell">
+                        {product.category ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                            {product.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
+
+                      {/* Price */}
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                            {formatPrice(product.price, language)}
+                          </span>
+                          {hasDiscount && (
+                            <span className="text-[11px] text-slate-400 line-through tabular-nums">
+                              {formatPrice(product.comparePrice || 0, language)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Stock & Quick Restock Button */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold tabular-nums border ${
+                              isOut
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                                : isLow
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isOut ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
+                              }`}
+                            />
+                            <span>{product.stock}</span>
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={(e) => openRestock(product, e)}
+                            className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 text-slate-600 hover:text-primary-600 dark:text-slate-300 dark:hover:text-primary-300 border border-slate-200 dark:border-slate-700 transition"
+                            title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
+                          >
+                            + {isKhmer ? 'ស្តុក' : 'Stock'}
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Featured (1-Click Interactive Star Toggle) */}
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleFeatured(product, e)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                            product.isFeatured
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-xs hover:bg-amber-100'
+                              : 'bg-slate-100/60 dark:bg-surface-800/60 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-transparent hover:border-amber-200'
+                          }`}
+                          title={
+                            product.isFeatured
+                              ? (isKhmer ? 'ចុចដើម្បីបិទ Featured' : 'Click to remove from Featured')
+                              : (isKhmer ? 'ចុចដើម្បីបើក Featured លើ Homepage' : 'Click to make Featured on Homepage')
+                          }
+                        >
+                          <Star
+                            className={`w-3.5 h-3.5 transition-transform ${
+                              product.isFeatured ? 'text-amber-500 fill-amber-500 scale-110' : 'text-slate-400'
+                            }`}
+                          />
+                          <span>{product.isFeatured ? (isKhmer ? 'Featured' : 'Featured') : isKhmer ? 'ធម្មតា' : 'Normal'}</span>
+                        </button>
+                      </td>
+
+                      {/* Status (1-Click Interactive Active Toggle) */}
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleActive(product, e)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                            product.isActive
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-xs'
+                              : 'bg-slate-100 dark:bg-surface-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                          }`}
+                          title={
+                            product.isActive
+                              ? (isKhmer ? 'ចុចដើម្បីបិទលក់ (Draft)' : 'Click to set Inactive')
+                              : (isKhmer ? 'ចុចដើម្បីបើកលក់ (Active)' : 'Click to set Active')
+                          }
+                        >
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              product.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                            }`}
+                          />
+                          <span>{product.isActive ? (isKhmer ? 'សកម្ម' : 'Active') : isKhmer ? 'អសកម្ម' : 'Draft'}</span>
+                        </button>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 sm:px-6 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/products/${product.slug}`}
+                            target="_blank"
+                            className="p-2 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
+                            title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={(e) => openEdit(product, e)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
+                            title={isKhmer ? 'កែប្រែ' : 'Edit'}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(product.id, product.name, e)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            title={isKhmer ? 'លុប' : 'Delete'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Hyper-Luxury Quick Restock Modal */}
+      <AnimatePresence>
+        {restockingProduct && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200/90 dark:border-slate-800"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-50 to-indigo-50/40 dark:from-surface-850 dark:to-surface-850">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200 dark:border-slate-700">
+                    {restockingProduct.thumbnail ? (
+                      <Image
+                        src={restockingProduct.thumbnail}
+                        alt={restockingProduct.name}
+                        fill
+                        className="object-cover"
+                        sizes="44px"
+                      />
+                    ) : (
+                      <Package className="w-5 h-5 text-slate-400 m-auto mt-3" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {isKhmer ? 'គ្រប់គ្រង & បំពេញស្តុក' : 'Manage Stock Inventory'}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {restockingProduct.name}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRestockingProduct(null)}
+                  className="w-8 h-8 rounded-full bg-white dark:bg-surface-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center shadow-xs"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <form onSubmit={handleQuickRestockSubmit} className="p-5 space-y-5">
+                {/* Counter Stepper Block */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-slate-800 text-center space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <span>{isKhmer ? 'ស្តុកបច្ចុប្បន្ន៖' : 'Current Stock:'} <strong className="text-slate-900 dark:text-white">{restockingProduct.stock}</strong></span>
+                    {restockAmount !== restockingProduct.stock && (
+                      <span
+                        className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
+                          restockAmount > restockingProduct.stock
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                        }`}
+                      >
+                        {restockAmount > restockingProduct.stock ? `+${restockAmount - restockingProduct.stock}` : `${restockAmount - restockingProduct.stock}`} ({isKhmer ? 'ផ្លាស់ប្តូរ' : 'diff'})
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stepper Controls */}
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => Math.max(0, prev - 10))}
+                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs"
+                      title="-10"
+                    >
+                      -10
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => Math.max(0, prev - 1))}
+                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
+                      title="-1"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+
+                    <input
+                      type="number"
+                      min={0}
+                      value={restockAmount}
+                      onChange={(e) => setRestockAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                      className="w-24 h-12 text-center text-2xl font-black rounded-xl bg-white dark:bg-surface-900 border-2 border-primary-500 text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-xs"
+                      required
+                      autoFocus
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => prev + 1)}
+                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
+                      title="+1"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => prev + 10)}
+                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs"
+                      title="+10"
+                    >
+                      +10
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Add Presets */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    {isKhmer ? 'ជ្រើសរើសបន្ថែមរហ័ស (Quick Add)' : 'Quick Add Presets'}:
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[5, 10, 25, 50].map((qty) => (
+                      <button
+                        key={qty}
+                        type="button"
+                        onClick={() => setRestockAmount((prev) => prev + qty)}
+                        className="py-2 px-2 bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 text-slate-700 hover:text-primary-600 dark:text-slate-200 rounded-xl text-xs font-bold font-mono transition border border-slate-200/80 dark:border-slate-700 hover:border-primary-400 shadow-xs active:scale-95"
+                      >
+                        +{qty}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => prev + 100)}
+                      className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold font-mono transition border border-slate-200/80 dark:border-slate-700"
+                    >
+                      +100 គ្រឿង
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRestockAmount(0)}
+                      className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 rounded-xl text-xs font-bold transition border border-rose-200 dark:border-rose-900/60"
+                    >
+                      {isKhmer ? 'កំណត់ ០ (អស់ស្តុក)' : 'Set 0 (Out)'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRestockingProduct(null)}
+                    className="btn-secondary flex-1 text-xs sm:text-sm font-semibold h-11 rounded-2xl"
+                  >
+                    {isKhmer ? 'បោះបង់' : 'Cancel'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isRestocking}
+                    className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition active:scale-98 flex items-center justify-center gap-2"
+                  >
+                    {isRestocking ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{isKhmer ? 'កំពុងរក្សាទុក...' : 'Updating...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>{isKhmer ? 'រក្សាទុកស្តុកថ្មី' : 'Save Stock'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Product Edit / Create Full Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto border border-slate-200/70 dark:border-gray-700/70"
+            className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto border border-slate-200/80 dark:border-slate-800"
           >
             <div className="p-6">
-              <h2 className={`text-gray-900 dark:text-white mb-5 ${isKhmer ? 'text-[24px] font-bold' : 'text-xl font-extrabold tracking-tight'}`}>
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-              </h2>
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-5">
+                <h2 className={`text-gray-900 dark:text-white ${isKhmer ? 'text-xl font-bold' : 'text-xl font-extrabold tracking-tight'}`}>
+                  {editingProduct ? (isKhmer ? 'កែប្រែទំនិញ' : 'Edit Product') : isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add New Product'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-surface-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               <form onSubmit={handleSave} className="space-y-5">
                 <div className={modalGridCls}>
                   <div className="sm:col-span-2">
                     <label className={modalLabelCls}>Product Name *</label>
-                    <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required className={modalInputCls} placeholder="iPhone 16 Pro Max" />
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      required
+                      className={modalInputCls}
+                      placeholder="e.g. iPhone 16 Pro Max 256GB"
+                    />
                   </div>
                   <div className="sm:col-span-2">
                     <label className={modalLabelCls}>Short Description</label>
-                    <input value={form.shortDesc} onChange={(e) => setForm((p) => ({ ...p, shortDesc: e.target.value }))} className={modalInputCls} placeholder="A18 Pro chip, 48MP Camera" />
+                    <input
+                      value={form.shortDesc}
+                      onChange={(e) => setForm((p) => ({ ...p, shortDesc: e.target.value }))}
+                      className={modalInputCls}
+                      placeholder="e.g. A18 Pro chip, Grade Titanium, 48MP Fusion"
+                    />
                   </div>
                   <div className="sm:col-span-2">
                     <label className={modalLabelCls}>Full Description *</label>
-                    <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} required rows={3} className="input text-sm resize-none min-h-[96px]" />
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                      required
+                      rows={3}
+                      className="input text-sm resize-none min-h-[96px]"
+                    />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Price *</label>
-                    <input type="number" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))} required className={modalInputCls} placeholder="99.99" />
+                    <label className={modalLabelCls}>Price ($) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.price}
+                      onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+                      required
+                      className={modalInputCls}
+                      placeholder="999.00"
+                    />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Compare At Price</label>
-                    <input type="number" value={form.comparePrice} onChange={(e) => setForm((p) => ({ ...p, comparePrice: e.target.value }))} className={modalInputCls} placeholder="129.99" />
+                    <label className={modalLabelCls}>Compare At Price ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.comparePrice}
+                      onChange={(e) => setForm((p) => ({ ...p, comparePrice: e.target.value }))}
+                      className={modalInputCls}
+                      placeholder="1199.00"
+                    />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Stock *</label>
-                    <input type="number" value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} required className={modalInputCls} placeholder="100" />
+                    <label className={modalLabelCls}>Stock Quantity *</label>
+                    <input
+                      type="number"
+                      value={form.stock}
+                      onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))}
+                      required
+                      className={modalInputCls}
+                      placeholder="50"
+                    />
                   </div>
                   <div>
                     <label className={modalLabelCls}>Category *</label>
-                    <select value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))} required className={modalInputCls}>
+                    <select
+                      value={form.categoryId}
+                      onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+                      required
+                      className={modalInputCls}
+                    >
                       <option value="">Select Category</option>
                       {categories.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -486,17 +1108,30 @@ export default function AdminProductsPage() {
                   </div>
                   <div>
                     <label className={modalLabelCls}>Brand</label>
-                    <input value={form.brand} onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))} className={modalInputCls} placeholder="Apple" />
+                    <input
+                      value={form.brand}
+                      onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))}
+                      className={modalInputCls}
+                      placeholder="Apple, Samsung, Sony..."
+                    />
                   </div>
+                  <div>
+                    <label className={modalLabelCls}>Tags (comma separated)</label>
+                    <input
+                      value={form.tags}
+                      onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
+                      className={modalInputCls}
+                      placeholder="phone, 5g, flagship"
+                    />
+                  </div>
+
+                  {/* Thumbnail Image Picker */}
                   <div className="sm:col-span-2">
-                    <label className={modalLabelCls}>Thumbnail</label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      ជ្រើសរើសរូបពីទូរស័ព្ទ ឬកុំព្យូទ័រ — ឬវាយ URL / Choose a photo or paste a link below
-                    </p>
+                    <label className={modalLabelCls}>Thumbnail Image</label>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <label className="btn-secondary text-sm cursor-pointer inline-flex items-center gap-2">
                         {uploadBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        <span>ផ្ទុករូប / Upload</span>
+                        <span>{isKhmer ? 'ផ្ទុករូបពីឧបករណ៍ / Upload' : 'Upload from Device'}</span>
                         <input
                           type="file"
                           className="sr-only"
@@ -515,29 +1150,28 @@ export default function AdminProductsPage() {
                         setForm((p) => ({ ...p, thumbnail: resolveToFullImageUrl(v) }));
                       }}
                       className={modalInputCls}
-                      placeholder="https://... or /uploads/... (បំពេញជា full URL / saved as full URL)"
+                      placeholder="https://... or /uploads/..."
                     />
                     {thumbPreviewUrl ? (
-                      <div className="relative w-full max-h-64 min-h-[120px] mt-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900/40 flex items-center justify-center p-2">
+                      <div className="relative w-full max-h-60 min-h-[120px] mt-3 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-surface-850 flex items-center justify-center p-2">
                         <Image
                           src={thumbPreviewUrl}
                           alt=""
                           width={960}
                           height={540}
-                          className="w-full h-auto max-h-64 object-contain"
+                          className="w-full h-auto max-h-60 object-contain rounded-xl"
                           unoptimized
                         />
                       </div>
                     ) : null}
                   </div>
+
+                  {/* Gallery Multiple Images */}
                   <div className="sm:col-span-2">
-                    <label className={modalLabelCls}>Gallery images</label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      ជ្រើសរើសរូបច្រើនពីឧបករណ៍ — ឬកែ URL ខាងក្រោម / Picker supports multiple photos; URLs still work
-                    </p>
+                    <label className={modalLabelCls}>Gallery Images</label>
                     <label className="btn-secondary text-sm cursor-pointer inline-flex items-center gap-2 mb-2">
                       {uploadBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                      <span>បន្ថែមរូបពពួកគ្នា / Add photos</span>
+                      <span>{isKhmer ? 'បន្ថែមរូបច្រើនសន្លឹក / Add Photos' : 'Add Multiple Photos'}</span>
                       <input
                         type="file"
                         className="sr-only"
@@ -555,142 +1189,76 @@ export default function AdminProductsPage() {
                         const list = normalizeImageListToFullUrls(v);
                         setForm((p) => ({ ...p, imagesStr: list.join(', ') }));
                       }}
-                      className="input text-sm resize-y min-h-[90px]"
-                      placeholder="https://... or /uploads/... (full URL on save / blur)"
+                      className="input text-sm resize-y min-h-[80px]"
+                      placeholder="https://... or /uploads/... (comma separated URLs)"
                     />
                     {galleryPreviewUrls.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {galleryPreviewUrls.map((url, i) => (
                           <div
                             key={`${url}-${i}`}
-                            className="relative w-[88px] h-[88px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 shrink-0"
+                            className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 shrink-0"
                           >
-                            <Image src={url} alt="" fill className="object-cover" unoptimized sizes="88px" />
+                            <Image src={url} alt="" fill className="object-cover" unoptimized sizes="80px" />
                           </div>
                         ))}
                       </div>
                     ) : null}
                   </div>
-                  <div className="sm:col-span-2 border-t dark:border-gray-800 pt-4 mt-2">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className={modalLabelCls}>Product Variants</label>
-                      <button type="button" onClick={() => setForm(p => ({ ...p, variants: [...p.variants, { name: 'Color', value: '', stock: '0', price: '' }] }))} className="btn-secondary text-xs px-2 py-1">
-                        + Add Variant
-                      </button>
-                    </div>
-                    {form.variants.map((v, i) => (
-                      <div key={i} className="grid grid-cols-12 gap-2 items-center mb-3">
-                        <input value={v.name} onChange={e => { const nv = [...form.variants]; nv[i].name = e.target.value; setForm(p => ({ ...p, variants: nv })) }} placeholder="Type (e.g. Color)" className="input text-sm min-h-[42px] col-span-12 sm:col-span-3" />
-                        <input value={v.value} onChange={e => { const nv = [...form.variants]; nv[i].value = e.target.value; setForm(p => ({ ...p, variants: nv })) }} placeholder="Value (e.g. Red)" className="input text-sm min-h-[42px] col-span-12 sm:col-span-3" />
-                        <input type="number" value={v.stock} onChange={e => { const nv = [...form.variants]; nv[i].stock = e.target.value; setForm(p => ({ ...p, variants: nv })) }} placeholder="Stock" className="input text-sm min-h-[42px] col-span-6 sm:col-span-2" />
-                        <input type="number" value={v.price} onChange={e => { const nv = [...form.variants]; nv[i].price = e.target.value; setForm(p => ({ ...p, variants: nv })) }} placeholder="Price offset (Opt.)" className="input text-sm min-h-[42px] col-span-6 sm:col-span-3" />
-                        <button type="button" onClick={() => setForm(p => ({ ...p, variants: p.variants.filter((_, index) => index !== i) }))} className="text-red-500 hover:text-red-700 col-span-12 sm:col-span-1 sm:justify-self-end">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className={modalLabelCls}>Tags (comma separated)</label>
-                    <input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} className={modalInputCls} placeholder="apple, iphone, smartphone" />
-                  </div>
-                  <div className="flex flex-wrap items-center gap-6 sm:col-span-2 pt-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm((p) => ({ ...p, isFeatured: e.target.checked }))} className="w-4 h-4 rounded" />
-                      <span className="text-sm font-medium dark:text-gray-300">Featured (home &amp; “featured” listings)</span>
+
+                  {/* Settings Checkboxes */}
+                  <div className="sm:col-span-2 flex flex-wrap gap-6 pt-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.isFeatured}
+                        onChange={(e) => setForm((p) => ({ ...p, isFeatured: e.target.checked }))}
+                        className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        Featured (បង្ហាញលើទំព័រដើម / Home Listings)
+                      </span>
                     </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} className="w-4 h-4 rounded" />
-                      <span className="text-sm font-medium dark:text-gray-300">Active (visible in store)</span>
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.isActive}
+                        onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+                        className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Active (បើកលក់នៅលើ Website)
+                      </span>
                     </label>
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1 min-h-[44px]">{isKhmer ? 'បោះបង់' : 'Cancel'}</button>
-                  <button type="submit" disabled={saving || uploadBusy} className="btn-primary flex-1 min-h-[44px]">
-                    {saving ? 'Saving...' : editingProduct ? 'Update Product' : 'Create Product'}
+                <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="btn-secondary flex-1 min-h-[44px] rounded-2xl"
+                  >
+                    {isKhmer ? 'បោះបង់' : 'Cancel'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || uploadBusy}
+                    className="btn-primary flex-1 min-h-[44px] rounded-2xl flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>{editingProduct ? 'Update Product' : 'Create Product'}</span>
+                    )}
                   </button>
                 </div>
               </form>
             </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Quick Restock Modal */}
-      {restockingProduct && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-surface-750"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-surface-800 mb-4">
-              <div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                  {isKhmer ? 'គ្រប់គ្រង & បំពេញស្តុកទំនិញ' : 'Manage & Restock Product'}
-                </h3>
-                <p className="text-xs text-gray-500 line-clamp-1">{restockingProduct.name}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRestockingProduct(null)}
-                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-surface-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleQuickRestockSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">
-                  {isKhmer ? 'ចំនួនស្តុកសរុបថ្មី' : 'New Total Stock'}:
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={restockAmount}
-                  onChange={(e) => setRestockAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input text-lg font-mono font-bold text-center w-full"
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <p className="text-xs text-gray-400 mb-2">{isKhmer ? 'ប៊ូតុងបន្ថែមលឿន (Quick Add)' : 'Quick Add'}:</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {[10, 25, 50, 100].map((qty) => (
-                    <button
-                      key={qty}
-                      type="button"
-                      onClick={() => setRestockAmount((prev) => prev + qty)}
-                      className="py-1.5 px-2 bg-gray-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 hover:text-primary-600 rounded-xl text-xs font-bold font-mono transition border border-transparent hover:border-primary-300"
-                    >
-                      +{qty}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setRestockingProduct(null)}
-                  className="btn-secondary flex-1 text-xs"
-                >
-                  {isKhmer ? 'បោះបង់' : 'Cancel'}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isRestocking}
-                  className="btn-primary flex-1 text-xs"
-                >
-                  {isRestocking ? (isKhmer ? 'កំពុងរក្សាទុក...' : 'Updating...') : (isKhmer ? 'រក្សាទុកស្តុក' : 'Save Stock')}
-                </button>
-              </div>
-            </form>
           </motion.div>
         </div>
       )}
