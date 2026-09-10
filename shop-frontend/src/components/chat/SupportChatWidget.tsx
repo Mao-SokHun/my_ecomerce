@@ -520,32 +520,32 @@ export default function SupportChatWidget() {
 
               {/* In-Timeline FAQ Suggestions (Clean Card Buttons) */}
               {!inquiryId && !showDetailsForm && (
-                <div className="pt-2 space-y-2">
-                  <p className="text-[11px] font-semibold text-gray-400 px-1">
+                <div className="pt-2 space-y-2.5 shrink-0">
+                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-1">
                     {language === 'km' ? 'សំណួរដែលសួរញឹកញាប់ ៖' : language === 'zh' ? '常见问题：' : 'Frequently Asked Questions:'}
                   </p>
-                  <div className="grid grid-cols-1 gap-1.5">
+                  <div className="flex flex-col gap-2">
                     {faqList.map((faq) => (
                       <button
                         key={faq.key}
                         type="button"
                         onClick={() => handleFAQClick(faq)}
-                        className="w-full text-left text-xs px-3.5 py-2.5 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-700 dark:text-gray-200 hover:text-primary-600 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-xs transition-all flex items-center justify-between group font-medium"
+                        className="w-full min-h-[44px] text-left text-xs px-4 py-3 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-800 dark:text-gray-100 hover:text-primary-600 rounded-2xl border border-gray-200/80 dark:border-surface-700 shadow-sm transition-all duration-200 flex items-center justify-between group font-medium shrink-0"
                       >
-                        <span className="truncate pr-2">{faq.question[language] || faq.question['en']}</span>
-                        <span className="text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shrink-0">➔</span>
+                        <span className="truncate pr-2 font-semibold">{faq.question[language] || faq.question['en']}</span>
+                        <span className="text-primary-500 opacity-60 group-hover:opacity-100 transition-opacity text-sm font-bold shrink-0">➔</span>
                       </button>
                     ))}
                     <button
                       type="button"
                       onClick={handleContactAdmin}
-                      className="w-full text-left text-xs px-3.5 py-2.5 bg-gradient-to-r from-primary-500/10 via-indigo-500/10 to-violet-500/10 hover:from-primary-500/20 hover:to-violet-500/20 text-primary-700 dark:text-primary-300 rounded-2xl border border-primary-200/80 dark:border-primary-800/80 transition-all font-bold flex items-center justify-between shadow-xs mt-1"
+                      className="w-full min-h-[46px] text-left text-xs px-4 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white rounded-2xl shadow-md shadow-primary-500/20 transition-all duration-200 font-bold flex items-center justify-between shrink-0 mt-1"
                     >
-                      <span className="flex items-center gap-1.5">
-                        <MessageCircle className="w-3.5 h-3.5 text-primary-600" />
+                      <span className="flex items-center gap-2">
+                        <MessageCircle className="w-4 h-4 text-white" />
                         <span>{label.talkToHuman}</span>
                       </span>
-                      <Send className="w-3.5 h-3.5 text-primary-600 shrink-0" />
+                      <Send className="w-4 h-4 text-white shrink-0" />
                     </button>
                   </div>
                 </div>
