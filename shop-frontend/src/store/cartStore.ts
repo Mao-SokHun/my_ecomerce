@@ -154,46 +154,50 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   updateItem: async (itemId, quantity) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      const base = get().cart || loadGuestCart();
-      const next = {
-        ...base,
-        items: base.items.map((item) => (item.id === itemId ? { ...item, quantity } : item)),
+    const previousCart = get().cart;
+    if (previousCart) {
+      const optimisticCart = {
+        ...previousCart,
+        items: previousCart.items.map((item) => (item.id === itemId ? { ...item, quantity } : item)),
       };
-      const normalized = normalizeGuestCart(next);
-      saveGuestCart(normalized);
+      const normalized = normalizeGuestCart(optimisticCart);
       set({ cart: normalized });
-      return;
+      saveGuestCart(normalized);
     }
 
-    set({ isLoading: true });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       const { data } = await cartApi.update(itemId, quantity);
       set({ cart: data.data, isLoading: false });
     } catch (error) {
-      set({ isLoading: false });
+      // Rollback on error
+      if (previousCart) set({ cart: previousCart });
       throw error;
     }
   },
 
   removeItem: async (itemId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      const base = get().cart || loadGuestCart();
-      const next = { ...base, items: base.items.filter((item) => item.id !== itemId) };
-      const normalized = normalizeGuestCart(next);
-      saveGuestCart(normalized);
+    const previousCart = get().cart;
+    if (previousCart) {
+      const optimisticCart = {
+        ...previousCart,
+        items: previousCart.items.filter((item) => item.id !== itemId),
+      };
+      const normalized = normalizeGuestCart(optimisticCart);
       set({ cart: normalized });
-      return;
+      saveGuestCart(normalized);
     }
 
-    set({ isLoading: true });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+
     try {
       const { data } = await cartApi.remove(itemId);
       set({ cart: data.data, isLoading: false });
     } catch (error) {
-      set({ isLoading: false });
+      if (previousCart) set({ cart: previousCart });
       throw error;
     }
   },

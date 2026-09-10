@@ -125,20 +125,9 @@ const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
     storeLabel: 'ShopHub',
   });
 
-  // 3. Generate instant base64 Data URLs
-  const qrUrlUsd = await QRCode.toDataURL(qrPayloadUsd, {
-    width: 360,
-    margin: 2,
-    errorCorrectionLevel: 'M',
-    color: { dark: '#000000', light: '#ffffff' },
-  });
-
-  const qrUrlKhr = await QRCode.toDataURL(qrPayloadKhr, {
-    width: 360,
-    margin: 2,
-    errorCorrectionLevel: 'M',
-    color: { dark: '#000000', light: '#ffffff' },
-  });
+  // 3. Use Official Verified ABA Merchant QR images
+  const qrUrlUsd = '/payments/aba_pay_khqr.png';
+  const qrUrlKhr = '/payments/aba_qr_khr.png';
 
   return {
     reference,

@@ -44,14 +44,14 @@ export function TrustBadges() {
           return (
             <div
               key={`${card.iconKey}-${i}`}
-              className="flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 bg-white dark:bg-surface-900 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm"
+              className="flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 liquid-glass rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-all duration-300"
             >
-              <div className="w-9 h-9 sm:w-11 sm:h-11 bg-primary-50 dark:bg-primary-900/20 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" aria-hidden />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-tr from-primary-500/15 to-indigo-500/25 dark:from-primary-600/30 dark:to-indigo-600/30 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 border border-primary-500/20">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600 dark:text-primary-400" aria-hidden />
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight">{title}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 leading-tight mt-0.5">{desc}</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{desc}</p>
               </div>
             </div>
           );

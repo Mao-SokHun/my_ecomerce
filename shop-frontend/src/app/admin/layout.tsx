@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
+  Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -39,12 +40,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null }>({
+  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null }>({
     orders: null,
     users: null,
     leads: null,
+    lowStock: null,
   });
   const [badgeFlash, setBadgeFlash] = useState<{ orders: boolean; users: boolean; leads: boolean }>({
     orders: false,
@@ -94,6 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           orders: Number(counts.orders || 0),
           users: Number(counts.users || 0),
           leads: Number(counts.leads || 0),
+          lowStock: Number(counts.lowStock || 0),
         });
         const nextOrders = Number(counts.orders || 0);
         const nextUsers = Number(counts.users || 0);
@@ -152,6 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           orders: Number(counts.orders || 0),
           users: Number(counts.users || 0),
           leads: Number(counts.leads || 0),
+          lowStock: Number(counts.lowStock || 0),
         });
       } catch {
         // keep last known counts
@@ -444,7 +449,123 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {headerHint}
             </p>
           </div>
-          <div className="hidden md:flex items-center gap-2 p-1 rounded-2xl bg-slate-50/80 dark:bg-surface-800/70 border border-slate-200/70 dark:border-gray-700/70">
+          <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-50/80 dark:bg-surface-800/70 border border-slate-200/70 dark:border-gray-700/70">
+            {/* Notification Bell with Dynamic Low Stock & Orders Badge */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotifOpen((v) => !v)}
+                className={`relative p-2 rounded-xl transition ${
+                  (liveCounts.lowStock ?? 0) > 0
+                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300'
+                    : (liveCounts.orders ?? 0) > 0
+                    ? 'bg-primary-50 hover:bg-primary-100 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-surface-700'
+                }`}
+                title={isKhmer ? 'ការជូនដំណឹង & ការព្រមានស្តុក' : 'Notifications & Stock Alerts'}
+              >
+                <Bell className="w-4 h-4" />
+                {((liveCounts.lowStock ?? 0) > 0 || (liveCounts.orders ?? 0) > 0) && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-surface-900 animate-pulse">
+                    {(liveCounts.lowStock ?? 0) + (liveCounts.orders ?? 0)}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Dropdown */}
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-surface-900 shadow-2xl overflow-hidden z-40">
+                  <div className="p-3.5 bg-gradient-to-r from-slate-50 to-indigo-50/50 dark:from-surface-850 dark:to-surface-850 border-b border-slate-100 dark:border-gray-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                        {isKhmer ? 'មជ្ឈមណ្ឌលជូនដំណឹង (Alerts)' : 'Notifications & Alerts'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="p-3 space-y-2.5 max-h-80 overflow-y-auto">
+                    {/* Stock Alert Item */}
+                    {(liveCounts.lowStock ?? 0) > 0 ? (
+                      <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60">
+                        <div className="flex items-start gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                              {isKhmer
+                                ? `⚠️ ការព្រមាន: មាន ${liveCounts.lowStock} មុខទំនិញសល់ស្តុកតិច (≤5) ឬអស់ស្តុក!`
+                                : `⚠️ Alert: ${liveCounts.lowStock} products have low stock (≤5) or are out of stock!`}
+                            </p>
+                            <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                              {isKhmer ? 'សូមពិនិត្យ និងបំពេញស្តុកទំនិញឡើងវិញ' : 'Please check and restock these products'}
+                            </p>
+                            <Link
+                              href="/admin/products?filter=low_stock"
+                              onClick={() => setNotifOpen(false)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline mt-2"
+                            >
+                              <span>{isKhmer ? 'គ្រប់គ្រងស្តុកទំនិញ' : 'Manage & Restock Products'}</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span>{isKhmer ? 'ស្តុកទំនិញទាំងអស់មានគ្រប់គ្រាន់' : 'All product stock is healthy'}</span>
+                      </div>
+                    )}
+
+                    {/* Orders Alert Item */}
+                    {(liveCounts.orders ?? 0) > 0 ? (
+                      <div className="p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60">
+                        <div className="flex items-start gap-2.5">
+                          <ShoppingCart className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                              {isKhmer
+                                ? `🛒 មាន ${liveCounts.orders} ការបញ្ជាទិញថ្មីមិនទាន់ពិនិត្យ`
+                                : `🛒 You have ${liveCounts.orders} new unread orders`}
+                            </p>
+                            <Link
+                              href="/admin/orders"
+                              onClick={() => setNotifOpen(false)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:underline mt-1.5"
+                            >
+                              <span>{isKhmer ? 'ពិនិត្យមើល Orders' : 'View Orders'}</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Support Inbox Link */}
+                    <Link
+                      href="/admin/support-inbox"
+                      onClick={() => setNotifOpen(false)}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-xs text-gray-700 dark:text-gray-300 transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-primary-500" />
+                        <span>{isKhmer ? 'ប្រអប់សារ Live Chat គាំទ្រ' : 'Live Support Inbox'}</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Language Selector */}
             <div className="relative">
               <button
                 type="button"
@@ -484,6 +605,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               )}
             </div>
+
+            {/* Dark/Light Mode */}
             <div className="flex items-center bg-white dark:bg-surface-800 border border-slate-200 dark:border-gray-700 rounded-xl p-0.5">
               <button
                 type="button"

@@ -6,8 +6,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Star, ShoppingCart, Heart, Truck, ShieldCheck, RefreshCw,
-  Minus, Plus, Share2, ChevronRight, CheckCircle,
+  Minus, Plus, Share2, ChevronRight, CheckCircle, Copy, Check, X, Send as TelegramIcon, Facebook,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Product, Review } from '@/types';
 import { ProductCard } from '@/components/products/ProductCard';
 import { productApi, reviewApi, userApi } from '@/lib/api';
@@ -28,6 +29,8 @@ export default function ProductDetailPage() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'reviews'>('description');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
@@ -35,27 +38,38 @@ export default function ProductDetailPage() {
   const { addItem, isLoading: cartLoading } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const { language } = useLanguageStore();
+  const isKhmer = language === 'km';
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productRes, relatedRes] = await Promise.all([
-          productApi.getBySlug(slug, language),
-          productApi.getRelated(slug, language),
-        ]);
-        setProduct(productRes.data.data);
-        setRelated(relatedRes.data.data || []);
-
-        const reviewsRes = await reviewApi.getByProduct(productRes.data.data.id);
-        setReviews(reviewsRes.data.data || []);
-      } catch {
-        toast.error(t(language, 'productNotFound'));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [slug, language]);
+    setLoading(true);
+    productApi.getBySlug(slug)
+      .then(async ({ data }) => {
+        const prod = data.data;
+        setProduct(prod);
+        if (prod?.category?.id) {
+          productApi.getAll({ category: prod.category.id, limit: 6 })
+            .then(({ data: relData }) => {
+              setRelated(relData.data?.filter((p: Product) => p.id !== prod.id).slice(0, 6) || []);
+            }).catch(() => {});
+        }
+        if (prod?.id) {
+          reviewApi.getByProduct(prod.id)
+            .then(({ data: revData }) => setReviews(revData.data || []))
+            .catch(() => {});
+        }
+        if (isAuthenticated && prod?.id) {
+          userApi.getWishlist()
+            .then(({ data: wData }) => {
+              const inList = wData.data?.some((item: { product?: { id: string }; productId?: string }) =>
+                (item.product?.id || item.productId) === prod.id
+              );
+              setIsWishlisted(Boolean(inList));
+            }).catch(() => {});
+        }
+      })
+      .catch(() => setProduct(null))
+      .finally(() => setLoading(false));
+  }, [slug, isAuthenticated]);
 
   const variantGroups = product?.variants?.reduce((acc, v) => {
     if (!acc[v.name]) acc[v.name] = [];
@@ -65,44 +79,67 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
-    // Validate variant selection
-    const requiredVariantGroups = Object.keys(variantGroups);
-    for (const group of requiredVariantGroups) {
-      if (!selectedVariants[group]) {
-        toast.error(`Please select ${group}`);
-        return;
-      }
-    }
-
-    const selectedVariantObjects = product.variants?.filter(v => selectedVariants[v.name] === v.value) || [];
-    const variantId = selectedVariantObjects.length > 0 ? selectedVariantObjects[0].id : undefined;
-
     try {
-      await addItem(product.id, quantity, variantId, {
+      const chosenVariant = product.variants?.find(
+        v => Object.entries(selectedVariants).every(([name, val]) => v.name === name && v.value === val)
+      );
+      await addItem(product.id, quantity, chosenVariant?.id, {
         id: product.id,
         name: product.name,
         slug: product.slug,
-        price: product.price,
+        price: calculatedPrice,
         comparePrice: product.comparePrice,
         thumbnail: product.thumbnail,
         stock: product.stock,
         isActive: product.isActive,
       });
-      toast.success('Added to cart!');
+      toast.success(isKhmer ? 'បានបន្ថែមទៅកន្ត្រកជោគជ័យ!' : 'Added to cart!');
     } catch (error: unknown) {
       toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to add');
     }
   };
 
   const handleWishlist = async () => {
-    if (!isAuthenticated) { toast.error('Please sign in first'); return; }
+    if (!isAuthenticated) { toast.error(isKhmer ? 'សូមចូលគណនីជាមុនសិន' : 'Please sign in first'); return; }
     try {
       const { data } = await userApi.toggleWishlist(product!.id);
       const inWishlist = Boolean(data?.inWishlist);
       setIsWishlisted(inWishlist);
-      toast.success(inWishlist ? 'Added to wishlist' : 'Removed from wishlist');
+      toast.success(inWishlist ? (isKhmer ? 'Added to wishlist' : 'Added to wishlist') : (isKhmer ? 'Removed from wishlist' : 'Removed from wishlist'));
     } catch { toast.error('Failed to update wishlist'); }
+  };
+
+  const handleShare = async () => {
+    if (!product) return;
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const shareData = {
+      title: product.name,
+      text: `${product.name} - ${formatPrice(calculatedPrice)} on SH-Shop`,
+      url,
+    };
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // Fallback to modal if dismissed or error
+      }
+    }
+
+    setShowShareModal(true);
+  };
+
+  const handleCopyLink = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      toast.success(isKhmer ? '🔗 បានចម្លងតំណភ្ជាប់ទំនិញជោគជ័យ!' : '🔗 Product link copied to clipboard!');
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      toast.error('Failed to copy link');
+    }
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -334,7 +371,12 @@ export default function ProductDetailPage() {
             >
               <Heart className="w-5 h-5" fill={isWishlisted ? 'currentColor' : 'none'} />
             </button>
-            <button className="w-12 h-12 flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-300 rounded-xl transition-all">
+            <button
+              onClick={handleShare}
+              type="button"
+              aria-label="Share product"
+              className="w-12 h-12 flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-primary-600 hover:border-primary-300 dark:hover:border-primary-500 rounded-xl transition-all active:scale-95"
+            >
               <Share2 className="w-5 h-5" />
             </button>
           </div>
@@ -488,7 +530,7 @@ export default function ProductDetailPage() {
 
       {/* Sticky add-to-cart — mobile */}
       <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-surface-950/95 backdrop-blur-md px-3 py-3 safe-bottom">
-        <div className="flex items-center gap-3 max-w-7xl mx-auto">
+        <div className="flex items-center gap-2 max-w-7xl mx-auto">
           <div className="min-w-0 flex-1">
             <p className="text-lg font-black text-gray-900 dark:text-white tabular-nums leading-tight">
               {formatPrice(calculatedPrice)}
@@ -500,7 +542,7 @@ export default function ProductDetailPage() {
           <button
             onClick={handleAddToCart}
             disabled={cartLoading || product.stock === 0}
-            className="btn-primary flex-1 max-w-[12rem] py-3 text-sm shrink-0"
+            className="btn-primary flex-1 max-w-[11rem] py-2.5 text-sm shrink-0"
           >
             <ShoppingCart className="w-4 h-4" />
             {cartLoading ? t(language, 'adding') : t(language, 'addToCart')}
@@ -508,14 +550,22 @@ export default function ProductDetailPage() {
           <button
             onClick={handleWishlist}
             type="button"
-            className={`w-11 h-11 shrink-0 flex items-center justify-center border rounded-xl ${
+            className={`w-10 h-10 shrink-0 flex items-center justify-center border rounded-xl ${
               isWishlisted
                 ? 'border-red-500 bg-red-50 text-red-500'
                 : 'border-gray-200 dark:border-gray-700 text-gray-500'
             }`}
             aria-label={t(language, 'wishlist')}
           >
-            <Heart className="w-5 h-5" fill={isWishlisted ? 'currentColor' : 'none'} />
+            <Heart className="w-4.5 h-4.5" fill={isWishlisted ? 'currentColor' : 'none'} />
+          </button>
+          <button
+            onClick={handleShare}
+            type="button"
+            className="w-10 h-10 shrink-0 flex items-center justify-center border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-primary-600 rounded-xl"
+            aria-label="Share"
+          >
+            <Share2 className="w-4.5 h-4.5" />
           </button>
         </div>
       </div>
@@ -531,6 +581,102 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Share Modal Dialog */}
+      <AnimatePresence>
+        {showShareModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowShareModal(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              className="relative z-10 w-full max-w-sm rounded-3xl bg-white dark:bg-surface-900 p-6 shadow-2xl border border-slate-100 dark:border-surface-800"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-surface-800 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-primary-50 dark:bg-primary-950/40 text-primary-600 flex items-center justify-center">
+                    <Share2 className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {isKhmer ? 'ចែករំលែកទំនិញ' : 'Share Product'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowShareModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 text-slate-500 flex items-center justify-center transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {/* 1-Click Social Shares */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <a
+                    href={`https://t.me/share/url?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`${product.name} - ${formatPrice(calculatedPrice)} on SH-Shop`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#0088cc] hover:bg-[#0077b5] text-white text-xs font-bold transition shadow-sm"
+                  >
+                    <TelegramIcon className="w-4 h-4" />
+                    <span>Telegram</span>
+                  </a>
+
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#1877f2] hover:bg-[#166fe5] text-white text-xs font-bold transition shadow-sm"
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span>Facebook</span>
+                  </a>
+                </div>
+
+                {/* Copy Link Input */}
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                    {isKhmer ? 'តំណភ្ជាប់ទំនិញ' : 'Product URL'}
+                  </p>
+                  <div className="flex items-center gap-2 p-1.5 bg-slate-50 dark:bg-surface-800 rounded-2xl border border-slate-200 dark:border-surface-700">
+                    <input
+                      type="text"
+                      readOnly
+                      value={typeof window !== 'undefined' ? window.location.href : ''}
+                      className="flex-1 bg-transparent px-2.5 text-xs text-slate-700 dark:text-slate-300 truncate focus:outline-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="py-2 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-300" />
+                          <span>{isKhmer ? 'បានចម្លង!' : 'Copied!'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{isKhmer ? 'ចម្លង Link' : 'Copy Link'}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

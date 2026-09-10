@@ -78,7 +78,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     return (
       <Link
         href={`/products/${product.slug}`}
-        className="group flex gap-3 p-3 bg-white dark:bg-surface-850 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-2xl border border-gray-100 dark:border-gray-800 transition-all duration-200 shadow-sm hover:shadow-md"
+        className="group flex gap-3 p-3 bg-white dark:bg-surface-900 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-750 transition-all duration-200 shadow-sm hover:shadow-md"
       >
         <div className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-surface-800">
           {product.thumbnail && (
@@ -90,7 +90,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-sm font-bold text-primary-600 dark:text-primary-400">{formatPrice(product.price, language)}</span>
             {product.comparePrice && product.comparePrice > product.price && (
-              <span className="text-xs text-gray-400 line-through">{formatPrice(product.comparePrice, language)}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 line-through">{formatPrice(product.comparePrice, language)}</span>
             )}
           </div>
         </div>
@@ -102,11 +102,11 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     <motion.div
       whileHover={{ y: -5 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="group relative flex flex-col justify-between h-full bg-white dark:bg-surface-850 rounded-2xl sm:rounded-3xl border border-gray-100/90 dark:border-surface-700/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_32px_rgba(0,0,0,0.09)] dark:hover:shadow-[0_16px_32px_rgba(0,0,0,0.35)] hover:border-primary-500/30 dark:hover:border-primary-500/40 transition-all duration-300 overflow-hidden cursor-pointer"
+      className="group relative flex flex-col justify-between h-full bg-white dark:bg-surface-900 rounded-2xl sm:rounded-3xl border border-gray-200/90 dark:border-surface-750 shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/50 hover:border-primary-500/40 dark:hover:border-primary-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/60 dark:from-surface-800 dark:to-surface-900">
+      <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/70 dark:from-surface-800 dark:to-surface-850">
         {product.thumbnail ? (
           <Image
             src={product.thumbnail}
@@ -126,6 +126,16 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
         {/* Badges (Top Left) */}
         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
+          {product.stock === 0 && (
+            <span className="inline-flex items-center gap-1 bg-red-600/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-black px-2.5 py-0.5 sm:py-1 rounded-full shadow-md shadow-red-500/30 tracking-tight">
+              <span>{language === 'km' ? '⚠️ អស់ស្តុក' : language === 'zh' ? '缺货' : 'Out of Stock'}</span>
+            </span>
+          )}
+          {product.stock > 0 && product.stock <= 5 && (
+            <span className="inline-flex items-center gap-1 bg-amber-500/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:py-1 rounded-full shadow-md shadow-amber-500/30 tracking-tight animate-pulse">
+              <span>{language === 'km' ? `🔥 នៅសល់តែ ${product.stock}` : `🔥 Only ${product.stock} left`}</span>
+            </span>
+          )}
           {discount > 0 && (
             <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:py-1 rounded-full shadow-md shadow-red-500/20 tracking-tight">
               <span>-{discount}%</span>
@@ -135,11 +145,6 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:py-0.5 rounded-full shadow-md shadow-amber-500/20 tracking-wide">
               <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-100 fill-amber-100" />
               <span>{t(language, 'badgeFeatured')}</span>
-            </span>
-          )}
-          {product.stock === 0 && (
-            <span className="inline-flex items-center bg-gray-900/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 sm:py-1 rounded-full shadow-sm">
-              {t(language, 'outOfStock')}
             </span>
           )}
         </div>
@@ -212,20 +217,20 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       </div>
 
       {/* Card Content & Details */}
-      <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between gap-2 sm:gap-3">
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 sm:gap-3 bg-white dark:bg-surface-900">
         {/* Brand & Title */}
         <div className="space-y-1">
           {product.brand ? (
-            <p className="text-[10px] sm:text-[11px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider line-clamp-1">
+            <p className="text-[10px] sm:text-[11px] font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-wider line-clamp-1">
               {product.brand}
             </p>
           ) : (
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               SH-Shop
             </p>
           )}
 
-          <h3 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
+          <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-50 line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
             {product.name}
           </h3>
         </div>
@@ -245,21 +250,21 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             ))}
           </div>
           {product.reviewCount > 0 ? (
-            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 tabular-nums">
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
               ({product.reviewCount})
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
               New
             </span>
           )}
         </div>
 
         {/* Price and Mobile Quick-Add Button Row */}
-        <div className="flex items-center justify-between pt-1 border-t border-gray-100/80 dark:border-surface-800/80">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-surface-800">
           <div className="flex flex-col min-w-0">
             <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
+              <span className="text-sm sm:text-base md:text-lg font-black text-gray-950 dark:text-white tabular-nums tracking-tight">
                 {formatPrice(product.price, language)}
               </span>
               {product.comparePrice && product.comparePrice > product.price && (

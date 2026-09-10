@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { supportApi } from '@/lib/api';
-import { Phone, Send, MessageSquare, RefreshCw } from 'lucide-react';
+import { Phone, Send, MessageSquare, RefreshCw, Volume2, VolumeX } from 'lucide-react';
+import { playMessageAlertChime } from '@/lib/soundAlert';
 import toast from 'react-hot-toast';
 
 type Inquiry = {
@@ -38,8 +39,13 @@ export default function AdminSupportInboxPage() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevInquiriesCountRef = useRef<number>(-1);
+  const prevUserMsgCountRef = useRef<number>(-1);
+  const isFirstLoadInquiries = useRef<boolean>(true);
+  const isFirstLoadMessages = useRef<boolean>(true);
 
   // Localization labels
   const t = {
@@ -62,26 +68,47 @@ export default function AdminSupportInboxPage() {
     noInquiries: language === 'km' ? 'មិនទាន់មានសំណួរគាំទ្រ' : language === 'zh' ? '暂无咨询记录' : 'No inquiries found.'
   };
 
-  const loadInquiries = (silent = false) => {
+  const loadInquiries = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     supportApi
       .getInquiries({ limit: 100 })
       .then(({ data }) => {
-        setRows(data.data || []);
+        const list = data.data || [];
+        setRows(list);
         setLastUpdated(new Date().toLocaleTimeString());
+
+        if (silent && !isFirstLoadInquiries.current && list.length > prevInquiriesCountRef.current && prevInquiriesCountRef.current >= 0) {
+          if (soundEnabled) playMessageAlertChime();
+          toast('💬 មានសារសាកសួរថ្មីពីអតិថិជន!', { icon: '🔔', id: 'admin-new-inquiry' });
+        }
+        prevInquiriesCountRef.current = list.length;
+        isFirstLoadInquiries.current = false;
       })
       .catch(() => setRows([]))
       .finally(() => {
         if (!silent) setLoading(false);
       });
-  };
+  }, [soundEnabled]);
 
-  const loadMessages = (id: string, silent = false) => {
+  const loadMessages = useCallback((id: string, silent = false) => {
     if (!silent) setMessagesLoading(true);
     supportApi.getMessages(id)
       .then(({ data }) => {
         if (data.success && data.data) {
-          setMessages(data.data);
+          const list = data.data as ChatMessage[];
+          setMessages(list);
+
+          const userMsgs = list.filter((m) => m.sender === 'USER');
+          if (silent && !isFirstLoadMessages.current && userMsgs.length > prevUserMsgCountRef.current && prevUserMsgCountRef.current >= 0) {
+            const latestUserMsg = userMsgs[userMsgs.length - 1];
+            if (soundEnabled) playMessageAlertChime();
+            toast(`💬 ${latestUserMsg.senderName || 'អតិថិជន'}: ${latestUserMsg.text.length > 40 ? latestUserMsg.text.slice(0, 40) + '...' : latestUserMsg.text}`, {
+              icon: '💬',
+              id: 'admin-new-msg',
+            });
+          }
+          prevUserMsgCountRef.current = userMsgs.length;
+          isFirstLoadMessages.current = false;
         }
       })
       .catch((err) => {
@@ -90,29 +117,34 @@ export default function AdminSupportInboxPage() {
       .finally(() => {
         if (!silent) setMessagesLoading(false);
       });
-  };
+  }, [soundEnabled]);
 
   // Poll inquiry list every 4s
   useEffect(() => {
     loadInquiries();
     const timer = setInterval(() => loadInquiries(true), 4000);
     return () => clearInterval(timer);
-  }, []);
+  }, [loadInquiries]);
 
   // Poll active chat messages every 1.5s
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
+      prevUserMsgCountRef.current = -1;
+      isFirstLoadMessages.current = true;
       return;
     }
 
-    loadMessages(selectedId);
+    isFirstLoadMessages.current = true;
+    prevUserMsgCountRef.current = -1;
+    loadMessages(selectedId, false);
+
     const messagesTimer = setInterval(() => {
       loadMessages(selectedId, true);
     }, 1500);
 
     return () => clearInterval(messagesTimer);
-  }, [selectedId]);
+  }, [selectedId, loadMessages]);
 
   // Scroll to bottom when messages load or change
   useEffect(() => {
@@ -207,14 +239,35 @@ export default function AdminSupportInboxPage() {
               <MessageSquare className="w-4 h-4 text-primary-500" />
               <span>{t.title}</span>
             </h1>
-            <button 
-              type="button" 
-              onClick={() => loadInquiries(false)} 
-              title="Refresh List"
-              className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  if (next) {
+                    playMessageAlertChime();
+                    toast.success('សំឡេងជូនដំណឹង៖ បើក');
+                  } else {
+                    toast('សំឡេងជូនដំណឹង៖ បិទ');
+                  }
+                }}
+                title={soundEnabled ? 'Sound alert ON (Click to mute)' : 'Sound alert OFF (Click to unmute)'}
+                className={`p-1.5 rounded-lg transition ${
+                  soundEnabled ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-800'
+                }`}
+              >
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => loadInquiries(false)} 
+                title="Refresh List"
+                className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <select

@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Phone, Mail, Facebook, Send as TelegramIcon, RefreshCw, User, ShieldCheck, Sparkles, Minus } from 'lucide-react';
+import { MessageCircle, X, Send, Phone, Mail, Facebook, Send as TelegramIcon, RefreshCw, User, ShieldCheck, Sparkles, Minus, Bell } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
 import { supportApi } from '@/lib/api';
+import { playMessageAlertChime } from '@/lib/soundAlert';
+import toast from 'react-hot-toast';
 
 type Msg = {
   role: 'user' | 'bot' | 'admin';
@@ -22,15 +25,19 @@ type FAQItem = {
 };
 
 export default function SupportChatWidget() {
+  const pathname = usePathname();
   const { language } = useLanguageStore();
   const { user } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
 
   // Drag tracking to distinguish click vs drag
   const isDraggingRef = useRef(false);
+  const prevAdminMsgCountRef = useRef<number>(0);
+  const isFirstLoadRef = useRef(true);
 
   // Live Chat States
   const [inquiryId, setInquiryId] = useState<string | null>(null);
@@ -124,24 +131,48 @@ export default function SupportChatWidget() {
     supportBadge: language === 'km' ? 'ជំនួយ ២៤/៧' : language === 'zh' ? '24/7 客服' : '24/7 Support',
   };
 
-  // Load chat session if it exists
-  const loadChatMessages = (id: string, token: string) => {
+  // Load chat session if it exists with sound alert
+  const loadChatMessages = useCallback((id: string, token: string, isPolling = false) => {
     supportApi.getMessages(id, token)
       .then(({ data }) => {
         if (data.success && data.data) {
-          const mapped: Msg[] = data.data.map((m: { sender: string; text: string; senderName?: string; createdAt?: string }) => ({
+          const rawList = data.data as Array<{ sender: string; text: string; senderName?: string; createdAt?: string }>;
+          const mapped: Msg[] = rawList.map((m) => ({
             role: m.sender === 'ADMIN' ? 'admin' : 'user',
             text: m.text,
             senderName: m.senderName,
             createdAt: m.createdAt,
           }));
           setMessages(mapped);
+
+          // Count admin messages
+          const adminMsgs = mapped.filter((m) => m.role === 'admin');
+          const currentAdminCount = adminMsgs.length;
+
+          if (isPolling && !isFirstLoadRef.current && currentAdminCount > prevAdminMsgCountRef.current) {
+            const newAdminMsg = adminMsgs[adminMsgs.length - 1];
+            playMessageAlertChime();
+
+            if (!open) {
+              setUnreadCount((prev) => prev + (currentAdminCount - prevAdminMsgCountRef.current));
+              if (newAdminMsg) {
+                toast(`💬 Admin: ${newAdminMsg.text.length > 50 ? newAdminMsg.text.slice(0, 50) + '...' : newAdminMsg.text}`, {
+                  icon: '🔔',
+                  duration: 5000,
+                  id: 'customer-chat-incoming',
+                });
+              }
+            }
+          }
+
+          prevAdminMsgCountRef.current = currentAdminCount;
+          isFirstLoadRef.current = false;
         }
       })
       .catch((err) => {
         console.error('Failed to load support messages:', err);
       });
-  };
+  }, [open]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -150,28 +181,28 @@ export default function SupportChatWidget() {
       if (storedId && storedToken) {
         setInquiryId(storedId);
         setSessionToken(storedToken);
-        loadChatMessages(storedId, storedToken);
+        loadChatMessages(storedId, storedToken, false);
       } else {
         setMessages([{ role: 'bot', text: label.greeting }]);
       }
     }
-  }, [language, label.greeting]);
+  }, [language, label.greeting, loadChatMessages]);
 
   // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showDetailsForm]);
 
-  // Messages Polling every 2 seconds when open and active
+  // Background and Active Messages Polling every 2.5s
   useEffect(() => {
-    if (!open || !inquiryId || !sessionToken) return;
+    if (!inquiryId || !sessionToken) return;
 
     const interval = setInterval(() => {
-      loadChatMessages(inquiryId, sessionToken);
-    }, 2000);
+      loadChatMessages(inquiryId, sessionToken, true);
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [open, inquiryId, sessionToken]);
+  }, [inquiryId, sessionToken, loadChatMessages]);
 
   const handleFAQClick = (faq: FAQItem) => {
     if (inquiryId && sessionToken) {
@@ -282,6 +313,18 @@ export default function SupportChatWidget() {
     }
   };
 
+  // Hide chat widget on admin portal
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
+  const handleOpenWidget = () => {
+    if (!isDraggingRef.current) {
+      setOpen(true);
+      setUnreadCount(0);
+    }
+  };
+
   return (
     <>
       {/* Draggable Floating Trigger Button */}
@@ -297,7 +340,7 @@ export default function SupportChatWidget() {
             isDraggingRef.current = false;
           }, 150);
         }}
-        className="fixed bottom-5 right-5 z-50 select-none touch-none"
+        className="fixed bottom-6 right-6 z-50 select-none touch-none"
         style={{ touchAction: 'none' }}
       >
         {!open && (
@@ -305,65 +348,70 @@ export default function SupportChatWidget() {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.94 }}
             className="relative flex items-center group cursor-grab active:cursor-grabbing"
-            onClick={() => {
-              if (!isDraggingRef.current) {
-                setOpen(true);
-              }
-            }}
+            onClick={handleOpenWidget}
           >
-            {/* Sleek Gradient Trigger Button (48px / compact) */}
+            {/* Sleek Gradient Trigger Button */}
             <button
               type="button"
               aria-label="Open support chat"
-              className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary-600 via-primary-500 to-indigo-500 text-white shadow-[0_8px_20px_rgba(99,102,241,0.38)] flex items-center justify-center hover:shadow-[0_12px_28px_rgba(99,102,241,0.55)] transition-shadow border-2 border-white/40 dark:border-surface-800"
+              className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 text-white shadow-[0_10px_25px_rgba(79,70,229,0.45)] flex items-center justify-center hover:shadow-[0_14px_32px_rgba(79,70,229,0.6)] transition-all border border-white/30 backdrop-blur-xl relative"
             >
-              <MessageCircle className="w-5 h-5 text-white drop-shadow-sm" />
-            </button>
+              <MessageCircle className="w-6 h-6 text-white drop-shadow" />
 
-            {/* Glowing Online Status Indicator */}
-            <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 ring-2 ring-white dark:ring-surface-900 shadow-sm" />
-            </span>
+              {/* Green Alert Notification Badge - ONLY shown when someone chats / unreadCount > 0 */}
+              {unreadCount > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1.5 -right-1.5 flex items-center justify-center"
+                >
+                  <span className="animate-ping absolute inline-flex h-5 w-5 rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 bg-emerald-500 text-white text-[11px] font-black rounded-full ring-2 ring-white dark:ring-surface-900 shadow-lg shadow-emerald-500/50">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                </motion.div>
+              )}
+            </button>
           </motion.div>
         )}
       </motion.div>
 
-      {/* Floating Chat Modal Box */}
+      {/* Floating Chat Modal Box - iOS Liquid Glass */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            initial={{ opacity: 0, scale: 0.94, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[360px] max-w-[calc(100vw-24px)] rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[520px] max-h-[calc(100vh-48px)] bg-white dark:bg-surface-900 border border-gray-100 dark:border-surface-700/80"
+            exit={{ opacity: 0, scale: 0.94, y: 24 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.22)] flex flex-col h-[560px] max-h-[calc(100vh-40px)] bg-white/95 dark:bg-surface-900/95 backdrop-blur-2xl border border-white/60 dark:border-white/10"
           >
-            {/* Modern Glassmorphic Header */}
-            <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 text-white shrink-0 shadow-md">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="relative w-8 h-8 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
-                  <MessageCircle className="w-4 h-4 text-white" />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-primary-700 animate-pulse" />
+            {/* Header: iOS Curved Liquid Glass Bar */}
+            <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white shrink-0 shadow-sm relative overflow-hidden">
+              <div className="absolute inset-0 bg-white/10 backdrop-blur-md pointer-events-none" />
+              <div className="flex items-center gap-3 min-w-0 relative z-10">
+                <div className="relative w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-lg flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-indigo-700 animate-pulse" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs leading-tight truncate">
+                  <p className="font-bold text-sm leading-tight truncate drop-shadow-sm">
                     {inquiryId ? label.liveTitle : label.title}
                   </p>
-                  <p className="text-[10px] text-primary-100/90 flex items-center gap-1 mt-0.5">
+                  <p className="text-[11px] text-indigo-100 flex items-center gap-1.5 mt-0.5 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>{inquiryId ? 'Live Admin Connected' : 'Online • 24/7 Support'}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 relative z-10">
                 {inquiryId && (
                   <button
                     type="button"
                     onClick={handleResetChat}
                     title={language === 'km' ? 'ជជែកសារថ្មី' : 'Restart Chat'}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/20 text-white/90 hover:text-white transition"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
@@ -372,26 +420,26 @@ export default function SupportChatWidget() {
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close chat"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/20 text-white/90 hover:text-white transition"
+                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Chat Body / Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/70 dark:bg-surface-950/60">
+            {/* Chat Body / Messages Timeline */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/60 dark:bg-surface-950/60 scroll-smooth">
               {messages.map((m, i) => {
                 const isUser = m.role === 'user';
                 const isAdmin = m.role === 'admin';
 
                 return (
                   <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
-                    {/* Sender Tag */}
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium px-1">
+                    {/* Sender Identity */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1">
                       {isAdmin ? (
-                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
-                          <ShieldCheck className="w-3 h-3" />
+                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                          <ShieldCheck className="w-3 h-3 text-indigo-500" />
                           {m.senderName || label.admin}
                         </span>
                       ) : isUser ? (
@@ -400,7 +448,7 @@ export default function SupportChatWidget() {
                           {label.you}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-medium">
+                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
                           <Sparkles className="w-2.5 h-2.5 text-amber-500" />
                           SH-Shop Assistant
                         </span>
@@ -414,12 +462,12 @@ export default function SupportChatWidget() {
 
                     {/* Message Bubble */}
                     <div
-                      className={`text-xs p-3 rounded-2xl leading-relaxed max-w-[85%] whitespace-pre-line shadow-sm ${
+                      className={`text-xs p-3.5 rounded-2xl leading-relaxed max-w-[88%] whitespace-pre-line ${
                         isUser
-                          ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white rounded-tr-none shadow-primary-500/20'
+                          ? 'bg-gradient-to-tr from-primary-600 via-primary-500 to-indigo-600 text-white rounded-tr-xs shadow-[0_4px_14px_rgba(79,70,229,0.25)]'
                           : isAdmin
-                            ? 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-100 border border-primary-200 dark:border-primary-800/80 rounded-tl-none ring-1 ring-primary-500/10'
-                            : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-surface-700 rounded-tl-none'
+                            ? 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-100 border border-indigo-200 dark:border-indigo-900/60 rounded-tl-xs shadow-sm ring-1 ring-indigo-500/10'
+                            : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-surface-700/80 rounded-tl-xs shadow-sm'
                       }`}
                     >
                       {m.text}
@@ -470,27 +518,60 @@ export default function SupportChatWidget() {
                 );
               })}
 
-              {/* Information Form for Direct Admin Connection */}
+              {/* In-Timeline FAQ Suggestions (Clean Card Buttons) */}
+              {!inquiryId && !showDetailsForm && (
+                <div className="pt-2 space-y-2">
+                  <p className="text-[11px] font-semibold text-gray-400 px-1">
+                    {language === 'km' ? 'សំណួរដែលសួរញឹកញាប់ ៖' : language === 'zh' ? '常见问题：' : 'Frequently Asked Questions:'}
+                  </p>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {faqList.map((faq) => (
+                      <button
+                        key={faq.key}
+                        type="button"
+                        onClick={() => handleFAQClick(faq)}
+                        className="w-full text-left text-xs px-3.5 py-2.5 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-700 dark:text-gray-200 hover:text-primary-600 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-xs transition-all flex items-center justify-between group font-medium"
+                      >
+                        <span className="truncate pr-2">{faq.question[language] || faq.question['en']}</span>
+                        <span className="text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold shrink-0">➔</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleContactAdmin}
+                      className="w-full text-left text-xs px-3.5 py-2.5 bg-gradient-to-r from-primary-500/10 via-indigo-500/10 to-violet-500/10 hover:from-primary-500/20 hover:to-violet-500/20 text-primary-700 dark:text-primary-300 rounded-2xl border border-primary-200/80 dark:border-primary-800/80 transition-all font-bold flex items-center justify-between shadow-xs mt-1"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-primary-600" />
+                        <span>{label.talkToHuman}</span>
+                      </span>
+                      <Send className="w-3.5 h-3.5 text-primary-600 shrink-0" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Form to connect directly with Admin */}
               {showDetailsForm && (
-                <div className="bg-white dark:bg-surface-850 border border-primary-200 dark:border-primary-800 rounded-2xl p-3.5 space-y-2.5 max-w-[95%] shadow-md">
-                  <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 font-semibold text-xs">
+                <div className="bg-white dark:bg-surface-850 border border-primary-200 dark:border-primary-800 rounded-2xl p-4 space-y-3 shadow-md">
+                  <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 font-bold text-xs">
                     <ShieldCheck className="w-4 h-4" />
                     <span>{language === 'km' ? 'ព័ត៌មានសម្រាប់ការជជែកជាមួយ Admin' : 'Information for Live Support'}</span>
                   </div>
                   <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-tight">
                     {language === 'km' ? 'សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទរបស់អ្នក ដើម្បីឱ្យ Admin ងាយស្រួលឆ្លើយតប៖' : 'Please enter your name and phone number so Admin can assist you:'}
                   </p>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <input
                       type="text"
-                      className="input text-xs w-full h-8 px-2.5"
+                      className="input text-xs w-full h-9 px-3 rounded-xl"
                       placeholder={language === 'km' ? 'ឈ្មោះរបស់អ្នក (ឧ. សុខា)' : 'Your name (e.g. John)'}
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                     />
                     <input
                       type="text"
-                      className="input text-xs w-full h-8 px-2.5"
+                      className="input text-xs w-full h-9 px-3 rounded-xl"
                       placeholder={language === 'km' ? 'លេខទូរស័ព្ទ (ឧ. 012 345 678)' : 'Phone number (e.g. 012 345 678)'}
                       value={clientPhone}
                       onChange={(e) => setClientPhone(e.target.value)}
@@ -500,7 +581,7 @@ export default function SupportChatWidget() {
                     <button
                       type="button"
                       onClick={() => setShowDetailsForm(false)}
-                      className="btn text-[11px] h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-700 text-gray-700 dark:text-gray-300 rounded-lg"
+                      className="btn text-xs h-8 px-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-surface-700 text-gray-700 dark:text-gray-300 rounded-xl"
                     >
                       {language === 'km' ? 'បោះបង់' : 'Cancel'}
                     </button>
@@ -508,7 +589,7 @@ export default function SupportChatWidget() {
                       type="button"
                       onClick={handleStartChatFromForm}
                       disabled={isStartingChat}
-                      className="btn-primary text-[11px] h-7 px-3.5 rounded-lg font-semibold disabled:opacity-50 flex items-center gap-1.5"
+                      className="btn-primary text-xs h-8 px-4 rounded-xl font-bold disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {isStartingChat ? (
                         <span>Connecting...</span>
@@ -525,36 +606,11 @@ export default function SupportChatWidget() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Quick Option Menu & Chat Input */}
-            <div className="p-3 bg-white dark:bg-surface-900 border-t border-gray-100 dark:border-surface-800 shrink-0 space-y-2">
-              {/* Quick FAQ Question list */}
-              {!inquiryId && !showDetailsForm && (
-                <div className="flex flex-col gap-1.5 max-h-28 overflow-y-auto pr-1">
-                  {faqList.map((faq) => (
-                    <button
-                      key={faq.key}
-                      type="button"
-                      onClick={() => handleFAQClick(faq)}
-                      className="text-left text-[11px] px-2.5 py-1.5 bg-gray-50 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-surface-700 text-gray-700 dark:text-gray-300 hover:text-primary-600 rounded-xl border border-gray-100 dark:border-surface-700 transition truncate font-medium"
-                    >
-                      {faq.question[language] || faq.question['en']}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={handleContactAdmin}
-                    className="text-left text-[11px] px-2.5 py-1.5 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-950/60 text-primary-700 dark:text-primary-300 rounded-xl border border-primary-200/60 transition font-bold flex items-center justify-between"
-                  >
-                    <span>{label.talkToHuman}</span>
-                    <Send className="w-3 h-3 opacity-70" />
-                  </button>
-                </div>
-              )}
-
-              {/* Input Box */}
-              <div className="flex gap-2 pt-1">
+            {/* Bottom Input Dock - Ultra Clean iOS Style */}
+            <div className="p-3 bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl border-t border-gray-100 dark:border-surface-800 shrink-0">
+              <div className="flex items-center gap-2 bg-gray-50 dark:bg-surface-800/80 p-1.5 rounded-2xl border border-gray-200/80 dark:border-surface-700 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
                 <input
-                  className="input text-xs flex-1 h-9 px-3 rounded-xl border-gray-200 dark:border-surface-700"
+                  className="flex-1 bg-transparent text-xs text-gray-800 dark:text-white px-2.5 py-1.5 focus:outline-none placeholder-gray-400"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -567,9 +623,9 @@ export default function SupportChatWidget() {
                   type="button"
                   onClick={handleSendCustom}
                   disabled={!input.trim() || showDetailsForm || isStartingChat || isSending}
-                  className="btn-primary h-9 w-9 p-0 rounded-xl flex items-center justify-center disabled:opacity-40 shrink-0 shadow-sm"
+                  className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center disabled:opacity-30 shrink-0 shadow-sm hover:shadow-md transition-all active:scale-95"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-3.5 h-3.5 text-white" />
                 </button>
               </div>
             </div>

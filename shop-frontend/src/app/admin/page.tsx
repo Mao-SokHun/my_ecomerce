@@ -24,6 +24,8 @@ import {
   Tag,
   Inbox,
   UserPlus,
+  AlertTriangle,
+  BellRing,
 } from 'lucide-react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -106,10 +108,29 @@ export default function AdminDashboard() {
   const panelCls = 'rounded-3xl border border-white/70 dark:border-gray-800 bg-white/90 dark:bg-surface-900/80 backdrop-blur shadow-lg shadow-slate-200/60 dark:shadow-black/20';
 
   useEffect(() => {
-    adminApi.getDashboard()
-      .then(({ data: res }) => setData(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    const fetchDashboard = (isSilent = false) => {
+      if (!isSilent) setLoading(true);
+      adminApi
+        .getDashboard()
+        .then(({ data: res }) => {
+          if (isMounted) setData(res.data);
+        })
+        .catch(console.error)
+        .finally(() => {
+          if (isMounted && !isSilent) setLoading(false);
+        });
+    };
+
+    fetchDashboard();
+    const interval = setInterval(() => {
+      fetchDashboard(true);
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   if (loading) {
@@ -245,6 +266,36 @@ export default function AdminDashboard() {
       className="space-y-6"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
+      {/* Urgent Low Stock Banner Alert */}
+      {(data?.overview?.stock?.lowStockCount ?? 0) > 0 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 shadow-sm animate-pulse-subtle">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">
+                {isKhmer 
+                  ? `⚠️ ការដាស់តឿនស្តុក៖ មាន ${data?.overview?.stock?.lowStockCount} មុខទំនិញជិតអស់ស្តុក (សល់ ≤ 5 ឬ អស់ស្តុក)!` 
+                  : `⚠️ Stock Alert: ${data?.overview?.stock?.lowStockCount} products are running low on stock (≤ 5 units)!`}
+              </p>
+              <p className="text-xs text-amber-700/80 dark:text-amber-300/80">
+                {isKhmer 
+                  ? 'សូមពិនិត្យ និងបញ្ចូលស្តុកថ្មីជាបន្ទាន់ ដើម្បីកុំឱ្យរអាក់រអួលដល់ការលក់។' 
+                  : 'Please review and restock items promptly to avoid sales interruptions.'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/products?filter=low_stock"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition shrink-0"
+          >
+            <span>{isKhmer ? 'គ្រប់គ្រងស្តុក' : 'Manage Stock'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       {/* Welcome + full admin hub (all editable areas, no code) */}
       <div className={`${panelCls} overflow-hidden`}>
         <div className="border-b border-slate-100/90 bg-gradient-to-br from-slate-50 via-white to-primary-50/35 px-6 py-7 dark:border-gray-800 dark:from-surface-950 dark:via-surface-900 dark:to-primary-950/25 md:px-8 md:py-8">

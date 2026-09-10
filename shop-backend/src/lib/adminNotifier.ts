@@ -138,24 +138,59 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
 export const notifyAdminUserCancelledOrder = async (orderId: string): Promise<void> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { user: { select: { name: true, phone: true } } },
+    include: {
+      user: { select: { name: true, email: true, phone: true } },
+      items: { select: { name: true, quantity: true, price: true } },
+      address: true,
+    },
   });
   if (!order) return;
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
+  const shippingAddress = order.address
+    ? [order.address.province, order.address.district, order.address.commune, order.address.village].filter(Boolean).join(', ')
+    : 'មិនមាន';
+  const roadNumber = order.address?.roadNumber || order.address?.street || 'មិនមាន';
   const customerName = order.user?.name || 'មិនមាន';
-  const customerPhone = order.user?.phone || 'មិនមាន';
+  const customerEmail = order.user?.email || 'មិនមាន';
+  const customerPhone = order.address?.phone || order.user?.phone || 'មិនមាន';
+
+  const itemsBlock = order.items
+    .map(
+      (i, idx) =>
+        `<b>${idx + 1}. ${i.name}</b>\n` +
+        `   - ចំនួន: ${i.quantity}\n` +
+        `   - តម្លៃ: ${formatMoney(i.price)} | សរុប: ${formatMoney(i.price * i.quantity)}`
+    )
+    .join('\n');
+
+  const totalUnits = order.items.reduce((sum, i) => sum + Number(i.quantity || 0), 0);
+  const totalLines = order.items.length;
 
   const text = [
     '⚠️ <b>អតិថិជនបានបោះបង់ការបញ្ជាទិញ (Order Cancelled)</b>',
     ``,
     `📝 <b>លេខកម្មង់:</b> <code>${order.orderNumber}</code>`,
     `📅 <b>ថ្ងៃ/ម៉ោង:</b> <i>${formatDateTime24(new Date())}</i>`,
-    `👤 <b>អតិថិជន:</b> ${customerName}`,
+    `👤 <b>អតិថិជន:</b> ${customerName} (${customerEmail})`,
     `📞 <b>ទូរស័ព្ទ:</b> <code>${customerPhone}</code>`,
+    `📍 <b>អាសយដ្ឋានដឹកជញ្ជូន:</b> ${shippingAddress}`,
+    `🏠 <b>លេខផ្ទះ/ផ្លូវ:</b> ${roadNumber}`,
+    ``,
+    `💳 <b>ប្រភេទបង់ប្រាក់:</b> ${khPaymentType(order.paymentMethod)}`,
     `💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${khPaymentStatus(order.paymentStatus)}`,
     `📦 <b>ស្ថានភាពកម្មង់:</b> ${khOrderStatus(order.status)}`,
+    `🚚 <b>ក្រុមហ៊ុនដឹកជញ្ជូន:</b> ${khShippingCarrier(order.shippingCarrier)}`,
+    ``,
+    `💰 <b>តម្លៃដើម:</b> ${formatMoney(order.subtotal)}`,
+    `🎟️ <b>បញ្ចុះតម្លៃ:</b> -${formatMoney(order.discount)}`,
+    `🚚 <b>ថ្លៃដឹកជញ្ជូន:</b> ${formatMoney(order.shippingCost)}`,
+    `💵 <b>តម្លៃសរុបដែលបានបោះបង់:</b> <b>${formatMoney(order.total)}</b> (≈ ៛${Math.round(order.total * 4100).toLocaleString()})`,
+    `🛒 <b>មុខទំនិញដែលបានបោះបង់:</b> ${totalLines} មុខ (ចំនួនសរុប ${totalUnits})`,
+    ``,
+    `🛍️ <b>បញ្ជីមុខទំនិញ៖</b>`,
+    itemsBlock || 'មិនមានទំនិញ',
   ].join('\n');
 
   await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));
@@ -168,26 +203,79 @@ export const notifyAdminOrderStatusChanged = async (
 ): Promise<void> => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { user: { select: { name: true, phone: true } } },
+    include: {
+      user: { select: { name: true, email: true, phone: true } },
+      items: { select: { name: true, quantity: true, price: true } },
+      address: true,
+    },
   });
   if (!order) return;
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
+  const shippingAddress = order.address
+    ? [order.address.province, order.address.district, order.address.commune, order.address.village].filter(Boolean).join(', ')
+    : 'មិនមាន';
   const customerName = order.user?.name || 'មិនមាន';
-  const customerPhone = order.user?.phone || 'មិនមាន';
+  const customerEmail = order.user?.email || 'មិនមាន';
+  const customerPhone = order.address?.phone || order.user?.phone || 'មិនមាន';
+
+  const itemsBlock = order.items
+    .map(
+      (i, idx) =>
+        `<b>${idx + 1}. ${i.name}</b> (${i.quantity}x @ ${formatMoney(i.price)})`
+    )
+    .join('\n');
 
   const text = [
     '🛠️ <b>ការកែប្រែស្ថានភាពការបញ្ជាទិញ (Status Updated)</b>',
     ``,
     `📝 <b>លេខកម្មង់:</b> <code>${order.orderNumber}</code>`,
     `📅 <b>ថ្ងៃ/ម៉ោង:</b> <i>${formatDateTime24(new Date())}</i>`,
-    `👤 <b>អតិថិជន:</b> ${customerName}`,
+    `👤 <b>អតិថិជន:</b> ${customerName} (${customerEmail})`,
     `📞 <b>ទូរស័ព្ទ:</b> <code>${customerPhone}</code>`,
+    `📍 <b>អាសយដ្ឋាន:</b> ${shippingAddress}`,
+    ``,
     `🔄 <b>ស្ថានភាពចាស់:</b> ${khOrderStatus(oldStatus)}`,
     `➡️ <b>ស្ថានភាពថ្មី:</b> <b>${khOrderStatus(newStatus)}</b>`,
     `💵 <b>ស្ថានភាពបង់ប្រាក់:</b> ${khPaymentStatus(order.paymentStatus)}`,
+    `💰 <b>តម្លៃសរុប:</b> <b>${formatMoney(order.total)}</b>`,
+    ``,
+    `🛍️ <b>មុខទំនិញ៖</b>`,
+    itemsBlock || 'មិនមានទំនិញ',
   ].join('\n');
 
   await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));
+};
+
+export const notifyAdminLowStockAlert = async (
+  products: Array<{ id: string; name: string; stock: number; price: number }>
+): Promise<void> => {
+  if (!products || products.length === 0) return;
+  const targets = resolveTargets();
+  if (targets.length === 0) return;
+
+  for (const p of products) {
+    const isOutOfStock = p.stock <= 0;
+    const title = isOutOfStock
+      ? '🚨 <b>ទំនិញអស់ពីស្តុក (Out of Stock Alert)</b>'
+      : '⚠️ <b>ទំនិញជិតអស់ពីស្តុក (Low Stock Alert)</b>';
+
+    const stockText = isOutOfStock
+      ? '🔴 <b>0 (អស់ស្តុក)</b>'
+      : `🟡 <b>នៅសល់តែ ${p.stock} ប៉ុណ្ណោះ!</b>`;
+
+    const text = [
+      title,
+      ``,
+      `📦 <b>ឈ្មោះទំនិញ:</b> <b>${p.name}</b>`,
+      `📊 <b>ស្តុកបច្ចុប្បន្ន:</b> ${stockText}`,
+      `💵 <b>តម្លៃទំនិញ:</b> ${formatMoney(p.price)}`,
+      `📅 <b>ពេលវេលា:</b> <i>${formatDateTime24(new Date())}</i>`,
+      ``,
+      `💡 <i>សូម Admin បំពេញស្តុកបន្ថែម (Restock) ក្នុង Control Center ➡️ Products។</i>`,
+    ].join('\n');
+
+    await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text })));
+  }
 };

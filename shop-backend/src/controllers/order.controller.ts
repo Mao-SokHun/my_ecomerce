@@ -6,7 +6,7 @@ import { generateOrderNumber, paginate, paginateResponse } from '../utils/helper
 import stripeClient from '../lib/stripe';
 import { assertPaymentIntentMatchesOrder, persistOrderPaidFromStripe } from '../lib/stripeOrderPayment';
 import { getInvoiceDetails, sendInvoiceNotification } from '../lib/invoice';
-import { notifyAdminOrderEvent, notifyAdminOrderStatusChanged, notifyAdminUserCancelledOrder } from '../lib/adminNotifier';
+import { notifyAdminOrderEvent, notifyAdminOrderStatusChanged, notifyAdminUserCancelledOrder, notifyAdminLowStockAlert } from '../lib/adminNotifier';
 
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -147,8 +147,8 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       include: { items: true, address: true },
     });
 
-    // Deduct stock
-    await Promise.all(
+    // Deduct stock and check remaining stock
+    const updatedProducts = await Promise.all(
       cart.items.map((item) =>
         prisma.product.update({
           where: { id: item.productId },
@@ -156,9 +156,18 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
             stock: { decrement: item.quantity },
             soldCount: { increment: item.quantity },
           },
+          select: { id: true, name: true, stock: true, price: true },
         })
       )
     );
+
+    // Send Telegram alert if any product stock becomes low (<= 5) or out of stock (<= 0)
+    const lowStockProducts = updatedProducts.filter((p) => p.stock <= 5);
+    if (lowStockProducts.length > 0) {
+      notifyAdminLowStockAlert(lowStockProducts).catch((err) => {
+        console.error('[Admin Notify] Low stock notification failed:', err);
+      });
+    }
 
     // Clear cart
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });

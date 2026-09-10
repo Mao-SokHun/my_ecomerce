@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck, Copy, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Invoice, Order } from '@/types';
 import { orderApi, paymentApi, settingApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -290,20 +291,51 @@ export default function OrderDetailsPage() {
     }
 
     const id = parseOrderIdFromRoute(String(params.id));
+    let isMounted = true;
 
-    Promise.all([orderApi.getById(id), orderApi.getInvoice(id, language)])
-      .then(([orderRes, invoiceRes]) => {
-        const nextOrder = orderRes.data.data || null;
-        setOrder(nextOrder);
-        const method = String(nextOrder?.paymentMethod || '').toLowerCase();
-        setSelectedPaymentMethod(method === 'bakong' ? 'bakong' : method === 'aba' ? 'aba' : 'card');
-        setInvoice(invoiceRes.data.data || null);
-      })
-      .catch(() => {
-        toast.error(t(language, 'failedLoadProduct'));
-        router.push('/dashboard/orders');
-      })
-      .finally(() => setLoading(false));
+    const loadOrderData = (isSilent = false) => {
+      if (!isSilent) setLoading(true);
+      Promise.all([orderApi.getById(id), orderApi.getInvoice(id, language)])
+        .then(([orderRes, invoiceRes]) => {
+          if (!isMounted) return;
+          const nextOrder = orderRes.data.data || null;
+          setOrder((prev) => {
+            // If payment status changed from UNPAID to PAID in real-time
+            if (prev && prev.paymentStatus !== 'PAID' && nextOrder?.paymentStatus === 'PAID') {
+              toast.success(
+                language === 'km'
+                  ? '🎉 ការទូទាត់ប្រាក់ទទួលបានជោគជ័យ!'
+                  : '🎉 Payment successfully confirmed!'
+              );
+            }
+            return nextOrder;
+          });
+          const method = String(nextOrder?.paymentMethod || '').toLowerCase();
+          setSelectedPaymentMethod(method === 'bakong' ? 'bakong' : method === 'aba' ? 'aba' : 'card');
+          setInvoice(invoiceRes.data.data || null);
+        })
+        .catch(() => {
+          if (!isSilent && isMounted) {
+            toast.error(t(language, 'failedLoadProduct'));
+            router.push('/dashboard/orders');
+          }
+        })
+        .finally(() => {
+          if (isMounted && !isSilent) setLoading(false);
+        });
+    };
+
+    loadOrderData(false);
+
+    // Live real-time background sync every 3.5s
+    const interval = setInterval(() => {
+      loadOrderData(true);
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [isAuthChecked, isAuthenticated, params.id, router, language]);
 
   useEffect(() => {
@@ -739,185 +771,195 @@ export default function OrderDetailsPage() {
       </div>
 
       {khqrPayment && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-2xl border border-gray-100 dark:border-gray-800 text-center animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xs shadow">
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[420px] bg-white dark:bg-surface-900 rounded-[28px] p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.35)] border border-gray-100 dark:border-surface-750 text-center relative max-h-[92vh] overflow-y-auto"
+          >
+            {/* Top Bar with Branding & Close */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100 dark:border-surface-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md">
                   ABA
                 </div>
                 <div className="text-left">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                    {khqrVariant === 'aba_pay' ? 'ABA PAY ($ USD)' : 'ABA QR (៛ KHR)'}
+                    {language === 'km' ? 'ទូទាត់ប្រាក់តាម Bakong KHQR' : 'Bakong KHQR Payment'}
                   </h3>
-                  <p className="text-xs text-gray-500 font-medium">
-                    Merchant: <span className="font-bold text-gray-900 dark:text-white">{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
+                    {language === 'km' ? 'ស្កែនបានគ្រប់ធនាគារទាំងអស់' : 'Scan with all KH banks'}
                   </p>
                 </div>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                Verified KHQR
-              </span>
-            </div>
-
-            {/* Tap to Pay via ABA PayWay Link */}
-            <a
-              href="https://link.payway.com.kh/ABAPAYQf518577C"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-2.5 px-3 bg-gradient-to-r from-red-600 via-red-500 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-red-500/25 mb-3"
-            >
-              <Landmark className="w-4 h-4 shrink-0" />
-              <span>{language === 'km' ? 'ចុចទីនេះដើម្បីបើក ABA Mobile (PayWay Link)' : language === 'zh' ? '在 ABA Mobile 中打开支付' : 'Tap to Pay in ABA Mobile (PayWay Link)'}</span>
-              <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-            </a>
-
-            {/* Currency Selector Tabs */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-3 text-xs font-semibold">
               <button
                 type="button"
-                onClick={() => setKhqrVariant('aba_pay')}
-                className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                  khqrVariant === 'aba_pay'
-                    ? 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-                }`}
+                onClick={() => setKhqrPayment(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-surface-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition"
+                aria-label="Close"
               >
-                <span>💵 USD ($)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setKhqrVariant('aba_khr')}
-                className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                  khqrVariant === 'aba_khr'
-                    ? 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-                }`}
-              >
-                <span>៛ KHR (៛)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setKhqrVariant('aba_poster')}
-                className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                  khqrVariant === 'aba_poster'
-                    ? 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 shadow-sm font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-                }`}
-              >
-                <span>📱 Poster</span>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Dynamic Both Currency Amount Display */}
-            <div className="bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 dark:from-red-950/30 dark:via-orange-950/30 dark:to-amber-950/30 p-3 rounded-xl mb-3 border border-red-100 dark:border-red-900/30">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
-                {language === 'km' ? 'ចំនួនទឹកប្រាក់ត្រូវបង់ (Dynamic Total Price)' : language === 'zh' ? '应付总额 (USD & KHR)' : 'Amount to Pay (USD & KHR)'}
+            {/* Total Amount Display Hero */}
+            <div className="py-4 text-center">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                {language === 'km' ? 'ចំនួនទឹកប្រាក់សរុប' : 'Total Amount'}
               </p>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className="text-2xl font-extrabold text-red-600 dark:text-red-400">
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="text-3xl font-black text-gray-950 dark:text-white tracking-tight">
                   {formatPrice(khqrPayment.amount, language)}
                 </span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200/60 dark:border-amber-900/60">
                   ≈ {formatKhrPrice(khqrPayment.amount)}
                 </span>
               </div>
             </div>
 
-            {/* QR Card Container */}
-            <div className="relative w-full bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner flex flex-col items-center justify-center mb-3">
+            {/* Segmented Currency Switcher */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-surface-800/90 rounded-2xl mb-4 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setKhqrVariant('aba_pay')}
+                className={`py-2 rounded-xl transition-all ${
+                  khqrVariant === 'aba_pay'
+                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                }`}
+              >
+                USD ($)
+              </button>
+              <button
+                type="button"
+                onClick={() => setKhqrVariant('aba_khr')}
+                className={`py-2 rounded-xl transition-all ${
+                  khqrVariant === 'aba_khr'
+                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                }`}
+              >
+                KHR (៛)
+              </button>
+              <button
+                type="button"
+                onClick={() => setKhqrVariant('aba_poster')}
+                className={`py-2 rounded-xl transition-all ${
+                  khqrVariant === 'aba_poster'
+                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                }`}
+              >
+                Poster
+              </button>
+            </div>
+
+            {/* Official KHQR Code Card Container */}
+            <div className="bg-slate-50 dark:bg-surface-800/50 p-3 rounded-2xl border border-gray-100 dark:border-surface-750 flex flex-col items-center mb-4">
               {khqrVariant === 'aba_poster' ? (
                 <div className="w-full flex flex-col items-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/payments/aba_payway_mao_sokhun.png"
                     alt="ABA Bank KHQR Poster MAO SOKHUN"
-                    className="w-full max-h-[340px] object-contain rounded-lg shadow-sm"
+                    className="w-full max-h-[300px] object-contain rounded-xl shadow-sm"
                   />
-                  <span className="mt-2 text-[11px] text-gray-500 font-medium">ABA Official Merchant Poster</span>
                 </div>
               ) : (
                 <div className="w-full flex flex-col items-center">
-                  {/* Authentic ABA KHQR Card */}
-                  <div className="w-full max-w-[280px] bg-[#E1251B] text-white py-1.5 px-3 rounded-t-xl flex items-center justify-between font-bold text-xs tracking-wider shadow-sm">
+                  {/* Authentic ABA KHQR Header */}
+                  <div className="w-full max-w-[260px] bg-[#E1251B] text-white py-2 px-3.5 rounded-t-2xl flex items-center justify-between font-bold text-xs shadow-sm">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-sm tracking-tight">ABA</span>
+                      <span className="font-black text-sm tracking-tight">ABA</span>
                       <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">KHQR</span>
                     </div>
-                    <span className="text-xs font-mono font-bold">
+                    <span className="text-xs font-mono font-black">
                       {khqrVariant === 'aba_pay'
                         ? `$${Number(khqrPayment.amount).toFixed(2)}`
                         : `៛${(khqrPayment.amountKhr || Math.round(khqrPayment.amount * 4100)).toLocaleString()}`}
                     </span>
                   </div>
 
-                  {/* QR Code Canvas/Image */}
-                  <div className="w-full max-w-[280px] bg-white p-3 border-x-2 border-b-2 border-[#E1251B] rounded-b-xl shadow-md flex flex-col items-center">
+                  {/* QR Code Canvas */}
+                  <div className="w-full max-w-[260px] bg-white p-3.5 border-x-2 border-b-2 border-[#E1251B] rounded-b-2xl shadow-md flex flex-col items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={
                         khqrVariant === 'aba_pay'
-                          ? (khqrPayment.qrImageUrl || '/payments/aba_pay_khqr.png')
-                          : (khqrPayment.qrImageUrlKhr || khqrPayment.qrImageUrl || '/payments/aba_qr_khr.png')
+                          ? (khqrPayment.qrImageUrl && !khqrPayment.qrImageUrl.startsWith('data:') ? khqrPayment.qrImageUrl : '/payments/aba_pay_khqr.png')
+                          : (khqrPayment.qrImageUrlKhr && !khqrPayment.qrImageUrlKhr.startsWith('data:') ? khqrPayment.qrImageUrlKhr : '/payments/aba_qr_khr.png')
                       }
                       alt={`ABA Bank Dynamic KHQR ${khqrVariant === 'aba_pay' ? 'USD' : 'KHR'}`}
-                      className="w-[220px] h-[220px] object-contain"
+                      className="w-[200px] h-[200px] object-contain"
                     />
-                    <div className="mt-1.5 flex items-center justify-between w-full pt-1 border-t border-gray-100 text-[11px] text-gray-600 font-medium">
+                    <div className="mt-2 flex items-center justify-between w-full pt-1.5 border-t border-gray-100 text-[11px] text-gray-700 font-bold">
                       <span>{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
-                      <span className="font-mono text-red-600 font-bold">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
+                      <span className="font-mono text-red-600">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
                     </div>
                   </div>
 
-                  <p className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <p className="mt-2.5 text-[11px] font-medium text-gray-500 dark:text-gray-400">
                     {language === 'km'
-                      ? 'ស្កេនជាមួយ ABA Mobile, Bakong ឬ Banking App ទាំងអស់'
-                      : language === 'zh'
-                      ? '使用 ABA Mobile 或任何银行 App 扫码支付'
+                      ? 'ស្កេនជាមួយ ABA, Bakong ឬ Banking App ទាំងអស់'
                       : 'Scan with ABA Mobile, Bakong or any Mobile Banking App'}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Account Details */}
-            <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-3 text-xs space-y-1.5 text-left mb-4 border border-gray-100 dark:border-gray-800">
+            {/* Quick Open in ABA App Link */}
+            <a
+              href="https://link.payway.com.kh/ABAPAYQf518577C"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-950 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm mb-3"
+            >
+              <Landmark className="w-4 h-4 text-red-500" />
+              <span>{language === 'km' ? 'បើកទូទាត់ក្នុង ABA Mobile App' : 'Open in ABA Mobile App'}</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+            </a>
+
+            {/* Account Details with Copy Button */}
+            <div className="bg-gray-50 dark:bg-surface-800/60 rounded-2xl p-3 text-xs space-y-2 text-left mb-4 border border-gray-100 dark:border-surface-750">
               <div className="flex justify-between items-center">
-                <span className="text-gray-500">Account Name:</span>
+                <span className="text-gray-500 dark:text-gray-400">ឈ្មោះគណនី:</span>
                 <span className="font-bold text-gray-900 dark:text-white">
                   {khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500">Account Number:</span>
-                <span className="font-mono font-bold text-red-600 dark:text-red-400 text-sm">
-                  {khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}
-                </span>
+                <span className="text-gray-500 dark:text-gray-400">លេខគណនី:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const acc = khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293';
+                    navigator.clipboard.writeText(acc.replace(/\s/g, ''));
+                    toast.success('បានចម្លងលេខគណនី ' + acc);
+                  }}
+                  className="flex items-center gap-1.5 font-mono font-bold text-red-600 dark:text-red-400 hover:underline"
+                  title="Click to copy"
+                >
+                  <span>{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
+                  <Copy className="w-3 h-3 opacity-70" />
+                </button>
               </div>
-              {khqrVariant === 'aba_pay' && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Merchant MID:</span>
-                  <span className="font-mono font-semibold text-gray-900 dark:text-white">126052614424719</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center pt-1 border-t border-gray-200 dark:border-gray-700">
-                <span className="text-gray-500">{language === 'km' ? 'លេខយោង' : language === 'zh' ? '参考号' : 'Ref'}:</span>
-                <span className="font-mono font-semibold text-gray-900 dark:text-white">{khqrPayment.reference}</span>
+              <div className="flex justify-between items-center pt-1 border-t border-gray-200/80 dark:border-surface-700 text-[11px]">
+                <span className="text-gray-400">លេខសម្គាល់ (Ref):</span>
+                <span className="font-mono text-gray-700 dark:text-gray-300 font-semibold">{khqrPayment.reference}</span>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="w-full">
-              <button
-                type="button"
-                onClick={() => setKhqrPayment(null)}
-                className="w-full btn-secondary text-sm py-2.5 font-bold"
-              >
-                {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
-              </button>
-            </div>
-          </div>
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setKhqrPayment(null)}
+              className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-surface-750 dark:hover:bg-surface-700 text-gray-800 dark:text-white rounded-2xl text-xs font-bold transition"
+            >
+              {language === 'km' ? 'រួចរាល់ / បិទ' : 'Done / Close'}
+            </button>
+          </motion.div>
         </div>
       )}
     </div>

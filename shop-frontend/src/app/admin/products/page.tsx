@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Eye, Upload, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, Upload, Loader2, X, Package } from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productApi, adminApi, uploadApi } from '@/lib/api';
 import { formatPrice, normalizeImageListToFullUrls, resolveToFullImageUrl } from '@/lib/utils';
@@ -25,7 +25,60 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [filterMode, setFilterMode] = useState<'all' | 'featured' | 'active' | 'inactive'>('all');
+  const [filterMode, setFilterMode] = useState<'all' | 'featured' | 'low_stock' | 'out_of_stock' | 'active' | 'inactive'>('all');
+  const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
+  const [restockAmount, setRestockAmount] = useState<number>(0);
+  const [isRestocking, setIsRestocking] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    const params: Record<string, unknown> = {
+      limit: 100,
+      search: search.trim() || undefined,
+    };
+    if (filterMode === 'featured') params.featured = 'true';
+    if (filterMode === 'active') params.active = 'true';
+    if (filterMode === 'inactive') params.active = 'false';
+
+    Promise.all([adminApi.getProducts(params), adminApi.getCategories()])
+      .then(([prodRes, catRes]) => {
+        let list: Product[] = prodRes.data.data || [];
+        if (filterMode === 'low_stock') {
+          list = list.filter((p) => p.stock > 0 && p.stock <= 5);
+        } else if (filterMode === 'out_of_stock') {
+          list = list.filter((p) => p.stock <= 0);
+        }
+        setProducts(list);
+        setCategories(catRes.data.data || []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [search, filterMode]);
+
+  const openRestock = (product: Product) => {
+    setRestockingProduct(product);
+    setRestockAmount(product.stock);
+  };
+
+  const handleQuickRestockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockingProduct) return;
+    setIsRestocking(true);
+    try {
+      await productApi.update(restockingProduct.id, {
+        stock: Math.max(0, Number(restockAmount)),
+      });
+      toast.success(isKhmer ? `បានធ្វើបច្ចុប្បន្នភាពស្តុក (${restockAmount})` : `Stock updated to ${restockAmount}`);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === restockingProduct.id ? { ...p, stock: Math.max(0, Number(restockAmount)) } : p))
+      );
+      setRestockingProduct(null);
+    } catch {
+      toast.error(isKhmer ? 'បរាជ័យក្នុងការកែប្រែស្តុក' : 'Failed to update stock');
+    } finally {
+      setIsRestocking(false);
+    }
+  };
   const [form, setForm] = useState({
     name: '', description: '', price: '', comparePrice: '', stock: '',
     categoryId: '', brand: '', thumbnail: '', isFeatured: false, isActive: true,
@@ -88,24 +141,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  useEffect(() => {
-    setLoading(true);
-    const params: Record<string, unknown> = {
-      limit: 100,
-      search: search.trim() || undefined,
-    };
-    if (filterMode === 'featured') params.featured = 'true';
-    if (filterMode === 'active') params.active = 'true';
-    if (filterMode === 'inactive') params.active = 'false';
-
-    Promise.all([adminApi.getProducts(params), adminApi.getCategories()])
-      .then(([prodRes, catRes]) => {
-        setProducts(prodRes.data.data || []);
-        setCategories(catRes.data.data || []);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [search, filterMode]);
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -205,18 +240,23 @@ export default function AdminProductsPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {(['all', 'featured', 'active', 'inactive'] as const).map((mode) => (
+          {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
             <button
               key={mode}
               type="button"
               onClick={() => setFilterMode(mode)}
               className={`text-xs px-3 py-1.5 rounded-lg font-medium border transition-colors ${
                 filterMode === mode
-                  ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                  ? 'border-primary-600 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 shadow-xs'
                   : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary-300'
               }`}
             >
-              {mode === 'all' ? 'All' : mode === 'featured' ? 'Featured' : mode === 'active' ? 'Active only' : 'Inactive'}
+              {mode === 'all' ? (isKhmer ? 'ទាំងអស់' : 'All') :
+               mode === 'featured' ? 'Featured' :
+               mode === 'low_stock' ? (isKhmer ? '⚠️ សល់ស្តុកតិច (≤5)' : '⚠️ Low Stock (≤5)') :
+               mode === 'out_of_stock' ? (isKhmer ? '🔴 អស់ស្តុក (0)' : '🔴 Out of Stock (0)') :
+               mode === 'active' ? (isKhmer ? 'សកម្ម' : 'Active only') :
+               (isKhmer ? 'អសកម្ម' : 'Inactive')}
             </button>
           ))}
         </div>
@@ -264,9 +304,29 @@ export default function AdminProductsPage() {
                     )}
                   </td>
                   <td className="py-3 px-4">
-                    <span className={`font-medium ${product.stock === 0 ? 'text-red-500' : product.stock <= 10 ? 'text-orange-500' : 'text-green-600'}`}>
-                      {product.stock}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {product.stock === 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
+                          0 ({isKhmer ? 'អស់ស្តុក' : 'Out of Stock'})
+                        </span>
+                      ) : product.stock <= 5 ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse">
+                          {product.stock} ({isKhmer ? 'សល់តិច' : 'Low'})
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          {product.stock}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openRestock(product)}
+                        className="p-1 rounded-md text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition border border-primary-200 dark:border-primary-800/60"
+                        title={isKhmer ? 'បំពេញស្តុកទំនិញ' : 'Restock / Adjust Stock'}
+                      >
+                        + {isKhmer ? 'ស្តុក' : 'Stock'}
+                      </button>
+                    </div>
                   </td>
                   <td className="py-3 px-4">
                     {product.isFeatured ? (
@@ -479,6 +539,83 @@ export default function AdminProductsPage() {
                 </div>
               </form>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Quick Restock Modal */}
+      {restockingProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-surface-750"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-surface-800 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  {isKhmer ? 'គ្រប់គ្រង & បំពេញស្តុកទំនិញ' : 'Manage & Restock Product'}
+                </h3>
+                <p className="text-xs text-gray-500 line-clamp-1">{restockingProduct.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRestockingProduct(null)}
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-surface-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickRestockSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  {isKhmer ? 'ចំនួនស្តុកសរុបថ្មី' : 'New Total Stock'}:
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={restockAmount}
+                  onChange={(e) => setRestockAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="input text-lg font-mono font-bold text-center w-full"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-400 mb-2">{isKhmer ? 'ប៊ូតុងបន្ថែមលឿន (Quick Add)' : 'Quick Add'}:</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[10, 25, 50, 100].map((qty) => (
+                    <button
+                      key={qty}
+                      type="button"
+                      onClick={() => setRestockAmount((prev) => prev + qty)}
+                      className="py-1.5 px-2 bg-gray-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 hover:text-primary-600 rounded-xl text-xs font-bold font-mono transition border border-transparent hover:border-primary-300"
+                    >
+                      +{qty}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRestockingProduct(null)}
+                  className="btn-secondary flex-1 text-xs"
+                >
+                  {isKhmer ? 'បោះបង់' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRestocking}
+                  className="btn-primary flex-1 text-xs"
+                >
+                  {isRestocking ? (isKhmer ? 'កំពុងរក្សាទុក...' : 'Updating...') : (isKhmer ? 'រក្សាទុកស្តុក' : 'Save Stock')}
+                </button>
+              </div>
+            </form>
           </motion.div>
         </div>
       )}

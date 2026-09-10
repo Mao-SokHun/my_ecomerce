@@ -164,8 +164,8 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-smooth-out ${
         isScrolled
-          ? 'liquid-glass shadow-lg border-b border-white/40 dark:border-white/10'
-          : 'bg-white/30 dark:bg-gray-950/30 backdrop-blur-md'
+          ? 'bg-white/95 dark:bg-surface-950/95 shadow-md border-b border-gray-200/80 dark:border-surface-800/80 backdrop-blur-xl'
+          : 'bg-white/90 dark:bg-surface-950/90 backdrop-blur-lg border-b border-gray-100/60 dark:border-surface-800/60'
       }`}
     >
       <nav className="page-container">
@@ -190,7 +190,7 @@ export function Navbar() {
               href="/"
               onMouseEnter={() => prefetchRoute('/')}
               onFocus={() => prefetchRoute('/')}
-              className="px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out"
+              className="px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out"
             >
               {t(language, 'navHome')}
             </Link>
@@ -200,7 +200,7 @@ export function Navbar() {
               <button
                 onMouseEnter={() => setIsShopMenuOpen(true)}
                 onClick={() => setIsShopMenuOpen(!isShopMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out"
               >
                 {t(language, 'navShop')}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ease-smooth-out ${isShopMenuOpen ? 'rotate-180' : ''}`} />
@@ -214,22 +214,24 @@ export function Navbar() {
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     onMouseLeave={() => setIsShopMenuOpen(false)}
-                    className="absolute top-full left-0 mt-2 min-w-[17rem] w-max max-w-[min(22rem,calc(100vw-2rem))] max-h-[min(70vh,26rem)] overflow-y-auto overflow-x-hidden liquid-glass shadow-2xl rounded-3xl py-2.5 z-50"
+                    className="absolute top-full left-0 mt-2 min-w-[18rem] w-max max-w-[min(24rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] overflow-y-auto overflow-x-hidden bg-white dark:bg-surface-900 shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-gray-200 dark:border-surface-700 rounded-3xl py-3 z-50 ring-1 ring-black/5"
                   >
                     <Link
                       href="/products"
                       onMouseEnter={() => prefetchRoute('/products')}
                       onFocus={() => prefetchRoute('/products')}
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/10 hover:text-primary-600 transition-colors duration-200 ease-smooth-out"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-900 dark:text-white hover:bg-primary-50 dark:hover:bg-primary-950/40 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out rounded-2xl mx-1.5"
                       onClick={() => setIsShopMenuOpen(false)}
                     >
-                      <Package className="w-4.5 h-4.5" />
+                      <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+                        <Package className="w-5 h-5" />
+                      </div>
                       <div className="flex flex-col">
-                        <span className="font-bold">{t(language, 'allProducts')}</span>
-                        <span className="text-[10px] text-gray-400">{t(language, 'browseAll')}</span>
+                        <span className="font-bold text-sm text-gray-900 dark:text-white">{t(language, 'allProducts')}</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400">{t(language, 'browseAll')}</span>
                       </div>
                     </Link>
-                    <div className="h-px bg-gray-100 dark:bg-gray-800 my-1 mx-4 shrink-0" />
+                    <div className="h-px bg-gray-100 dark:bg-surface-800 my-2 mx-4 shrink-0" />
                     {shopNavCategories.map((cat) => {
                       const href = `/products?category=${encodeURIComponent(cat.slug)}`;
                       return (
@@ -238,13 +240,13 @@ export function Navbar() {
                           href={href}
                           onMouseEnter={() => prefetchRoute(href)}
                           onFocus={() => prefetchRoute(href)}
-                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-surface-800 hover:text-primary-600 transition-colors duration-200 ease-smooth-out"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800/80 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 ease-smooth-out rounded-xl mx-1.5 font-medium"
                           onClick={() => setIsShopMenuOpen(false)}
                         >
-                          <span className="text-lg leading-none w-8 flex justify-center shrink-0" aria-hidden>
+                          <span className="text-xl leading-none w-8 flex justify-center shrink-0" aria-hidden>
                             {shopCategoryIcon(cat.slug)}
                           </span>
-                          <span className="leading-snug">{shopCategoryLabel(language, cat.slug, cat.name)}</span>
+                          <span className="leading-snug font-semibold text-gray-900 dark:text-gray-100">{shopCategoryLabel(language, cat.slug, cat.name)}</span>
                         </Link>
                       );
                     })}
@@ -317,7 +319,7 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.96 }}
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute right-0 top-full mt-2 w-36 liquid-glass rounded-2xl shadow-xl overflow-hidden z-50 p-1"
+                    className="absolute right-0 top-full mt-2 w-40 bg-white dark:bg-surface-900 border border-gray-200 dark:border-surface-750 rounded-2xl shadow-xl overflow-hidden z-50 p-1.5 ring-1 ring-black/5"
                   >
                     {languageOptions.map((option) => (
                       <button
@@ -327,10 +329,10 @@ export function Navbar() {
                           setLanguage(option.value);
                           setIsLanguageMenuOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors duration-200 ease-smooth-out ${
+                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl font-medium transition-colors duration-200 ease-smooth-out ${
                           language === option.value
-                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800'
+                            ? 'bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 font-bold'
+                            : 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-surface-800'
                         }`}
                       >
                         <span>{option.label}</span>
@@ -364,50 +366,50 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.95 }}
                       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute right-0 top-full mt-2 w-56 liquid-glass rounded-3xl shadow-2xl overflow-hidden py-1 z-50"
+                      className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface-900 border border-gray-200 dark:border-surface-750 rounded-3xl shadow-2xl overflow-hidden py-1.5 z-50 ring-1 ring-black/5"
                     >
-                      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
+                      <div className="px-4 py-3 border-b border-gray-100 dark:border-surface-800">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
                         {user.email && !user.email.startsWith('fb_') && (
                           <p className="text-xs text-gray-500 truncate">{user.email}</p>
                         )}
                       </div>
-                      <div className="py-1">
+                      <div className="py-1 px-1">
                         <Link
                           href="/dashboard"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out"
+                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out font-medium"
                         >
-                          <Settings className="w-4 h-4" /> {t(language, 'account')}
+                          <Settings className="w-4 h-4 text-gray-500" /> {t(language, 'account')}
                         </Link>
                         <Link
                           href="/dashboard/orders"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out"
+                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out font-medium"
                         >
-                          <Package className="w-4 h-4" /> {t(language, 'myOrders')}
+                          <Package className="w-4 h-4 text-gray-500" /> {t(language, 'myOrders')}
                         </Link>
                         <Link
                           href="/dashboard/wishlist"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out"
+                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors duration-200 ease-smooth-out font-medium"
                         >
-                          <Heart className="w-4 h-4" /> {t(language, 'wishlist')}
+                          <Heart className="w-4 h-4 text-gray-500" /> {t(language, 'wishlist')}
                         </Link>
                         {user.role === 'ADMIN' && (
                           <Link
                             href="/admin"
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 ease-smooth-out"
+                            className="flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 ease-smooth-out font-bold"
                           >
-                            <LayoutDashboard className="w-4 h-4" /> {t(language, 'adminPanel')}
+                            <LayoutDashboard className="w-4 h-4 text-primary-500" /> {t(language, 'adminPanel')}
                           </Link>
                         )}
                       </div>
-                      <div className="border-t border-gray-100 dark:border-gray-800 pt-1 pb-1">
+                      <div className="border-t border-gray-100 dark:border-surface-800 pt-1 pb-0.5 px-1">
                         <button
                           onClick={handleLogout}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 ease-smooth-out"
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-200 ease-smooth-out font-medium"
                         >
                           <LogOut className="w-4 h-4" /> {t(language, 'signOut')}
                         </button>
