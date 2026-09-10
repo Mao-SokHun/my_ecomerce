@@ -7,6 +7,7 @@ import { formatPrice, formatDate, getOrderStatusColor } from '@/lib/utils';
 import { Search, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -46,11 +47,11 @@ export default function AdminOrdersPage() {
     <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orders</h1>
-          <p className="text-gray-500 text-sm">{orders.length} total orders</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{adminT(language, 'ordersTitle')}</h1>
+          <p className="text-gray-500 text-sm">{orders.length} {adminT(language, 'totalOrders')}</p>
         </div>
-        <button onClick={fetchOrders} className="btn-secondary text-sm">
-          <RefreshCw className="w-4 h-4" /> Refresh
+        <button onClick={fetchOrders} className="btn-secondary text-sm inline-flex items-center gap-1.5">
+          <RefreshCw className="w-4 h-4" /> {adminT(language, 'refreshBtn')}
         </button>
       </div>
 
@@ -62,7 +63,7 @@ export default function AdminOrdersPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search order or customer..."
+            placeholder={adminT(language, 'searchOrderPlaceholder')}
             className="input pl-9 text-sm"
           />
         </div>
@@ -71,7 +72,7 @@ export default function AdminOrdersPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="input text-sm w-auto"
         >
-          <option value="">All Statuses</option>
+          <option value="">{adminT(language, 'allStatuses')}</option>
           {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -82,9 +83,14 @@ export default function AdminOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                {['Order', 'Customer', 'Items', 'Total', 'Status', 'Payment', 'Date', 'Action'].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{h}</th>
-                ))}
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'orderCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'customerCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'itemsCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'totalCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'statusCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'paymentCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'dateCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'actionsCol')}</th>
               </tr>
             </thead>
             <tbody>
@@ -97,7 +103,7 @@ export default function AdminOrdersPage() {
                   </tr>
                 ))
               ) : orders.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-10 text-gray-500">No orders found</td></tr>
+                <tr><td colSpan={8} className="text-center py-10 text-gray-500">{adminT(language, 'noOrdersFound')}</td></tr>
               ) : (
                 orders.map((order) => (
                   <tr key={order.id} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-surface-800/50 transition-colors">

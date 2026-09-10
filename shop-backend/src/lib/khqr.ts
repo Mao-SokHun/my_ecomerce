@@ -1,15 +1,87 @@
 import crypto from 'crypto';
 import axios from 'axios';
+import QRCode from 'qrcode';
 import { Order } from '@prisma/client';
 
-interface KhqrCreateResult {
+export interface KhqrCreateResult {
   reference: string;
   qrPayload: string;
   qrUrl: string;
+  qrPayloadKhr?: string;
+  qrUrlKhr?: string;
+  amountUsd: number;
+  amountKhr: number;
   expiresAt: Date;
 }
 
 const provider = (process.env.KHQR_PROVIDER || 'mock').toLowerCase();
+
+export const crc16Ccitt = (str: string): string => {
+  let crc = 0xffff;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xffff;
+      } else {
+        crc = (crc << 1) & 0xffff;
+      }
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, '0');
+};
+
+const formatTlv = (tag: string, val: string | number): string => {
+  const strVal = String(val);
+  const len = String(strVal.length).padStart(2, '0');
+  return tag + len + strVal;
+};
+
+export const buildEmvcoKhqr = ({
+  bakongAccount,
+  merchantName,
+  merchantCity = 'Phnom Penh',
+  currency = 'USD',
+  amount,
+  billNumber,
+  storeLabel = 'ShopHub',
+}: {
+  bakongAccount: string;
+  merchantName: string;
+  merchantCity?: string;
+  currency?: 'USD' | 'KHR';
+  amount: number;
+  billNumber?: string;
+  storeLabel?: string;
+}): string => {
+  let payload = '';
+  payload += formatTlv('00', '01'); // Format Indicator
+  payload += formatTlv('01', '12'); // 12 = Dynamic QR Code with Amount
+
+  // Tag 29: Merchant Account Information
+  const cleanAccount = bakongAccount.includes('@') ? bakongAccount : `${bakongAccount.replace(/\s+/g, '')}@aba`;
+  const sub00 = formatTlv('00', cleanAccount);
+  const sub01 = formatTlv('01', merchantName);
+  payload += formatTlv('29', sub00 + sub01);
+
+  payload += formatTlv('52', '5999'); // Merchant category code
+  payload += formatTlv('53', currency === 'KHR' ? '116' : '840'); // Currency (840 = USD, 116 = KHR)
+  payload += formatTlv('54', currency === 'KHR' ? String(Math.round(amount)) : Number(amount).toFixed(2)); // Amount
+  payload += formatTlv('58', 'KH'); // Country Code
+  payload += formatTlv('59', merchantName); // Merchant Name
+  payload += formatTlv('60', merchantCity); // Merchant City
+
+  // Tag 62: Additional Data
+  let tag62 = '';
+  if (billNumber) tag62 += formatTlv('01', billNumber);
+  if (storeLabel) tag62 += formatTlv('03', storeLabel);
+  if (tag62) payload += formatTlv('62', tag62);
+
+  // Tag 63: CRC16 Checksum
+  const toSign = payload + '6304';
+  const checksum = crc16Ccitt(toSign);
+  return toSign + checksum;
+};
 
 const toUtcReqTime = (date = new Date()): string => {
   const yyyy = date.getUTCFullYear();
@@ -21,45 +93,68 @@ const toUtcReqTime = (date = new Date()): string => {
   return `${yyyy}${mm}${dd}${hh}${mi}${ss}`;
 };
 
-const buildMockKhqr = (order: Order): KhqrCreateResult => {
+const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   const reference = `KHQR-${order.orderNumber}`;
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   const merchantName = process.env.KHQR_MERCHANT_NAME || 'MAO SOKHUN';
   const merchantCity = process.env.KHQR_MERCHANT_CITY || 'Phnom Penh';
-  const merchantId = process.env.KHQR_MERCHANT_ID || '126052614424719';
-  const accountUsd = '005 282 269';
-  const accountKhr = '005 282 293';
-  const amountUsd = order.total.toFixed(2);
+  const accountUsd = (process.env.KHQR_ACCOUNT_USD || '005 282 269').trim();
+  const accountKhr = (process.env.KHQR_ACCOUNT_KHR || '005 282 293').trim();
+  const amountUsd = Number(order.total.toFixed(2));
   const amountKhr = Math.round(order.total * 4100);
 
-  const payload = [
-    'KHQR',
-    `merchant=${merchantName}`,
-    `city=${merchantCity}`,
-    `merchantId=${merchantId}`,
-    `accountUsd=${accountUsd}`,
-    `accountKhr=${accountKhr}`,
-    `order=${order.orderNumber}`,
-    `amountUsd=$${amountUsd}`,
-    `amountKhr=៛${amountKhr.toLocaleString()}`,
-    `ref=${reference}`,
-  ].join('|');
+  // 1. Build EMVCo Dynamic USD QR
+  const qrPayloadUsd = buildEmvcoKhqr({
+    bakongAccount: accountUsd,
+    merchantName,
+    merchantCity,
+    currency: 'USD',
+    amount: amountUsd,
+    billNumber: order.orderNumber,
+    storeLabel: 'ShopHub',
+  });
 
-  const staticQrImageUrl = process.env.KHQR_STATIC_QR_IMAGE_URL;
-  const staticQrImagePath = process.env.KHQR_STATIC_QR_IMAGE_PATH || 'uploads/payments/aba_pay_khqr.png';
-  const backendPublic = process.env.BACKEND_PUBLIC_URL || 'http://localhost:5000';
-  const staticRouteUrl = staticQrImagePath ? `${backendPublic}/api/payments/khqr/static-image` : '';
-  const qrUrl =
-    staticQrImageUrl ||
-    staticRouteUrl ||
-    `https://quickchart.io/qr?text=${encodeURIComponent(payload)}&size=320`;
-  return { reference, qrPayload: payload, qrUrl, expiresAt };
+  // 2. Build EMVCo Dynamic KHR QR
+  const qrPayloadKhr = buildEmvcoKhqr({
+    bakongAccount: accountKhr,
+    merchantName,
+    merchantCity,
+    currency: 'KHR',
+    amount: amountKhr,
+    billNumber: order.orderNumber,
+    storeLabel: 'ShopHub',
+  });
+
+  // 3. Generate instant base64 Data URLs
+  const qrUrlUsd = await QRCode.toDataURL(qrPayloadUsd, {
+    width: 360,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+    color: { dark: '#000000', light: '#ffffff' },
+  });
+
+  const qrUrlKhr = await QRCode.toDataURL(qrPayloadKhr, {
+    width: 360,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+    color: { dark: '#000000', light: '#ffffff' },
+  });
+
+  return {
+    reference,
+    qrPayload: qrPayloadUsd,
+    qrUrl: qrUrlUsd,
+    qrPayloadKhr,
+    qrUrlKhr,
+    amountUsd,
+    amountKhr,
+    expiresAt,
+  };
 };
 
 const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   const baseUrl = process.env.ABA_PAYWAY_BASE_URL || 'https://checkout-sandbox.payway.com.kh';
   const endpoint = process.env.ABA_KHQR_CREATE_URL || '/api/payment-gateway/v1/payments/generate-qr';
-  // Support both short (ABA_MERCHANT_ID/ABA_API_KEY) and long (ABA_PAYWAY_*) env var naming conventions
   const merchantId = (process.env.ABA_PAYWAY_MERCHANT_ID || process.env.ABA_MERCHANT_ID || '').trim();
   const apiKey = (process.env.ABA_PAYWAY_API_KEY || process.env.ABA_API_KEY || '').trim();
   if (!merchantId || !apiKey) {
@@ -68,7 +163,8 @@ const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
 
   const reference = order.orderNumber.slice(-20);
   const reqTime = toUtcReqTime();
-  const amount = Number(order.total.toFixed(2));
+  const amountUsd = Number(order.total.toFixed(2));
+  const amountKhr = Math.round(order.total * 4100);
   const currency = (process.env.ABA_PAYWAY_CURRENCY || 'USD').toUpperCase();
   const lifetime = Number(process.env.ABA_PAYWAY_LIFETIME_MINUTES || 10);
   const qrImageTemplate = process.env.ABA_PAYWAY_QR_TEMPLATE || 'template3_color';
@@ -83,7 +179,7 @@ const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
       {
         name: `Order ${order.orderNumber}`,
         quantity: 1,
-        price: amount,
+        price: amountUsd,
       },
     ].slice(0, 10)
   );
@@ -105,7 +201,7 @@ const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
     reqTime,
     merchantId,
     reference,
-    String(amount),
+    String(amountUsd),
     items,
     firstName,
     lastName,
@@ -133,7 +229,7 @@ const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
     last_name: lastName,
     email,
     phone,
-    amount,
+    amount: amountUsd,
     purchase_type: purchaseType,
     payment_option: paymentOption,
     items,
@@ -166,18 +262,26 @@ const buildAbaKhqr = async (order: Order): Promise<KhqrCreateResult> => {
     throw new Error('Invalid ABA PayWay QR response');
   }
 
-  return { reference, qrPayload, qrUrl, expiresAt };
+  return {
+    reference,
+    qrPayload,
+    qrUrl,
+    amountUsd,
+    amountKhr,
+    expiresAt,
+  };
 };
 
 export const createKhqrForOrder = async (order: Order): Promise<KhqrCreateResult> => {
   if (provider === 'aba') {
-    return buildAbaKhqr(order);
+    try {
+      return await buildAbaKhqr(order);
+    } catch (e) {
+      console.warn('ABA PayWay live generation failed, falling back to dynamic Bakong EMVCo QR:', e);
+      return await buildMockKhqr(order);
+    }
   }
-  // "static" uses merchant-provided KHQR image URL (fixed QR)
-  if (provider === 'static') {
-    return buildMockKhqr(order);
-  }
-  return buildMockKhqr(order);
+  return await buildMockKhqr(order);
 };
 
 export const verifyKhqrWebhookSignature = (rawBody: string, signature: string | undefined): boolean => {
@@ -202,4 +306,3 @@ export const verifyKhqrWebhookSignature = (rawBody: string, signature: string | 
     return false;
   }
 };
-

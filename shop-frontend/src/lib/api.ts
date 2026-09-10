@@ -107,6 +107,15 @@ export const authApi = {
     clientLatitude?: number;
     clientLongitude?: number;
   }) => api.post('/auth/telegram', data),
+  createTelegramSession: () => api.post('/auth/telegram/session'),
+  checkTelegramSession: (sessionId: string) => api.get(`/auth/telegram/session/${sessionId}`),
+  sendTelegramLoginCode: (data: { target: string }) => api.post('/auth/telegram/send-code', data),
+  verifyTelegramLoginCode: (data: {
+    target: string;
+    code: string;
+    clientLatitude?: number;
+    clientLongitude?: number;
+  }) => api.post('/auth/telegram/verify-code', data),
   googleLogin: (data: {
     credential: string;
     clientLatitude?: number;

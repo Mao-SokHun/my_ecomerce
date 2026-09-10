@@ -19,7 +19,6 @@ import axios from 'axios';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
-import { BlockchainProofModal, type BlockchainReceiptData } from '@/components/payment/BlockchainProofModal';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -52,7 +51,7 @@ export default function CheckoutPage() {
     note: '', isDefault: false,
   });
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'bakong' | 'aba'>('card');
+  const [paymentMethod] = useState<'bakong'>('bakong');
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
@@ -63,12 +62,14 @@ export default function CheckoutPage() {
     orderId: string;
     reference: string;
     qrImageUrl: string;
+    qrImageUrlKhr?: string;
+    qrString?: string;
+    qrStringKhr?: string;
     expiresAt: string;
     amount: number;
+    amountKhr?: number;
   } | null>(null);
   const [khqrVariant, setKhqrVariant] = useState<'aba_pay' | 'aba_khr' | 'aba_poster'>('aba_pay');
-  const [blockchainReceipt, setBlockchainReceipt] = useState<BlockchainReceiptData | null>(null);
-  const [showBlockchainModal, setShowBlockchainModal] = useState(false);
   const [abaPayment, setAbaPayment] = useState<{
     orderId: string;
     orderNumber: string;
@@ -285,14 +286,19 @@ export default function CheckoutPage() {
 
       if (paymentMethod === 'bakong') {
         const khqrRes = await paymentApi.createKhqr(orderId);
+        const khqrData = khqrRes.data.data;
         setKhqrPayment({
           orderId,
-          reference: khqrRes.data.data.reference,
-          qrImageUrl: khqrRes.data.data.qrImageUrl,
-          expiresAt: khqrRes.data.data.expiresAt,
-          amount: khqrRes.data.data.amount,
+          reference: khqrData.reference,
+          qrImageUrl: khqrData.qrImageUrl,
+          qrImageUrlKhr: khqrData.qrImageUrlKhr,
+          qrString: khqrData.qrString,
+          qrStringKhr: khqrData.qrStringKhr,
+          expiresAt: khqrData.expiresAt,
+          amount: khqrData.amount,
+          amountKhr: khqrData.amountKhr || Math.round(khqrData.amount * 4100),
         });
-        toast.success('KHQR generated. Please scan to pay.');
+        toast.success(language === 'km' ? 'បានបង្កើត Dynamic KHQR សូមស្កេនដើម្បីបង់ប្រាក់' : 'KHQR generated. Please scan to pay.');
       } else if (paymentMethod === 'aba') {
         try {
           const abaRes = await paymentApi.createAba(orderId);
@@ -824,131 +830,29 @@ export default function CheckoutPage() {
                     <CreditCard className="w-5 h-5 text-primary-600" /> Payment
                   </h2>
 
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-5">
-                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">
-                      {language === 'km' ? 'ជ្រើសរើសវិធីបង់ប្រាក់' : language === 'zh' ? '选择支付方式' : 'Choose Payment Method'}
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                      {language === 'km'
-                        ? 'អ្នកអាចបង់តាមកាត Visa, Bakong ឬ ABA PayWay'
-                        : language === 'zh'
-                          ? '您可以使用 Visa 卡、Bakong 或 ABA PayWay 支付'
-                          : 'You can pay with Visa card, Bakong or ABA PayWay.'}
-                    </p>
-                  </div>
-
-                  <div className="grid sm:grid-cols-3 gap-3 mb-5">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('card')}
-                      className={`text-left p-4 rounded-xl border-2 transition-all ${
-                        paymentMethod === 'card'
-                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-primary-400'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <CreditCard className="w-4 h-4 text-primary-600" />
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">Visa</p>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {language === 'km' ? 'បង់តាមកាត Visa' : language === 'zh' ? 'Visa 卡支付' : 'Visa card payment'}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('bakong')}
-                      className={`text-left p-4 rounded-xl border-2 transition-all ${
-                        paymentMethod === 'bakong'
-                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-primary-400'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <QrCode className="w-4 h-4 text-primary-600" />
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">Bakong</p>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {language === 'km' ? 'បង់តាម KHQR' : language === 'zh' ? 'KHQR 付款' : 'Pay via KHQR'}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('aba')}
-                      className={`text-left p-4 rounded-xl border-2 transition-all ${
-                        paymentMethod === 'aba'
-                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-primary-400'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Landmark className="w-4 h-4 text-primary-600" />
-                        <p className="font-semibold text-sm text-gray-900 dark:text-white">ABA PayWay</p>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {language === 'km' ? 'បង់តាម ABA' : language === 'zh' ? 'ABA 支付' : 'Pay via ABA'}
-                      </p>
-                    </button>
-                  </div>
-
-                  {paymentMethod === 'card' ? (
-                    <div className="space-y-3 mb-5">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                          {language === 'km' ? 'លេខកាត' : language === 'zh' ? '卡号' : 'Card Number'}
-                        </label>
-                        <input type="text" placeholder="4242 4242 4242 4242" className="input text-sm" defaultValue="4242 4242 4242 4242" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            {language === 'km' ? 'ថ្ងៃផុតកំណត់' : language === 'zh' ? '到期日' : 'Expiry Date'}
-                          </label>
-                          <input type="text" placeholder="MM/YY" className="input text-sm" defaultValue="12/28" />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            CVC
-                          </label>
-                          <input type="text" placeholder="123" className="input text-sm" defaultValue="123" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                          {language === 'km' ? 'ឈ្មោះលើកាត' : language === 'zh' ? '持卡人姓名' : 'Name on Card'}
-                        </label>
-                        <input type="text" placeholder="John Doe" className="input text-sm" defaultValue={user?.name} />
-                      </div>
+                  {/* Payment Method - Bakong KHQR Only */}
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-500/30 mb-5 flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                      <QrCode className="w-5 h-5" />
                     </div>
-                  ) : paymentMethod === 'bakong' ? (
-                    <div className="mb-5 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
-                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Bakong Payment Selected</p>
-                      <p className="text-xs text-emerald-700/90 dark:text-emerald-300/90">
-                        After placing order, please complete payment in your Bakong app by scanning merchant KHQR or paying to merchant Bakong ID.
-                      </p>
-                      <a
-                        href="https://bakong.nbc.gov.kh/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-block mt-2 text-xs font-medium text-primary-600 hover:underline"
-                      >
-                        {language === 'km' ? 'បើកគេហទំព័រ Bakong' : language === 'zh' ? '打开 Bakong 官网' : 'Open Bakong official website'}
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="mb-5 p-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-                      <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-1">
-                        {language === 'km' ? 'បង់ប្រាក់តាម ABA PayWay' : language === 'zh' ? 'ABA PayWay 支付' : 'ABA PayWay Payment'}
-                      </p>
-                      <p className="text-xs text-blue-700/90 dark:text-blue-300/90">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white">
+                          Bakong KHQR
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                          {language === 'km' ? 'ស្កេនទូទាត់' : 'Scan to Pay'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
                         {language === 'km'
-                          ? 'អ្នកនឹងត្រូវបានបញ្ជូនទៅកាន់ ABA PayWay ដើម្បីបង់ប្រាក់មានសុវត្ថិភាព។ គាំទ្រ ABA Mobile, Visa, Mastercard។'
+                          ? 'ស្កេនទូទាត់ប្រាក់ភ្លាមៗតាមរយៈ KHQR ជាមួយ ABA Mobile, Bakong, ACLEDA, Wing, Canadia និង Banking App ទាំងអស់នៅកម្ពុជា (គាំទ្រទាំង $ USD និង ៛ KHR)។'
                           : language === 'zh'
-                            ? '您将被跳转到 ABA PayWay 安全支付页面。支持 ABA 移动端、Visa、Mastercard。'
-                            : 'You will be redirected to ABA PayWay secure checkout. Supports ABA Mobile, Visa, Mastercard.'}
+                          ? '使用 ABA Mobile、Bakong 或任何柬埔寨银行 App 扫码即时付款 (支持 USD 与 KHR)。'
+                          : 'Scan and pay instantly via KHQR with ABA Mobile, Bakong, ACLEDA, Wing, or any Cambodian banking app (Supports USD & KHR).'}
                       </p>
                     </div>
-                  )}
+                  </div>
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
                     {t(language, 'checkoutPrivacyNoticePrefix')}{' '}
@@ -1005,25 +909,6 @@ export default function CheckoutPage() {
                 <p className="text-sm font-mono font-bold text-primary-600 mt-3 mb-1">{completedOrder.orderNumber}</p>
                 <p className="text-gray-500 text-sm">Total: <span className="font-bold text-gray-900 dark:text-white">{formatPrice(completedOrder.total)}</span></p>
                 <p className="text-sm text-gray-400 mt-3">A confirmation email has been sent to {user?.email}</p>
-
-                <div className="mt-4 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const res = await paymentApi.getBlockchainReceipt(completedOrder.id);
-                        setBlockchainReceipt(res.data.data);
-                        setShowBlockchainModal(true);
-                      } catch {
-                        toast.error('Unable to fetch Smart Contract receipt');
-                      }
-                    }}
-                    className="py-2 px-4 bg-emerald-950/40 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-emerald-400 text-xs font-semibold inline-flex items-center gap-2 transition-all shadow-sm"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>View Blockchain Smart Contract Proof</span>
-                  </button>
-                </div>
 
                 <div className="flex gap-3 justify-center mt-6">
                   <button onClick={() => router.push('/dashboard/orders')} className="btn-primary">
@@ -1215,19 +1100,59 @@ export default function CheckoutPage() {
             </div>
 
             {/* QR Card Container */}
-            <div className="relative w-full bg-white rounded-xl p-2 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner flex items-center justify-center mb-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={
-                  khqrVariant === 'aba_poster'
-                    ? '/payments/aba_payway_mao_sokhun.png'
-                    : khqrVariant === 'aba_khr'
-                    ? '/payments/aba_qr_khr.png'
-                    : khqrPayment.qrImageUrl || '/payments/aba_pay_khqr.png'
-                }
-                alt="ABA Bank KHQR MAO SOKHUN"
-                className="w-full max-h-[340px] object-contain rounded-lg shadow-sm"
-              />
+            <div className="relative w-full bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner flex flex-col items-center justify-center mb-3">
+              {khqrVariant === 'aba_poster' ? (
+                <div className="w-full flex flex-col items-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/payments/aba_payway_mao_sokhun.png"
+                    alt="ABA Bank KHQR Poster MAO SOKHUN"
+                    className="w-full max-h-[340px] object-contain rounded-lg shadow-sm"
+                  />
+                  <span className="mt-2 text-[11px] text-gray-500 font-medium">ABA Official Merchant Poster</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col items-center">
+                  {/* Authentic ABA KHQR Card */}
+                  <div className="w-full max-w-[280px] bg-[#E1251B] text-white py-1.5 px-3 rounded-t-xl flex items-center justify-between font-bold text-xs tracking-wider shadow-sm">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-sm tracking-tight">ABA</span>
+                      <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">KHQR</span>
+                    </div>
+                    <span className="text-xs font-mono font-bold">
+                      {khqrVariant === 'aba_pay'
+                        ? `$${Number(khqrPayment.amount).toFixed(2)}`
+                        : `៛${(khqrPayment.amountKhr || Math.round(khqrPayment.amount * 4100)).toLocaleString()}`}
+                    </span>
+                  </div>
+
+                  {/* QR Code Canvas/Image */}
+                  <div className="w-full max-w-[280px] bg-white p-3 border-x-2 border-b-2 border-[#E1251B] rounded-b-xl shadow-md flex flex-col items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        khqrVariant === 'aba_pay'
+                          ? (khqrPayment.qrImageUrl || '/payments/aba_pay_khqr.png')
+                          : (khqrPayment.qrImageUrlKhr || khqrPayment.qrImageUrl || '/payments/aba_qr_khr.png')
+                      }
+                      alt={`ABA Bank Dynamic KHQR ${khqrVariant === 'aba_pay' ? 'USD' : 'KHR'}`}
+                      className="w-[220px] h-[220px] object-contain"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between w-full pt-1 border-t border-gray-100 text-[11px] text-gray-600 font-medium">
+                      <span>{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
+                      <span className="font-mono text-red-600 font-bold">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {language === 'km'
+                      ? 'ស្កេនជាមួយ ABA Mobile, Bakong ឬ Banking App ទាំងអស់'
+                      : language === 'zh'
+                      ? '使用 ABA Mobile 或任何银行 App 扫码支付'
+                      : 'Scan with ABA Mobile, Bakong or any Mobile Banking App'}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Account Details */}
@@ -1256,54 +1181,12 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Blockchain Smart Contract Badge & Audit Trigger */}
-            <div className="mb-4 pt-1">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const res = await paymentApi.getBlockchainReceipt(khqrPayment.orderId);
-                    setBlockchainReceipt(res.data.data);
-                    setShowBlockchainModal(true);
-                  } catch {
-                    toast.error('Unable to fetch Smart Contract receipt');
-                  }
-                }}
-                className="w-full py-2 px-3 bg-emerald-950/40 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-emerald-400 text-xs font-semibold flex items-center justify-between transition-all group shadow-sm"
-              >
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 group-hover:animate-pulse" />
-                  <span>Verified by Smart Contract</span>
-                </span>
-                <span className="text-[11px] font-mono text-emerald-300 underline flex items-center gap-0.5">
-                  Proof & Tx Hash <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-            </div>
-
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Mock confirm button — only shown in development/staging, not production */}
-              {process.env.NEXT_PUBLIC_NODE_ENV !== 'production' && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await paymentApi.mockConfirmKhqr(khqrPayment.orderId);
-                    toast.success(language === 'km' ? 'បានបញ្ជាក់ការទូទាត់' : language === 'zh' ? '支付已确认' : 'Payment Confirmed');
-                  } catch {
-                    toast.error('Unable to confirm payment');
-                  }
-                }}
-                className="btn-primary text-sm py-2.5 font-bold shadow-md bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 border-none text-white"
-              >
-                {language === 'km' ? 'ខ្ញុំបានបង់ប្រាក់រួច' : language === 'zh' ? '我已完成支付' : 'I Have Paid'}
-              </button>
-              )}
+            <div className="w-full">
               <button
                 type="button"
                 onClick={() => setKhqrPayment(null)}
-                className="btn-secondary text-sm py-2.5"
+                className="w-full btn-secondary text-sm py-2.5 font-bold"
               >
                 {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
               </button>
@@ -1311,82 +1194,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       )}
-
-      {abaPayment && (
-        <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm card p-5">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <Landmark className="w-5 h-5 text-primary-600" /> ABA PayWay
-            </h3>
-            <p className="text-xs text-gray-500 mb-3">
-              {language === 'km' ? 'ស្កេន QR ឬបើក ABA App ដើម្បីបង់ប្រាក់' : language === 'zh' ? '扫码或打开 ABA 应用支付' : 'Scan QR or open ABA app to pay'}
-            </p>
-            {abaPayment.qrBase64 && (
-              <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`data:image/png;base64,${abaPayment.qrBase64}`}
-                  alt="ABA PayWay QR"
-                  className="w-full h-full object-contain p-2"
-                />
-              </div>
-            )}
-            {!abaPayment.qrBase64 && abaPayment.qrString && (
-              <div className="relative w-full aspect-square bg-white rounded-xl p-3 border border-gray-200 overflow-hidden flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=520x520&data=${encodeURIComponent(abaPayment.qrString)}`}
-                  alt="ABA PayWay QR"
-                  className="w-full h-full object-contain p-2"
-                />
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {abaPayment.deeplink && (
-                <a href={abaPayment.deeplink} className="btn-primary text-sm inline-flex items-center justify-center gap-1">
-                  ABA App <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-              <button onClick={() => setAbaPayment(null)} className="btn-secondary text-sm">
-                {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {cardPaymentOrder &&
-        cardPaymentOrder.clientSecret &&
-        stripePublishableKey && (
-          <StripePaymentModal
-            isOpen
-            onClose={handleCardModalClose}
-            onSuccess={async (paymentIntentId) => {
-              await handleCardPaymentSuccess(paymentIntentId);
-            }}
-            clientSecret={cardPaymentOrder.clientSecret}
-            returnUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/checkout?stripe_return=1&order_id=${cardPaymentOrder.id}`}
-            publishableKey={stripePublishableKey}
-            amount={cardPaymentOrder.amount}
-            language={language}
-          />
-        )}
-
-      {cardPaymentOrder && (!cardPaymentOrder.clientSecret || !stripePublishableKey) && (
-        <CardPaymentModal
-          isOpen
-          onClose={handleCardModalClose}
-          onSuccess={() => handleCardPaymentSuccess('mock_card_payment')}
-          amount={cardPaymentOrder.amount}
-          language={language}
-        />
-      )}
-
-      <BlockchainProofModal
-        isOpen={showBlockchainModal}
-        onClose={() => setShowBlockchainModal(false)}
-        receipt={blockchainReceipt}
-      />
     </div>
   );
 }

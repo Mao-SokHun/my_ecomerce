@@ -14,7 +14,6 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
-import { BlockchainProofModal, type BlockchainReceiptData } from '@/components/payment/BlockchainProofModal';
 import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
 
 export default function OrderDetailsPage() {
@@ -31,12 +30,14 @@ export default function OrderDetailsPage() {
     orderId: string;
     reference: string;
     qrImageUrl: string;
+    qrImageUrlKhr?: string;
+    qrString?: string;
+    qrStringKhr?: string;
     expiresAt: string;
     amount: number;
+    amountKhr?: number;
   } | null>(null);
   const [khqrVariant, setKhqrVariant] = useState<'aba_pay' | 'aba_khr' | 'aba_poster'>('aba_pay');
-  const [blockchainReceipt, setBlockchainReceipt] = useState<BlockchainReceiptData | null>(null);
-  const [showBlockchainModal, setShowBlockchainModal] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
   const [stripeCardSession, setStripeCardSession] = useState<{ clientSecret: string; amount: number } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'bakong' | 'aba'>('card');
@@ -415,63 +416,21 @@ export default function OrderDetailsPage() {
     if (!order) return;
     setIsPaying(true);
     try {
-      if (selectedPaymentMethod === 'bakong') {
-        const { data } = await paymentApi.createKhqr(order.id);
-        setKhqrPayment({
-          orderId: order.id,
-          reference: data.data.reference,
-          qrImageUrl: data.data.qrImageUrl,
-          expiresAt: data.data.expiresAt,
-          amount: data.data.amount,
-        });
-      } else if (selectedPaymentMethod === 'aba') {
-        try {
-          const abaRes = await paymentApi.createAba(order.id);
-          const payload = abaRes.data.data as { deeplink?: string | null; qrBase64?: string | null };
-          if (payload.deeplink && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-            window.location.href = payload.deeplink;
-          }
-          if (payload.qrBase64) {
-            toast.success(
-              language === 'zh'
-                ? 'ABA 二维码已生成，请在结账页扫描'
-                : language === 'km'
-                  ? 'ABA QR បានបង្កើតរួច សូមស្កេននៅ checkout'
-                  : 'ABA QR generated, please scan in checkout page'
-            );
-            router.push('/checkout');
-          } else {
-            toast(
-              language === 'zh'
-                ? 'ABA 支付已启动'
-                : language === 'km'
-                  ? 'ABA payment បានចាប់ផ្តើម'
-                  : 'ABA payment started',
-              { icon: 'ℹ️' }
-            );
-          }
-        } catch {
-          toast.error(language === 'zh' ? '无法启动 ABA 支付' : language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់ ABA បានទេ។' : 'Failed to start ABA payment');
-        }
-      } else {
-        const pk = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
-        if (pk) {
-          try {
-            const { data } = await orderApi.createStripePaymentIntent(order.id);
-            const secret = data.data?.clientSecret as string | undefined;
-            if (!secret) throw new Error('No client secret');
-            setStripeCardSession({ clientSecret: secret, amount: order.total });
-            const { data: refreshed } = await orderApi.getById(order.id);
-            setOrder(refreshed.data);
-          } catch {
-            toast.error(language === 'zh' ? '无法开始支付' : language === 'km' ? 'មិនអាចចាប់ផ្តើមការទូទាត់' : 'Failed to start payment');
-          }
-        } else {
-          setShowCardModal(true);
-        }
-      }
+      const { data } = await paymentApi.createKhqr(order.id);
+      const khqrData = data.data;
+      setKhqrPayment({
+        orderId: order.id,
+        reference: khqrData.reference,
+        qrImageUrl: khqrData.qrImageUrl,
+        qrImageUrlKhr: khqrData.qrImageUrlKhr,
+        qrString: khqrData.qrString,
+        qrStringKhr: khqrData.qrStringKhr,
+        expiresAt: khqrData.expiresAt,
+        amount: khqrData.amount,
+        amountKhr: khqrData.amountKhr || Math.round(khqrData.amount * 4100),
+      });
     } catch {
-      toast.error('Failed to initiate payment');
+      toast.error(language === 'km' ? 'មិនអាចបង្កើត KHQR បានទេ' : 'Failed to initiate KHQR payment');
     } finally {
       setIsPaying(false);
     }
@@ -563,66 +522,45 @@ export default function OrderDetailsPage() {
           </div>
 
         {order.paymentStatus === 'PENDING' && (
-          <div className="rounded-xl border border-gray-200/90 bg-gray-50/80 dark:border-gray-700 dark:bg-surface-800/60 p-3 sm:p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-              {language === 'km' ? 'របៀបទូទាត់' : language === 'zh' ? '付款方式' : 'Payment'}
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="flex items-center rounded-xl border border-gray-200 dark:border-gray-600 p-1 bg-white dark:bg-surface-900 w-fit">
-              <button
-                type="button"
-                onClick={() => setSelectedPaymentMethod('card')}
-                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  selectedPaymentMethod === 'card'
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
-                }`}
-              >
-                Visa
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedPaymentMethod('bakong')}
-                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  selectedPaymentMethod === 'bakong'
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
-                }`}
-              >
-                Bakong
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedPaymentMethod('aba')}
-                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  selectedPaymentMethod === 'aba'
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-800'
-                }`}
-              >
-                ABA
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={handlePayNow}
-                disabled={isPaying}
-                className="btn-primary py-2.5 px-4 text-sm inline-flex items-center justify-center gap-2 shadow-sm shadow-primary-500/20"
-              >
-                {selectedPaymentMethod === 'bakong' ? <QrCode className="w-4 h-4 shrink-0" /> : selectedPaymentMethod === 'aba' ? <Landmark className="w-4 h-4 shrink-0" /> : <CreditCard className="w-4 h-4 shrink-0" />}
-                {isPaying ? '...' : t(language, 'payNow')}
-              </button>
-              {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
+          <div className="rounded-2xl border border-emerald-200/90 bg-emerald-50/70 dark:border-emerald-800/60 dark:bg-emerald-950/20 p-3 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">
+                    Bakong KHQR
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {language === 'km'
+                      ? 'ស្កេនទូទាត់ជាមួយ ABA Mobile, Bakong ឬ Banking App ទាំងអស់'
+                      : language === 'zh'
+                      ? '使用 ABA Mobile、Bakong 或任何银行 App 扫码支付'
+                      : 'Scan to pay with ABA Mobile, Bakong or any Banking App'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  type="button"
-                  onClick={handleCancelOrder}
-                  className="btn-secondary py-2.5 px-4 text-sm inline-flex items-center gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"
+                  onClick={handlePayNow}
+                  disabled={isPaying}
+                  className="btn-primary py-2.5 px-4 text-sm font-bold inline-flex items-center justify-center gap-2 shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                 >
-                  <XCircle className="w-4 h-4 shrink-0" />
-                  {language === 'km' ? 'បោះបង់កម្មង់' : language === 'zh' ? '取消订单' : 'Cancel order'}
+                  <QrCode className="w-4 h-4 shrink-0" />
+                  {isPaying ? '...' : language === 'km' ? 'បង់ប្រាក់តាម KHQR ឥឡូវនេះ' : language === 'zh' ? '立即通过 KHQR 支付' : 'Pay via KHQR Now'}
                 </button>
-              )}
-            </div>
+                {(order.status === 'PENDING' || order.status === 'CONFIRMED') && (
+                  <button
+                    type="button"
+                    onClick={handleCancelOrder}
+                    className="btn-secondary py-2.5 px-3 text-xs inline-flex items-center gap-1.5 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"
+                  >
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    {language === 'km' ? 'បោះបង់កម្មង់' : language === 'zh' ? '取消订单' : 'Cancel order'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -736,23 +674,6 @@ export default function OrderDetailsPage() {
             <FileText className="w-5 h-5" /> {t(language, 'printReceipt')}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                if (!order) return;
-                try {
-                  const res = await paymentApi.getBlockchainReceipt(order.id);
-                  setBlockchainReceipt(res.data.data);
-                  setShowBlockchainModal(true);
-                } catch {
-                  toast.error('Unable to fetch Smart Contract receipt');
-                }
-              }}
-              className="btn-secondary text-sm px-3 py-2 inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Smart Contract Proof</span>
-            </button>
             <button
               onClick={handleDownloadReceipt}
               className="btn-primary text-sm px-3 py-2"
@@ -905,19 +826,59 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* QR Card Container */}
-            <div className="relative w-full bg-white rounded-xl p-2 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner flex items-center justify-center mb-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={
-                  khqrVariant === 'aba_poster'
-                    ? '/payments/aba_payway_mao_sokhun.png'
-                    : khqrVariant === 'aba_khr'
-                    ? '/payments/aba_qr_khr.png'
-                    : khqrPayment.qrImageUrl || '/payments/aba_pay_khqr.png'
-                }
-                alt="ABA Bank KHQR MAO SOKHUN"
-                className="w-full max-h-[340px] object-contain rounded-lg shadow-sm"
-              />
+            <div className="relative w-full bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner flex flex-col items-center justify-center mb-3">
+              {khqrVariant === 'aba_poster' ? (
+                <div className="w-full flex flex-col items-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/payments/aba_payway_mao_sokhun.png"
+                    alt="ABA Bank KHQR Poster MAO SOKHUN"
+                    className="w-full max-h-[340px] object-contain rounded-lg shadow-sm"
+                  />
+                  <span className="mt-2 text-[11px] text-gray-500 font-medium">ABA Official Merchant Poster</span>
+                </div>
+              ) : (
+                <div className="w-full flex flex-col items-center">
+                  {/* Authentic ABA KHQR Card */}
+                  <div className="w-full max-w-[280px] bg-[#E1251B] text-white py-1.5 px-3 rounded-t-xl flex items-center justify-between font-bold text-xs tracking-wider shadow-sm">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-sm tracking-tight">ABA</span>
+                      <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">KHQR</span>
+                    </div>
+                    <span className="text-xs font-mono font-bold">
+                      {khqrVariant === 'aba_pay'
+                        ? `$${Number(khqrPayment.amount).toFixed(2)}`
+                        : `៛${(khqrPayment.amountKhr || Math.round(khqrPayment.amount * 4100)).toLocaleString()}`}
+                    </span>
+                  </div>
+
+                  {/* QR Code Canvas/Image */}
+                  <div className="w-full max-w-[280px] bg-white p-3 border-x-2 border-b-2 border-[#E1251B] rounded-b-xl shadow-md flex flex-col items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        khqrVariant === 'aba_pay'
+                          ? (khqrPayment.qrImageUrl || '/payments/aba_pay_khqr.png')
+                          : (khqrPayment.qrImageUrlKhr || khqrPayment.qrImageUrl || '/payments/aba_qr_khr.png')
+                      }
+                      alt={`ABA Bank Dynamic KHQR ${khqrVariant === 'aba_pay' ? 'USD' : 'KHR'}`}
+                      className="w-[220px] h-[220px] object-contain"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between w-full pt-1 border-t border-gray-100 text-[11px] text-gray-600 font-medium">
+                      <span>{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
+                      <span className="font-mono text-red-600 font-bold">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {language === 'km'
+                      ? 'ស្កេនជាមួយ ABA Mobile, Bakong ឬ Banking App ទាំងអស់'
+                      : language === 'zh'
+                      ? '使用 ABA Mobile 或任何银行 App 扫码支付'
+                      : 'Scan with ABA Mobile, Bakong or any Mobile Banking App'}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Account Details */}
@@ -946,54 +907,12 @@ export default function OrderDetailsPage() {
               </div>
             </div>
 
-            {/* Blockchain Smart Contract Badge & Audit Trigger */}
-            <div className="mb-4 pt-1">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const res = await paymentApi.getBlockchainReceipt(khqrPayment.orderId);
-                    setBlockchainReceipt(res.data.data);
-                    setShowBlockchainModal(true);
-                  } catch {
-                    toast.error('Unable to fetch Smart Contract receipt');
-                  }
-                }}
-                className="w-full py-2 px-3 bg-emerald-950/40 border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl text-emerald-400 text-xs font-semibold flex items-center justify-between transition-all group shadow-sm"
-              >
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 group-hover:animate-pulse" />
-                  <span>Verified by Smart Contract</span>
-                </span>
-                <span className="text-[11px] font-mono text-emerald-300 underline flex items-center gap-0.5">
-                  Proof & Tx Hash <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </button>
-            </div>
-
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Mock confirm button — only shown in development/staging, not production */}
-              {process.env.NEXT_PUBLIC_NODE_ENV !== 'production' && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await paymentApi.mockConfirmKhqr(khqrPayment.orderId);
-                    toast.success(language === 'km' ? 'បានបញ្ជាក់ការទូទាត់' : language === 'zh' ? '支付已确认' : 'Payment Confirmed');
-                  } catch {
-                    toast.error('Unable to confirm payment');
-                  }
-                }}
-                className="btn-primary text-sm py-2.5 font-bold shadow-md bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 border-none text-white"
-              >
-                {language === 'km' ? 'ខ្ញុំបានបង់ប្រាក់រួច' : language === 'zh' ? '我已完成支付' : 'I Have Paid'}
-              </button>
-              )}
+            <div className="w-full">
               <button
                 type="button"
                 onClick={() => setKhqrPayment(null)}
-                className="btn-secondary text-sm py-2.5"
+                className="w-full btn-secondary text-sm py-2.5 font-bold"
               >
                 {language === 'km' ? 'បិទ' : language === 'zh' ? '关闭' : 'Close'}
               </button>
@@ -1001,41 +920,6 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       )}
-
-      {stripeCardSession && order && (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim() && (
-        <StripePaymentModal
-          isOpen
-          onClose={() => setStripeCardSession(null)}
-          onSuccess={async (paymentIntentId) => {
-            await handleCardPaymentSuccess(paymentIntentId);
-          }}
-          clientSecret={stripeCardSession.clientSecret}
-          returnUrl={
-            typeof window !== 'undefined'
-              ? `${window.location.origin}${window.location.pathname}?stripe_return=1`
-              : ''
-          }
-          publishableKey={(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim()}
-          amount={stripeCardSession.amount}
-          language={language}
-        />
-      )}
-
-      {showCardModal && order && !stripeCardSession && (
-        <CardPaymentModal
-          isOpen={showCardModal}
-          onClose={() => setShowCardModal(false)}
-          onSuccess={() => handleCardPaymentSuccess('mock_card_payment')}
-          amount={order.total}
-          language={language}
-        />
-      )}
-
-      <BlockchainProofModal
-        isOpen={showBlockchainModal}
-        onClose={() => setShowBlockchainModal(false)}
-        receipt={blockchainReceipt}
-      />
     </div>
   );
 }

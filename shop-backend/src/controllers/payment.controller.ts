@@ -26,23 +26,6 @@ export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunc
       await prisma.order.update({ where: { id: order.id }, data: { paymentMethod: 'bakong' } });
     }
 
-    if (order.khqrPayload && order.khqrQrUrl && order.khqrExpiresAt && order.khqrExpiresAt > new Date()) {
-      res.json({
-        success: true,
-        data: {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          amount: order.total,
-          currency: 'USD',
-          reference: order.khqrRef,
-          qrString: order.khqrPayload,
-          qrImageUrl: order.khqrQrUrl,
-          expiresAt: order.khqrExpiresAt,
-        },
-      });
-      return;
-    }
-
     const khqr = await createKhqrForOrder(order);
 
     const updated = await prisma.order.update({
@@ -61,10 +44,14 @@ export const createKhqr = async (req: AuthRequest, res: Response, next: NextFunc
         orderId: updated.id,
         orderNumber: updated.orderNumber,
         amount: updated.total,
+        amountUsd: updated.total,
+        amountKhr: Math.round(updated.total * 4100),
         currency: 'USD',
         reference: updated.khqrRef,
-        qrString: updated.khqrPayload,
-        qrImageUrl: updated.khqrQrUrl,
+        qrString: khqr.qrPayload,
+        qrImageUrl: khqr.qrUrl,
+        qrStringKhr: khqr.qrPayloadKhr,
+        qrImageUrlKhr: khqr.qrUrlKhr,
         expiresAt: updated.khqrExpiresAt,
       },
     });
@@ -79,7 +66,11 @@ export const getKhqrStaticImage = async (_req: Request, res: Response, next: Nex
     const absolutePath = path.isAbsolute(staticPath)
       ? staticPath
       : path.resolve(process.cwd(), staticPath);
-    res.sendFile(absolutePath);
+    if (require('fs').existsSync(absolutePath)) {
+      res.sendFile(absolutePath);
+    } else {
+      res.status(404).json({ success: false, message: 'Static QR image not found' });
+    }
   } catch (error) {
     next(error);
   }

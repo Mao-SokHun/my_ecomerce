@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
+  Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -21,8 +22,8 @@ const navItems = [
   { href: '/admin/categories', icon: FolderTree, key: 'navCategories' },
   { href: '/admin/orders', icon: ShoppingCart, key: 'navOrders' },
   { href: '/admin/users', icon: Users, key: 'navUsers' },
-  { href: '/admin/leads', icon: Users, key: 'navLeads' },
-  { href: '/admin/support-inbox', icon: Users, key: 'navSupportInbox' },
+  { href: '/admin/leads', icon: Mail, key: 'navLeads' },
+  { href: '/admin/support-inbox', icon: MessageSquare, key: 'navSupportInbox' },
   { href: '/admin/coupons', icon: Tag, key: 'navCoupons' },
   { href: '/admin/settings', icon: Settings, key: 'navSettings' },
 ];
@@ -247,61 +248,79 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               const label = adminT(language, key);
               const isActive = pathname === href;
               if (href === '/admin/settings') {
-                return (
-                  <div
-                    key={href}
-                    className="relative group"
-                    onMouseEnter={() => setSettingsOpen(true)}
-                    onMouseLeave={() => setSettingsOpen(false)}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setSettingsOpen((v) => !v)}
-                      title={compactSidebar ? label : undefined}
-                      className={`group w-full h-11 flex items-center ${compactSidebar ? 'justify-center' : 'justify-between'} gap-3 px-3 rounded-xl text-sm font-medium transition-all ${
+                const settingsSubmenu = [
+                  { section: 'core', key: 'settingsMenuCore', Icon: Sliders },
+                  { section: 'contact', key: 'settingsMenuContact', Icon: Phone },
+                  { section: 'header', key: 'settingsMenuHeader', Icon: Compass },
+                  { section: 'homepage', key: 'settingsMenuHomepage', Icon: ImageIcon },
+                  { section: 'footer', key: 'settingsMenuFooter', Icon: FileText },
+                  { section: 'invoice', key: 'settingsMenuInvoice', Icon: Receipt },
+                ];
+
+                if (compactSidebar) {
+                  return (
+                    <Link
+                      key={href}
+                      href="/admin/settings"
+                      onClick={() => setSidebarOpen(false)}
+                      title={label}
+                      className={`group relative flex items-center justify-center h-11 rounded-xl text-sm font-medium transition-all ${
                         settingsActive
                           ? 'bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50/90 dark:hover:bg-surface-800 hover:text-gray-900 dark:hover:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
-                      <span className="flex items-center gap-3">
-                        <span className={`w-6 h-6 flex items-center justify-center ${settingsActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-200'}`}>
-                          <Icon className="w-[18px] h-[18px]" />
-                        </span>
-                        {!compactSidebar && label}
-                      </span>
-                      {!compactSidebar && <ChevronDown className={`w-4 h-4 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />}
-                    </button>
-                    {compactSidebar && (
-                      <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                      <Icon className="w-[18px] h-[18px]" />
+                      <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 rounded-lg bg-gray-900 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition z-50">
                         {label}
                       </span>
-                    )}
-                    {settingsOpen && (
-                      <div
-                        className={`${
-                          compactSidebar
-                            ? 'absolute left-full top-0 ml-2 w-40 z-50 max-h-[min(70vh,22rem)] overflow-y-auto overscroll-contain'
-                            : 'absolute inset-x-3 bottom-full z-50 mb-1 max-h-[min(70vh,22rem)] overflow-y-auto overscroll-contain'
-                        } p-1 rounded-xl border border-gray-200/80 dark:border-gray-700 bg-white/95 dark:bg-surface-900/95 backdrop-blur shadow-lg`}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={href} className="space-y-1">
+                    <div
+                      className={`flex items-center justify-between rounded-xl transition-all ${
+                        settingsActive && !settingsOpen
+                          ? 'bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-sm'
+                          : settingsActive
+                          ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-800 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Link
+                        href="/admin/settings"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex-1 h-11 flex items-center gap-3 px-3 text-sm font-medium"
                       >
-                        {(
-                          [
-                            ['core', 'settingsMenuCore'],
-                            ['contact', 'settingsMenuContact'],
-                            ['header', 'settingsMenuHeader'],
-                            ['homepage', 'settingsMenuHomepage'],
-                            ['footer', 'settingsMenuFooter'],
-                            ['invoice', 'settingsMenuInvoice'],
-                          ] as const
-                        ).map(([q, key]) => (
+                        <span className={`w-6 h-6 flex items-center justify-center ${settingsActive && !settingsOpen ? 'text-white' : settingsActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500'}`}>
+                          <Icon className="w-[18px] h-[18px]" />
+                        </span>
+                        <span>{label}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setSettingsOpen((v) => !v)}
+                        className="p-2.5 mr-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-transform"
+                        title={settingsOpen ? 'Collapse' : 'Expand'}
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${settingsOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Clean Inline Submenu (Natural vertical flow without covering other items!) */}
+                    {settingsOpen && (
+                      <div className="ml-3 pl-3 border-l-2 border-primary-200 dark:border-primary-900/60 space-y-0.5 py-1">
+                        {settingsSubmenu.map(({ section, key, Icon: SubIcon }) => (
                           <Link
-                            key={q}
-                            href={`/admin/settings?section=${q}`}
+                            key={section}
+                            href={`/admin/settings?section=${section}`}
                             onClick={() => setSidebarOpen(false)}
-                            className="block px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600"
+                            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                           >
-                            {adminT(language, key)}
+                            <SubIcon className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                            <span>{adminT(language, key)}</span>
                           </Link>
                         ))}
                       </div>

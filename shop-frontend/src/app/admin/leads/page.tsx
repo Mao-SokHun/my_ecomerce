@@ -2,22 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 import { adminApi, leadApi } from '@/lib/api';
 
 type Lead = { id: string; email: string; phone?: string | null; createdAt: string };
 
 export default function AdminLeadsPage() {
   const { language } = useAdminLanguageStore();
+  const isKhmer = language === 'km';
   const [rows, setRows] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const title =
-    language === 'km' ? 'អ្នកចុះ Subscribe' : language === 'zh' ? '订阅用户' : 'Subscribers';
-  const desc =
-    language === 'km'
-      ? 'បញ្ជីអ្នកចុះ Subscribe'
-      : language === 'zh'
-        ? '订阅用户列表'
-        : 'Subscriber list';
 
   useEffect(() => {
     leadApi
@@ -29,22 +23,27 @@ export default function AdminLeadsPage() {
   }, []);
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div
+      className="max-w-5xl mx-auto"
+      style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
+    >
       <div className="card p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
-        <p className="text-sm text-gray-500 mt-2">{desc}</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {adminT(language, 'leadsTitle')}
+        </h1>
+        <p className="text-sm text-gray-500 mt-2">{adminT(language, 'leadsDesc')}</p>
         <div className="mt-4 overflow-x-auto">
           {loading ? (
-            <p className="text-sm text-gray-500">Loading...</p>
+            <p className="text-sm text-gray-500">{isKhmer ? 'កំពុងដំណើរការ...' : 'Loading...'}</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-gray-500">No subscribers yet.</p>
+            <p className="text-sm text-gray-500">{adminT(language, 'noLeadsYet')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left border-b border-gray-100 dark:border-gray-800">
                 <tr>
-                  <th className="py-2 pr-3">Email</th>
-                  <th className="py-2 pr-3">Phone</th>
-                  <th className="py-2">Created</th>
+                  <th className="py-2 pr-3">{adminT(language, 'emailCol')}</th>
+                  <th className="py-2 pr-3">{adminT(language, 'phoneCol')}</th>
+                  <th className="py-2">{adminT(language, 'createdCol')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -63,3 +62,4 @@ export default function AdminLeadsPage() {
     </div>
   );
 }
+

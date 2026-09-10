@@ -23,6 +23,8 @@ interface AuthState {
     auth_date?: number | string;
     hash?: string;
   }) => Promise<void>;
+  loginWithTelegramCode: (target: string, code: string) => Promise<void>;
+  setAuthData: (user: User, token: string, refreshToken?: string) => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string | undefined, phone: string, password: string) => Promise<void>;
   logout: () => void;
@@ -118,6 +120,41 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           set({ isLoading: false });
           throw error;
+        }
+      },
+
+      loginWithTelegramCode: async (target: string, code: string) => {
+        set({ isLoading: true });
+        try {
+          const geo = await getOptionalBrowserGeolocation();
+          const { data } = await authApi.verifyTelegramLoginCode({
+            target,
+            code,
+            ...(geo ? { clientLatitude: geo.latitude, clientLongitude: geo.longitude } : {}),
+          });
+          const { user, token, refreshToken } = data.data;
+          saveTokens(token, refreshToken);
+          set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+          try {
+            const me = await authApi.getMe();
+            if (me.data?.data) set({ user: me.data.data });
+          } catch {
+            /* keep login payload */
+          }
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      setAuthData: async (user: User, token: string, refreshToken?: string) => {
+        saveTokens(token, refreshToken);
+        set({ user, token, refreshToken: refreshToken || null, isAuthenticated: true, isLoading: false, isAuthChecked: true });
+        try {
+          const me = await authApi.getMe();
+          if (me.data?.data) set({ user: me.data.data });
+        } catch {
+          /* keep */
         }
       },
 

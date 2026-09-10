@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle, X, Send, Phone, Mail, Facebook, Send as TelegramIcon, RefreshCw, User, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, X, Send, Phone, Mail, Facebook, Send as TelegramIcon, RefreshCw, User, ShieldCheck, Sparkles, Minus } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
 import { supportApi } from '@/lib/api';
 
-type Msg = { 
-  role: 'user' | 'bot' | 'admin'; 
-  text: string; 
+type Msg = {
+  role: 'user' | 'bot' | 'admin';
+  text: string;
   senderName?: string;
   createdAt?: string;
   isContactOptions?: boolean;
@@ -27,6 +28,9 @@ export default function SupportChatWidget() {
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
+
+  // Drag tracking to distinguish click vs drag
+  const isDraggingRef = useRef(false);
 
   // Live Chat States
   const [inquiryId, setInquiryId] = useState<string | null>(null);
@@ -64,14 +68,14 @@ export default function SupportChatWidget() {
     {
       key: 'payment',
       question: {
-        km: '💳 របៀបទូទាត់ប្រាក់តាម KHQR/ABA/Card',
-        en: '💳 How to pay via KHQR/ABA/Card',
-        zh: '💳 如何通过 KHQR/ABA/卡付款',
+        km: '💳 របៀបទូទាត់ប្រាក់តាម KHQR / Bakong',
+        en: '💳 How to pay via KHQR / Bakong',
+        zh: '💳 如何通过 KHQR / Bakong 付款',
       },
       answer: {
-        km: 'យើងខ្ញុំទទួលការទូទាត់តាម៖\n1. Visa / Mastercard\n2. Bakong KHQR (ស្កែនបានគ្រប់ធនាគារទាំងអស់)\n3. ABA PayWay\nរាល់ការទូទាត់គឺមានសុវត្ថិភាពខ្ពស់។',
-        en: 'We accept payments via:\n1. Visa / Mastercard\n2. Bakong KHQR (Scan from any KH bank app)\n3. ABA PayWay\nAll payments are fully secured.',
-        zh: '我们支持以下付款方式：\n1. Visa / Mastercard\n2. Bakong KHQR（扫码即付，支持所有银行 APP）\n3. ABA PayWay\n所有支付均保证安全。',
+        km: 'យើងខ្ញុំទទួលការទូទាត់តាម Bakong KHQR (ស្កែនបានគ្រប់ធនាគារទាំងអស់ដូចជា ABA, ACLEDA, Canadia, Wing, etc.) ទាំងប្រាក់រៀល (KHR) និងដុល្លារ (USD) ដោយសុវត្ថិភាពខ្ពស់។',
+        en: 'We accept payments via Bakong KHQR (Scan from any KH bank app: ABA, ACLEDA, Wing, Canadia, etc.) in both USD and KHR safely.',
+        zh: '我们支持 Bakong KHQR 扫码支付（支持所有柬埔寨银行 APP），支持美元（USD）和瑞尔（KHR）。',
       },
     },
     {
@@ -103,7 +107,7 @@ export default function SupportChatWidget() {
   ];
 
   const label = {
-    title: language === 'km' ? 'ជំនួយការវៃឆ្លាត' : language === 'zh' ? '智能助理' : 'Smart Assistant',
+    title: language === 'km' ? 'ជំនួយការ SH-Shop' : language === 'zh' ? 'SH-Shop 智能助理' : 'SH-Shop Assistant',
     liveTitle: language === 'km' ? 'ជជែកជាមួយ Admin ផ្ទាល់' : language === 'zh' ? '人工客服' : 'Live Admin Support',
     greeting:
       language === 'km'
@@ -117,6 +121,7 @@ export default function SupportChatWidget() {
       language === 'km' ? 'សរសេរសារ...' : language === 'zh' ? '输入消息...' : 'Type a message...',
     you: language === 'km' ? 'អ្នក' : language === 'zh' ? '您' : 'You',
     admin: language === 'km' ? 'Admin ជំនួយការ' : language === 'zh' ? '客服管理' : 'Admin Support',
+    supportBadge: language === 'km' ? 'ជំនួយ ២៤/៧' : language === 'zh' ? '24/7 客服' : '24/7 Support',
   };
 
   // Load chat session if it exists
@@ -157,7 +162,7 @@ export default function SupportChatWidget() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showDetailsForm]);
 
-  // Messages Polling every 2 seconds when open and active (Real-time live sync)
+  // Messages Polling every 2 seconds when open and active
   useEffect(() => {
     if (!open || !inquiryId || !sessionToken) return;
 
@@ -221,7 +226,6 @@ export default function SupportChatWidget() {
     if (inquiryId && sessionToken) return;
     const defaultText = language === 'km' ? 'សួស្តី! ខ្ញុំចង់ជជែកជាមួយ Admin' : 'Hello, I want to talk to Admin';
     if (user && user.name) {
-      // User is logged in, start directly
       startInquiryRequest(user.name, user.phone || 'N/A', defaultText);
     } else {
       setTempInput(defaultText);
@@ -239,7 +243,6 @@ export default function SupportChatWidget() {
   const handleSendText = (text: string) => {
     if (inquiryId && sessionToken) {
       setIsSending(true);
-      // Optimistic user bubble
       setMessages((prev) => [...prev, { role: 'user', text, createdAt: new Date().toISOString() }]);
       supportApi.createMessage(inquiryId, text, sessionToken)
         .then(() => {
@@ -279,251 +282,300 @@ export default function SupportChatWidget() {
     }
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open support chat"
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-primary-600 text-white shadow-xl flex items-center justify-center hover:bg-primary-700 transition-transform active:scale-95 group"
-      >
-        <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white animate-pulse" />
-      </button>
-    );
-  }
-
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-[380px] max-w-[calc(100vw-24px)] card p-0 overflow-hidden shadow-2xl flex flex-col h-[520px] max-h-[calc(100vh-60px)] border border-gray-200 dark:border-gray-700">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-primary-600 text-white shrink-0 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            <MessageCircle className="w-5 h-5" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-primary-600 animate-pulse" />
-          </div>
-          <div>
-            <p className="font-bold text-xs leading-tight">
-              {inquiryId ? label.liveTitle : label.title}
-            </p>
-            <p className="text-[10px] text-primary-100 opacity-90">
-              {inquiryId ? 'Online • Live Admin Connected' : 'Online • 24/7 Support'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {inquiryId && (
-            <button 
-              type="button" 
-              onClick={handleResetChat} 
-              title={language === 'km' ? 'ជជែកសារថ្មី' : 'Restart Chat'}
-              className="opacity-80 hover:opacity-100 p-1 hover:bg-primary-700 rounded transition"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button 
-            type="button" 
-            onClick={() => setOpen(false)} 
-            className="opacity-80 hover:opacity-100 p-1 hover:bg-primary-700 rounded transition"
+    <>
+      {/* Draggable Floating Trigger Button */}
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.08}
+        onDragStart={() => {
+          isDraggingRef.current = true;
+        }}
+        onDragEnd={() => {
+          setTimeout(() => {
+            isDraggingRef.current = false;
+          }, 150);
+        }}
+        className="fixed bottom-5 right-5 z-50 select-none touch-none"
+        style={{ touchAction: 'none' }}
+      >
+        {!open && (
+          <motion.div
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            className="relative flex items-center group cursor-grab active:cursor-grabbing"
+            onClick={() => {
+              if (!isDraggingRef.current) {
+                setOpen(true);
+              }
+            }}
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Messages / Chat Area */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/80 dark:bg-surface-900/90">
-        {messages.map((m, i) => {
-          const isUser = m.role === 'user';
-          const isAdmin = m.role === 'admin';
-
-          return (
-            <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
-              {/* Sender Tag */}
-              <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium px-1">
-                {isAdmin ? (
-                  <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
-                    <ShieldCheck className="w-3 h-3" />
-                    {m.senderName || label.admin}
-                  </span>
-                ) : isUser ? (
-                  <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                    <User className="w-2.5 h-2.5" />
-                    {label.you}
-                  </span>
-                ) : (
-                  <span>SH-Shop Assistant</span>
-                )}
-                {m.createdAt && (
-                  <span className="text-[9px] opacity-70">
-                    • {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-
-              {/* Message Bubble */}
-              <div
-                className={`text-xs p-3 rounded-2xl leading-relaxed max-w-[85%] whitespace-pre-line shadow-sm ${
-                  isUser
-                    ? 'bg-primary-600 text-white rounded-tr-none'
-                    : isAdmin
-                      ? 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-100 border border-primary-200 dark:border-primary-800 rounded-tl-none ring-1 ring-primary-500/10'
-                      : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'
-                }`}
-              >
-                {m.text}
-              </div>
-
-              {/* Interactive Contact List if marked */}
-              {m.isContactOptions && (
-                <div className="bg-white dark:bg-surface-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 space-y-2 max-w-[90%] shadow-sm mt-1">
-                  <a
-                    href="https://t.me/+855974944390"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-white bg-[#0088cc] rounded-lg hover:opacity-90 transition"
-                  >
-                    <TelegramIcon className="w-4 h-4 shrink-0" />
-                    <span>Telegram: @new_user_sh_shop_bot</span>
-                  </a>
-
-                  <a
-                    href="https://facebook.com/maosokhun"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-white bg-[#1877f2] rounded-lg hover:opacity-90 transition"
-                  >
-                    <Facebook className="w-4 h-4 shrink-0" />
-                    <span>Facebook: Mao Sokhun</span>
-                  </a>
-
-                  <div className="border-t border-gray-100 dark:border-gray-700 pt-1.5 space-y-1">
-                    <a
-                      href="tel:0974944390"
-                      className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-950 transition border border-gray-200/50"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-gray-500" />
-                      <span>Call: 097 494 4390</span>
-                    </a>
-                  </div>
-
-                  <a
-                    href="mailto:shshopbyonline@gmail.com"
-                    className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-950 transition border border-gray-200/50"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-gray-500" />
-                    <span>shshopbyonline@gmail.com</span>
-                  </a>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* Details Form for Live Chat Setup */}
-        {showDetailsForm && (
-          <div className="bg-white dark:bg-surface-800 border border-primary-200 dark:border-primary-800 rounded-2xl p-4 space-y-3 max-w-[95%] shadow-md transition-all">
-            <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-semibold text-xs">
-              <ShieldCheck className="w-4 h-4" />
-              <span>{language === 'km' ? 'ព័ត៌មានសម្រាប់ការជជែកជាមួយ Admin' : 'Information for Live Support'}</span>
-            </div>
-            <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-tight">
-              {language === 'km' ? 'សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទរបស់អ្នក ដើម្បីអោយ Admin ងាយស្រួលឆ្លើយតប៖' : 'Please enter your name and phone number so our Admin can assist you directly:'}
-            </p>
-            <div className="space-y-2">
-              <input
-                type="text"
-                className="input text-xs w-full h-8"
-                placeholder={language === 'km' ? 'ឈ្មោះរបស់អ្នក (ឧ. សុខា)' : 'Your name (e.g. John)'}
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-              />
-              <input
-                type="text"
-                className="input text-xs w-full h-8"
-                placeholder={language === 'km' ? 'លេខទូរស័ព្ទ (ឧ. 012 345 678)' : 'Phone number (e.g. 012 345 678)'}
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 justify-end pt-1">
-              <button
-                type="button"
-                onClick={() => setShowDetailsForm(false)}
-                className="btn text-[11px] h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-700 text-gray-700 dark:text-gray-300 rounded-lg"
-              >
-                {language === 'km' ? 'បោះបង់' : 'Cancel'}
-              </button>
-              <button
-                type="button"
-                onClick={handleStartChatFromForm}
-                disabled={isStartingChat}
-                className="btn-primary text-[11px] h-7 px-4 rounded-lg font-semibold disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {isStartingChat ? (
-                  <span>Connecting...</span>
-                ) : (
-                  <>
-                    <span>{language === 'km' ? 'ចាប់ផ្តើមជជែក' : 'Start Chat'}</span>
-                    <Send className="w-3 h-3" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Quick Option Menu & Chat Input */}
-      <div className="p-3 bg-white dark:bg-surface-900 border-t border-gray-100 dark:border-gray-800 shrink-0 space-y-2">
-        {/* Quick FAQ Question list - show only before live chat */}
-        {!inquiryId && !showDetailsForm && (
-          <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto pr-1">
-            {faqList.map((faq) => (
-              <button
-                key={faq.key}
-                type="button"
-                onClick={() => handleFAQClick(faq)}
-                className="text-left text-[11px] px-2.5 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-surface-800 dark:hover:bg-surface-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200/40 transition truncate font-medium"
-              >
-                {faq.question[language] || faq.question['en']}
-              </button>
-            ))}
+            {/* Sleek Gradient Trigger Button (48px / compact) */}
             <button
               type="button"
-              onClick={handleContactAdmin}
-              className="text-left text-[11px] px-2.5 py-1.5 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/30 dark:hover:bg-primary-950/50 text-primary-700 dark:text-primary-300 rounded-lg border border-primary-200/50 transition font-bold flex items-center justify-between"
+              aria-label="Open support chat"
+              className="w-12 h-12 rounded-full bg-gradient-to-tr from-primary-600 via-primary-500 to-indigo-500 text-white shadow-[0_8px_20px_rgba(99,102,241,0.38)] flex items-center justify-center hover:shadow-[0_12px_28px_rgba(99,102,241,0.55)] transition-shadow border-2 border-white/40 dark:border-surface-800"
             >
-              <span>{label.talkToHuman}</span>
-              <Send className="w-3 h-3 opacity-70" />
+              <MessageCircle className="w-5 h-5 text-white drop-shadow-sm" />
             </button>
-          </div>
-        )}
 
-        {/* Input box */}
-        <div className="flex gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
-          <input
-            className="input text-xs flex-1 h-9 px-3"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSendCustom();
-            }}
-            placeholder={label.placeholder}
-            disabled={showDetailsForm || isStartingChat}
-          />
-          <button
-            type="button"
-            onClick={handleSendCustom}
-            disabled={!input.trim() || showDetailsForm || isStartingChat || isSending}
-            className="btn-primary h-9 px-3.5 flex items-center justify-center disabled:opacity-50 shrink-0"
+            {/* Glowing Online Status Indicator */}
+            <span className="absolute top-0 right-0 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 ring-2 ring-white dark:ring-surface-900 shadow-sm" />
+            </span>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Floating Chat Modal Box */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 20 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[360px] max-w-[calc(100vw-24px)] rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[520px] max-h-[calc(100vh-48px)] bg-white dark:bg-surface-900 border border-gray-100 dark:border-surface-700/80"
           >
-            <Send className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    </div>
+            {/* Modern Glassmorphic Header */}
+            <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-primary-600 via-primary-700 to-indigo-700 text-white shrink-0 shadow-md">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="relative w-8 h-8 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
+                  <MessageCircle className="w-4 h-4 text-white" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-primary-700 animate-pulse" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-xs leading-tight truncate">
+                    {inquiryId ? label.liveTitle : label.title}
+                  </p>
+                  <p className="text-[10px] text-primary-100/90 flex items-center gap-1 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>{inquiryId ? 'Live Admin Connected' : 'Online • 24/7 Support'}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 shrink-0">
+                {inquiryId && (
+                  <button
+                    type="button"
+                    onClick={handleResetChat}
+                    title={language === 'km' ? 'ជជែកសារថ្មី' : 'Restart Chat'}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/20 text-white/90 hover:text-white transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close chat"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/20 text-white/90 hover:text-white transition"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Body / Messages Area */}
+            <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-gray-50/70 dark:bg-surface-950/60">
+              {messages.map((m, i) => {
+                const isUser = m.role === 'user';
+                const isAdmin = m.role === 'admin';
+
+                return (
+                  <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
+                    {/* Sender Tag */}
+                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-medium px-1">
+                      {isAdmin ? (
+                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
+                          <ShieldCheck className="w-3 h-3" />
+                          {m.senderName || label.admin}
+                        </span>
+                      ) : isUser ? (
+                        <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                          <User className="w-2.5 h-2.5" />
+                          {label.you}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-medium">
+                          <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                          SH-Shop Assistant
+                        </span>
+                      )}
+                      {m.createdAt && (
+                        <span className="text-[9px] opacity-70">
+                          • {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Message Bubble */}
+                    <div
+                      className={`text-xs p-3 rounded-2xl leading-relaxed max-w-[85%] whitespace-pre-line shadow-sm ${
+                        isUser
+                          ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white rounded-tr-none shadow-primary-500/20'
+                          : isAdmin
+                            ? 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-100 border border-primary-200 dark:border-primary-800/80 rounded-tl-none ring-1 ring-primary-500/10'
+                            : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-surface-700 rounded-tl-none'
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+
+                    {/* Interactive Contact Channels */}
+                    {m.isContactOptions && (
+                      <div className="bg-white dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-2xl p-3 space-y-2 max-w-[90%] shadow-sm mt-1">
+                        <a
+                          href="https://t.me/+855974944390"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-white bg-[#0088cc] rounded-xl hover:opacity-90 transition shadow-sm"
+                        >
+                          <TelegramIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span>Telegram: @new_user_sh_shop_bot</span>
+                        </a>
+
+                        <a
+                          href="https://facebook.com/maosokhun"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-white bg-[#1877f2] rounded-xl hover:opacity-90 transition shadow-sm"
+                        >
+                          <Facebook className="w-3.5 h-3.5 shrink-0" />
+                          <span>Facebook: Mao Sokhun</span>
+                        </a>
+
+                        <div className="border-t border-gray-100 dark:border-surface-700 pt-1.5 space-y-1">
+                          <a
+                            href="tel:0974944390"
+                            className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-gray-500" />
+                            <span>097 494 4390</span>
+                          </a>
+                          <a
+                            href="mailto:shshopbyonline@gmail.com"
+                            className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition"
+                          >
+                            <Mail className="w-3.5 h-3.5 text-gray-500" />
+                            <span>shshopbyonline@gmail.com</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Information Form for Direct Admin Connection */}
+              {showDetailsForm && (
+                <div className="bg-white dark:bg-surface-850 border border-primary-200 dark:border-primary-800 rounded-2xl p-3.5 space-y-2.5 max-w-[95%] shadow-md">
+                  <div className="flex items-center gap-1.5 text-primary-600 dark:text-primary-400 font-semibold text-xs">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>{language === 'km' ? 'ព័ត៌មានសម្រាប់ការជជែកជាមួយ Admin' : 'Information for Live Support'}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-tight">
+                    {language === 'km' ? 'សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទរបស់អ្នក ដើម្បីឱ្យ Admin ងាយស្រួលឆ្លើយតប៖' : 'Please enter your name and phone number so Admin can assist you:'}
+                  </p>
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      className="input text-xs w-full h-8 px-2.5"
+                      placeholder={language === 'km' ? 'ឈ្មោះរបស់អ្នក (ឧ. សុខា)' : 'Your name (e.g. John)'}
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      className="input text-xs w-full h-8 px-2.5"
+                      placeholder={language === 'km' ? 'លេខទូរស័ព្ទ (ឧ. 012 345 678)' : 'Phone number (e.g. 012 345 678)'}
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowDetailsForm(false)}
+                      className="btn text-[11px] h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-surface-700 text-gray-700 dark:text-gray-300 rounded-lg"
+                    >
+                      {language === 'km' ? 'បោះបង់' : 'Cancel'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartChatFromForm}
+                      disabled={isStartingChat}
+                      className="btn-primary text-[11px] h-7 px-3.5 rounded-lg font-semibold disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {isStartingChat ? (
+                        <span>Connecting...</span>
+                      ) : (
+                        <>
+                          <span>{language === 'km' ? 'ចាប់ផ្តើមជជែក' : 'Start Chat'}</span>
+                          <Send className="w-3 h-3" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Quick Option Menu & Chat Input */}
+            <div className="p-3 bg-white dark:bg-surface-900 border-t border-gray-100 dark:border-surface-800 shrink-0 space-y-2">
+              {/* Quick FAQ Question list */}
+              {!inquiryId && !showDetailsForm && (
+                <div className="flex flex-col gap-1.5 max-h-28 overflow-y-auto pr-1">
+                  {faqList.map((faq) => (
+                    <button
+                      key={faq.key}
+                      type="button"
+                      onClick={() => handleFAQClick(faq)}
+                      className="text-left text-[11px] px-2.5 py-1.5 bg-gray-50 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-surface-700 text-gray-700 dark:text-gray-300 hover:text-primary-600 rounded-xl border border-gray-100 dark:border-surface-700 transition truncate font-medium"
+                    >
+                      {faq.question[language] || faq.question['en']}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleContactAdmin}
+                    className="text-left text-[11px] px-2.5 py-1.5 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-950/60 text-primary-700 dark:text-primary-300 rounded-xl border border-primary-200/60 transition font-bold flex items-center justify-between"
+                  >
+                    <span>{label.talkToHuman}</span>
+                    <Send className="w-3 h-3 opacity-70" />
+                  </button>
+                </div>
+              )}
+
+              {/* Input Box */}
+              <div className="flex gap-2 pt-1">
+                <input
+                  className="input text-xs flex-1 h-9 px-3 rounded-xl border-gray-200 dark:border-surface-700"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSendCustom();
+                  }}
+                  placeholder={label.placeholder}
+                  disabled={showDetailsForm || isStartingChat}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendCustom}
+                  disabled={!input.trim() || showDetailsForm || isStartingChat || isSending}
+                  className="btn-primary h-9 w-9 p-0 rounded-xl flex items-center justify-center disabled:opacity-40 shrink-0 shadow-sm"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

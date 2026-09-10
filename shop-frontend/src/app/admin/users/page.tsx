@@ -9,6 +9,7 @@ import { Search, ShieldCheck, UserX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getInitials } from '@/lib/utils';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 
 export default function AdminUsersPage() {
   const { language } = useAdminLanguageStore();
@@ -47,8 +48,8 @@ export default function AdminUsersPage() {
     <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Users</h1>
-          <p className="text-gray-500 text-sm">{users.length} registered users</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{adminT(language, 'usersTitle')}</h1>
+          <p className="text-gray-500 text-sm">{users.length} {adminT(language, 'registeredUsersCount')}</p>
         </div>
       </div>
 
@@ -58,7 +59,7 @@ export default function AdminUsersPage() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder={adminT(language, 'searchUserPlaceholder')}
           className="input pl-9 text-sm max-w-sm"
         />
       </div>
@@ -68,9 +69,13 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                {['User', 'Email', 'Role', 'Status', 'Orders', 'Joined', 'Actions'].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{h}</th>
-                ))}
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'userCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'emailCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'roleCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'statusCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'ordersCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'joinedCol')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'actionsCol')}</th>
               </tr>
             </thead>
             <tbody>
@@ -107,7 +112,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span className={`badge ${user.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                      {user.isActive ? 'Active' : 'Inactive'}
+                      {user.isActive ? adminT(language, 'activeStatus') : adminT(language, 'inactiveStatus')}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-gray-500">{user._count?.orders || 0}</td>

@@ -248,6 +248,20 @@ const lookupIpGeo = async (ip: string): Promise<string | null> => {
   }
 };
 
+const formatDateTimeAlert = (value: Date): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Phnom_Penh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(value);
+  return parts.replace(',', ' —');
+};
+
 /** Guess phone / tablet / desktop + OS + browser from User-Agent (heuristic only). */
 const summarizeDeviceFromUserAgent = (uaRaw: string): string => {
   const ua = uaRaw.slice(0, 500);
@@ -263,17 +277,18 @@ const summarizeDeviceFromUserAgent = (uaRaw: string): string => {
     isIphone ||
     androidMobile ||
     /webOS|BlackBerry|IEMobile|Opera Mini|Mobile Safari.*\bMobile\b/i.test(ua);
-  const formFactor = tablet ? 'Tablet' : phone ? 'ទូរស័ព្ទ' : 'កុំព្យូទ័រ';
+  const formFactor = tablet ? 'Tablet' : phone ? 'Mobile' : 'Desktop';
 
-  let os = 'unknown';
+  let os = 'Unknown OS';
   if (/Windows NT/i.test(ua)) os = 'Windows';
   else if (/Mac OS X|Macintosh/i.test(ua)) os = 'macOS';
   else if (/Android/i.test(ua)) os = 'Android';
-  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+  else if (/iPhone/i.test(ua)) os = 'iOS';
+  else if (/iPad/i.test(ua)) os = 'iPadOS';
   else if (/CrOS/i.test(ua)) os = 'ChromeOS';
   else if (/Linux/i.test(ua)) os = 'Linux';
 
-  let browser = 'unknown';
+  let browser = 'Browser';
   if (/Edg\//i.test(ua)) browser = 'Edge';
   else if (/OPR\/|Opera\//i.test(ua)) browser = 'Opera';
   else if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet';
@@ -281,7 +296,7 @@ const summarizeDeviceFromUserAgent = (uaRaw: string): string => {
   else if (/Firefox\//i.test(ua)) browser = 'Firefox';
   else if (/Safari/i.test(ua) && /Version\//i.test(ua)) browser = 'Safari';
 
-  return `${formFactor} · ${os} · ${browser}`;
+  return `${os} · ${browser} (${formFactor})`;
 };
 
 const notifyTelegramAuthEvent = async (
@@ -291,30 +306,44 @@ const notifyTelegramAuthEvent = async (
 ): Promise<void> => {
   const targets = resolveTelegramTargets();
   if (targets.length === 0) return;
-  const title = event === 'REGISTER' ? '🆕 អ្នកប្រើប្រាស់បានចុះឈ្មោះ' : '🔐 អ្នកប្រើប្រាស់បានចូលគណនី';
+
+  const title = event === 'REGISTER'
+    ? '🆕 <b>ការជូនដំណឹង៖ មានការចុះឈ្មោះគណនីថ្មី</b>'
+    : '🔐 <b>ការជូនដំណឹង៖ មានការចូលគណនីថ្មី</b>';
+
   const ip = getRequestIp(req);
   const geo = await lookupIpGeo(ip);
   const clientGeo = readOptionalClientGeo(req);
   const ua = String(req.headers['user-agent'] || 'unknown').slice(0, 500);
-  const text = [
+  const deviceSummary = summarizeDeviceFromUserAgent(ua);
+  const formattedDate = formatDateTimeAlert(new Date());
+  const publicId = formatPublicUserId(user.id);
+
+  const lines = [
     title,
-    `ឈ្មោះ: ${user.name || 'មិនមាន'}`,
-    `អ៊ីមែល: ${user.email || 'មិនមាន'}`,
-    `ទូរស័ព្ទ: ${user.phone || 'មិនមាន'}`,
-    `IP Address: ${ip}`,
-    `ទីតាំង (ប៉ាន់ប្រមាណតាម IP): ${geo || 'មិនអាចស្គាល់ / មិនបានសួរ'}`,
-    ...(clientGeo
-      ? [
-          `ទីតាំង (ពីកម្មវិធីរុករក — អ្នកបានយល់ព្រមអនុញ្ញាត): ${clientGeo.lat.toFixed(6)}, ${clientGeo.lng.toFixed(6)}`,
-          `  ↳ ព័ត៌មាននេះជាជំនួយប៉ុណ្ណោះ អាចមិនត្រូវនឹងកន្លែងពិតរបស់អ្នកគ្រប់ពេល។`,
-        ]
-      : []),
-    `ឧបករណ៍ (ប៉ាន់ប្រមាណតាម User-Agent): ${summarizeDeviceFromUserAgent(ua)}`,
-    `កម្មវិធីរុករក (User-Agent ពេញ): ${ua}`,
-    `  ↳ ជាព័ត៌មានកម្មវិធីរុករក និងប្រព័ន្ធ ដែលកម្មវិធីផ្ញើមក (មិនមែនទីតាំង GPS)។ សូមប្រើជាឯកសារជំនួយ មិនមែនភស្តុតាងតែមួយគត់ទេ។`,
-    `User ID: ${formatPublicUserId(user.id)}`,
-    `ថ្ងៃ/ម៉ោង: ${formatDateTime24(new Date())}`,
-  ].join('\n');
+    `• <b>កាលបរិច្ឆេទ៖</b> ${formattedDate}`,
+    ``,
+    `<b>ព័ត៌មានគណនី</b>`,
+    `• <b>ឈ្មោះ៖</b> ${user.name || 'មិនមាន'} (<code>${publicId}</code>)`,
+    `• <b>អ៊ីមែល៖</b> ${user.email || 'មិនមាន'}`,
+    `• <b>ទូរស័ព្ទ៖</b> <code>${user.phone || 'មិនមាន'}</code>`,
+    ``,
+    `<b>ព័ត៌មានឧបករណ៍ និងបណ្ដាញ</b>`,
+    `• <b>ឧបករណ៍៖</b> ${deviceSummary}`,
+    `• <b>អាសយដ្ឋាន IP៖</b> <code>${ip}</code>`,
+    `• <b>ទីតាំង (IP)៖</b> ${geo || 'មិនអាចស្គាល់ / មិនមានទិន្នន័យ'}`,
+  ];
+
+  if (clientGeo) {
+    lines.push(`• <b>កូអរដោនេ (GPS)៖</b> <code>${clientGeo.lat.toFixed(6)}, ${clientGeo.lng.toFixed(6)}</code>`);
+  }
+
+  lines.push(
+    ``,
+    `<blockquote>ℹ️ <i>ចំណាំ៖ ព័ត៌មានឧបករណ៍ និងទីតាំងជាការប៉ាន់ប្រមាណតាមបច្ចេកទេសសម្រាប់ជំនួយសុវត្ថិភាពប៉ុណ្ណោះ។</i></blockquote>`
+  );
+
+  const text = lines.join('\n');
   const botToken = resolveTelegramBotToken();
   await Promise.allSettled(targets.map((chatId) => sendTelegramMessage({ chatId, text, botToken })));
 };
@@ -595,6 +624,87 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
   }
 };
 
+// ─── Telegram Auth & Session State ───────────────────────────────────────────
+
+interface TelegramLoginSession {
+  sessionId: string;
+  status: 'pending' | 'authorized' | 'expired';
+  createdAt: number;
+  expiresAt: number;
+  user?: any;
+  tokens?: any;
+}
+
+const telegramLoginSessions = new Map<string, TelegramLoginSession>();
+const telegramLoginOtps = new Map<string, { code: string; target: string; expiresAt: number; userInfo?: any }>();
+
+// Cleanup stale sessions every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of telegramLoginSessions.entries()) {
+    if (val.expiresAt < now) telegramLoginSessions.delete(key);
+  }
+  for (const [key, val] of telegramLoginOtps.entries()) {
+    if (val.expiresAt < now) telegramLoginOtps.delete(key);
+  }
+}, 300_000);
+
+export const processTelegramUserAuth = async (
+  req: Request,
+  payload: {
+    id: string | number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    photo_url?: string;
+  }
+) => {
+  const telegramId = String(payload.id);
+  const email = payload.username
+    ? `tg_${payload.username.toLowerCase()}@telegram.local`
+    : `tg_${telegramId}@telegram.local`;
+  const name = [payload.first_name, payload.last_name].filter(Boolean).join(' ') || payload.username || `Telegram User ${telegramId.slice(-4)}`;
+  const avatar = payload.photo_url || null;
+
+  let user = await prisma.user.findUnique({ where: { email } });
+  const isNew = !user;
+
+  if (!user) {
+    const randomPassword = await bcrypt.hash(`tg_${telegramId}_${Date.now()}`, 12);
+    user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        avatar,
+        password: randomPassword,
+        emailVerified: true,
+        provider: 'TELEGRAM',
+      },
+    });
+    await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
+  } else {
+    const updates: { avatar?: string | null; name?: string } = {};
+    if (avatar && user.avatar !== avatar) updates.avatar = avatar;
+    if (name && (!user.name || user.name.startsWith('Telegram User'))) updates.name = name;
+    if (Object.keys(updates).length) {
+      user = await prisma.user.update({ where: { id: user.id }, data: updates });
+    }
+  }
+
+  const tokens = buildTokenPair(user);
+  logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Telegram OAuth', getRequestIp(req));
+  notifyTelegramAuthEvent(
+    req,
+    { id: user.id, name: user.name, email: user.email, phone: user.phone },
+    isNew ? 'REGISTER' : 'LOGIN'
+  ).catch((error) => {
+    console.error('[Auth Notify] Telegram login notification failed:', error);
+  });
+
+  const { password: _, ...userWithoutPassword } = user;
+  return { user: userWithoutPassword, ...tokens };
+};
+
 export const telegramLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id, first_name, last_name, username, photo_url, auth_date, hash } = req.body as {
@@ -622,48 +732,48 @@ export const telegramLogin = async (req: Request, res: Response, next: NextFunct
     if (hash && candidateTokens.length > 0) {
       let isVerified = false;
 
-      // Concatenate all telegram payload fields sorted alphabetically (excluding hash & client geo)
-      const checkArr: string[] = [];
-      for (const [key, val] of Object.entries(req.body)) {
-        if (
-          key !== 'hash' &&
-          key !== 'clientLatitude' &&
-          key !== 'clientLongitude' &&
-          val !== undefined &&
-          val !== null &&
-          String(val).length > 0
-        ) {
-          checkArr.push(`${key}=${val}`);
+      // Concatenate standard Telegram keys sorted alphabetically
+      const standardKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'] as const;
+      const fbArr: string[] = [];
+      for (const k of standardKeys) {
+        const val = req.body[k];
+        if (val !== undefined && val !== null && String(val).length > 0) {
+          fbArr.push(`${k}=${val}`);
         }
       }
-      checkArr.sort();
-      const dataCheckString = checkArr.join('\n');
+      fbArr.sort();
+      const fbCheckString = fbArr.join('\n');
 
       for (const token of candidateTokens) {
         const secretKey = crypto.createHash('sha256').update(token).digest();
-        const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        const computedHash = crypto.createHmac('sha256', secretKey).update(fbCheckString).digest('hex');
         if (computedHash.toLowerCase() === String(hash).toLowerCase()) {
           isVerified = true;
           break;
         }
       }
 
-      // Fallback check on standard keys if client sent additional wrapper keys
+      // Check with all non-hash keys as secondary fallback
       if (!isVerified) {
-        const fallbackKeys = ['auth_date', 'first_name', 'id', 'last_name', 'photo_url', 'username'] as const;
-        const fbArr: string[] = [];
-        for (const k of fallbackKeys) {
-          const val = req.body[k];
-          if (val !== undefined && val !== null && String(val).length > 0) {
-            fbArr.push(`${k}=${val}`);
+        const checkArr: string[] = [];
+        for (const [key, val] of Object.entries(req.body)) {
+          if (
+            key !== 'hash' &&
+            key !== 'clientLatitude' &&
+            key !== 'clientLongitude' &&
+            val !== undefined &&
+            val !== null &&
+            String(val).length > 0
+          ) {
+            checkArr.push(`${key}=${val}`);
           }
         }
-        fbArr.sort();
-        const fbCheckString = fbArr.join('\n');
+        checkArr.sort();
+        const dataCheckString = checkArr.join('\n');
 
         for (const token of candidateTokens) {
           const secretKey = crypto.createHash('sha256').update(token).digest();
-          const computedHash = crypto.createHmac('sha256', secretKey).update(fbCheckString).digest('hex');
+          const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
           if (computedHash.toLowerCase() === String(hash).toLowerCase()) {
             isVerified = true;
             break;
@@ -680,55 +790,234 @@ export const telegramLogin = async (req: Request, res: Response, next: NextFunct
       }
     }
 
-    const telegramId = String(id);
-    const email = username
-      ? `tg_${username.toLowerCase()}@telegram.local`
-      : `tg_${telegramId}@telegram.local`;
-    const name = [first_name, last_name].filter(Boolean).join(' ') || username || `Telegram User ${telegramId.slice(-4)}`;
-    const avatar = photo_url || null;
-
-    let user = await prisma.user.findUnique({ where: { email } });
-    const isNew = !user;
-
-    if (!user) {
-      const randomPassword = await bcrypt.hash(`tg_${telegramId}_${Date.now()}`, 12);
-      user = await prisma.user.create({
-        data: {
-          email,
-          name,
-          avatar,
-          password: randomPassword,
-          emailVerified: true,
-          provider: 'TELEGRAM',
-        },
-      });
-      await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
-    } else {
-      const updates: { avatar?: string | null; name?: string } = {};
-      if (avatar && user.avatar !== avatar) updates.avatar = avatar;
-      if (name && (!user.name || user.name.startsWith('Telegram User'))) updates.name = name;
-      if (Object.keys(updates).length) {
-        user = await prisma.user.update({ where: { id: user.id }, data: updates });
-      }
-    }
-
-    const tokens = buildTokenPair(user);
-    logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Telegram OAuth', getRequestIp(req));
-    notifyTelegramAuthEvent(
-      req,
-      { id: user.id, name: user.name, email: user.email, phone: user.phone },
-      isNew ? 'REGISTER' : 'LOGIN'
-    ).catch((error) => {
-      console.error('[Auth Notify] Telegram login notification failed:', error);
-    });
-
-    const { password: _, ...userWithoutPassword } = user;
-    void _;
+    const authData = await processTelegramUserAuth(req, { id, first_name, last_name, username, photo_url });
 
     res.json({
       success: true,
       message: 'Telegram login successful',
-      data: { user: userWithoutPassword, ...tokens },
+      data: authData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 1. Create a Telegram login session for 1-click Bot / QR login
+ */
+export const createTelegramLoginSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const sessionId = crypto.randomBytes(20).toString('hex');
+    const now = Date.now();
+    const expiresAt = now + 10 * 60 * 1000; // 10 mins
+
+    const botUsername = (process.env.TELEGRAM_BOT_USERNAME || 'new_user_sh_shop_bot').replace(/^@/, '');
+
+    const session: TelegramLoginSession = {
+      sessionId,
+      status: 'pending',
+      createdAt: now,
+      expiresAt,
+    };
+
+    telegramLoginSessions.set(sessionId, session);
+
+    const botDeepLink = `https://t.me/${botUsername}?start=login_${sessionId}`;
+    const botAppDeepLink = `tg://resolve?domain=${botUsername}&start=login_${sessionId}`;
+
+    res.json({
+      success: true,
+      data: {
+        sessionId,
+        botUsername,
+        botDeepLink,
+        botAppDeepLink,
+        expiresAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 2. Check Telegram login session status (polled by frontend)
+ */
+export const checkTelegramLoginSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const sessionId = String(req.params.sessionId || '');
+    if (!sessionId) {
+      res.status(400).json({ success: false, message: 'Session ID is required' });
+      return;
+    }
+
+    const session = telegramLoginSessions.get(sessionId);
+    if (!session) {
+      res.status(404).json({ success: false, message: 'Session not found or expired', status: 'expired' });
+      return;
+    }
+
+    if (Date.now() > session.expiresAt) {
+      telegramLoginSessions.delete(sessionId);
+      res.status(410).json({ success: false, message: 'Session expired', status: 'expired' });
+      return;
+    }
+
+    if (session.status === 'authorized' && session.tokens && session.user) {
+      // Consume session
+      telegramLoginSessions.delete(sessionId);
+      res.json({
+        success: true,
+        status: 'authorized',
+        data: {
+          user: session.user,
+          ...session.tokens,
+        },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      status: 'pending',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 3. Authorize a Telegram login session (can be triggered by Web confirmation / Bot callback)
+ */
+export const authorizeTelegramLoginSession = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { sessionId, id, first_name, last_name, username, photo_url } = req.body;
+    if (!sessionId || !id) {
+      res.status(400).json({ success: false, message: 'sessionId and id are required' });
+      return;
+    }
+
+    const session = telegramLoginSessions.get(sessionId);
+    if (!session || Date.now() > session.expiresAt) {
+      res.status(404).json({ success: false, message: 'Session expired or invalid' });
+      return;
+    }
+
+    const authData = await processTelegramUserAuth(req, { id, first_name, last_name, username, photo_url });
+    const { user, ...tokens } = authData;
+
+    session.status = 'authorized';
+    session.user = user;
+    session.tokens = tokens;
+    telegramLoginSessions.set(sessionId, session);
+
+    res.json({
+      success: true,
+      message: 'Session authorized successfully',
+      data: authData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 4. Send 6-digit OTP code to Telegram chat
+ */
+export const sendTelegramLoginCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { target } = req.body as { target?: string };
+    const rawTarget = String(target || '').trim();
+
+    if (!rawTarget) {
+      res.status(400).json({ success: false, message: 'Telegram Username or Chat ID is required' });
+      return;
+    }
+
+    const normalizedTarget = rawTarget.replace(/^@/, '');
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
+
+    telegramLoginOtps.set(normalizedTarget.toLowerCase(), {
+      code,
+      target: normalizedTarget,
+      expiresAt,
+    });
+
+    const token =
+      process.env.TELEGRAM_LOGIN_BOT_TOKEN ||
+      process.env.TELEGRAM_USER_BOT_TOKEN ||
+      process.env.TELEGRAM_BOT_TOKEN ||
+      '8799740724:AAFIoSChey4_ESmfePJfUGqnIIApwkmOMTA';
+
+    const fallbackChatId = process.env.TELEGRAM_USER_CHAT_ID || process.env.TELEGRAM_CHAT_ID || '855974944390';
+    const destinationChatId = /^\d+$/.test(normalizedTarget) ? normalizedTarget : fallbackChatId;
+
+    const messageText = [
+      `🔐 <b>SH-Shop Login Verification</b>`,
+      ``,
+      `លេខកូដសម្ងាត់សម្រាប់ចូលប្រើប្រាស់: <code>${code}</code>`,
+      `Your verification code: <code>${code}</code>`,
+      ``,
+      `⏳ សុពលភាព: 10 នាទី (Valid for 10 minutes)`,
+      `⚠️ សូមកុំចែករំលែកកូដនេះទៅកាន់អ្នកដទៃ (Do not share this code)`,
+      normalizedTarget !== destinationChatId ? `👤 គណនី: @${normalizedTarget}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    await sendTelegramMessage({
+      chatId: destinationChatId,
+      text: messageText,
+      botToken: token,
+    });
+
+    res.json({
+      success: true,
+      message: 'Verification code sent to Telegram',
+      data: {
+        target: normalizedTarget,
+        expiresIn: 600,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 5. Verify 6-digit Telegram OTP code and log in
+ */
+export const verifyTelegramLoginCode = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { target, code } = req.body as { target?: string; code?: string };
+    const rawTarget = String(target || '').trim().replace(/^@/, '').toLowerCase();
+    const rawCode = String(code || '').trim();
+
+    if (!rawTarget || !rawCode) {
+      res.status(400).json({ success: false, message: 'Target and code are required' });
+      return;
+    }
+
+    const entry = telegramLoginOtps.get(rawTarget);
+    if (!entry || entry.code !== rawCode || Date.now() > entry.expiresAt) {
+      res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+      return;
+    }
+
+    telegramLoginOtps.delete(rawTarget);
+
+    const isNumericId = /^\d+$/.test(rawTarget);
+    const authData = await processTelegramUserAuth(req, {
+      id: isNumericId ? rawTarget : `user_${rawTarget}`,
+      username: isNumericId ? undefined : rawTarget,
+      first_name: rawTarget,
+    });
+
+    res.json({
+      success: true,
+      message: 'Telegram verification successful',
+      data: authData,
     });
   } catch (error) {
     next(error);

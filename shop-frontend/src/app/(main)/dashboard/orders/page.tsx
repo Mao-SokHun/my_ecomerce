@@ -58,16 +58,6 @@ export default function OrdersPage() {
     }
   };
 
-  const handleRemoveHistory = async (orderId: string) => {
-    try {
-      await orderApi.archiveHistory(orderId);
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      toast.success(t(language, 'orderRemoved'));
-    } catch {
-      toast.error(t(language, 'updateFailed'));
-    }
-  };
-
   const getOrderDetailsPath = (orderId: string, orderNumber: string) => {
     const safeOrderNumber = orderNumber.trim().replace(/\s+/g, '-');
     return `/dashboard/orders/${encodeURIComponent(`${safeOrderNumber}__${orderId}`)}`;
@@ -251,32 +241,15 @@ export default function OrdersPage() {
                         <Eye className="w-4 h-4 shrink-0" aria-hidden />
                         {t(language, 'viewOrder')}
                       </Link>
-                      <div
-                        className={cn(
-                          'grid w-full gap-2',
-                          ['PENDING', 'CONFIRMED'].includes(order.status) ? 'grid-cols-2' : 'grid-cols-1',
-                        )}
-                      >
-                        {['PENDING', 'CONFIRMED'].includes(order.status) && (
-                          <button
-                            type="button"
-                            onClick={() => handleCancel(order.id)}
-                            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 active:bg-red-50 dark:border-red-900/60 dark:bg-surface-900 dark:text-red-400 dark:active:bg-red-950/40 dark:hover:bg-red-950/40"
-                          >
-                            {t(language, 'cancel')}
-                          </button>
-                        )}
+                      {['PENDING', 'CONFIRMED'].includes(order.status) && (
                         <button
                           type="button"
-                          onClick={() => handleRemoveHistory(order.id)}
-                          className={cn(
-                            'inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700 active:bg-gray-100 dark:border-gray-700 dark:bg-surface-800 dark:text-gray-300 dark:active:bg-surface-700 dark:hover:bg-surface-700',
-                            !['PENDING', 'CONFIRMED'].includes(order.status) && 'col-span-full',
-                          )}
+                          onClick={() => handleCancel(order.id)}
+                          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 active:bg-red-50 hover:bg-red-50/70 dark:border-red-900/60 dark:bg-surface-900 dark:text-red-400 dark:active:bg-red-950/40 dark:hover:bg-red-950/40 transition-colors"
                         >
-                          {t(language, 'remove')}
+                          {t(language, 'cancel')}
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

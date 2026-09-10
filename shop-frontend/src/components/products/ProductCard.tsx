@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Heart, ShoppingCart, Star, Eye } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Eye, Sparkles, Plus, Check } from 'lucide-react';
 import { Product } from '@/types';
 import { formatPrice, getDiscountPercent } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
@@ -23,6 +23,7 @@ interface ProductCardProps {
 export function ProductCard({ product, variant = 'default' }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const { addItem } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const { language } = useLanguageStore();
@@ -32,6 +33,8 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (product.stock === 0 || isAddingToCart) return;
+
     setIsAddingToCart(true);
     try {
       await addItem(product.id, 1, undefined, {
@@ -44,7 +47,9 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         stock: product.stock,
         isActive: product.isActive,
       });
+      setJustAdded(true);
       toast.success(t(language, 'addedToCart'));
+      setTimeout(() => setJustAdded(false), 1800);
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || t(language, 'failedAddToCart');
       toast.error(msg);
@@ -73,16 +78,21 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     return (
       <Link
         href={`/products/${product.slug}`}
-        className="group flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors duration-200 ease-smooth-out"
+        className="group flex gap-3 p-3 bg-white dark:bg-surface-850 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-2xl border border-gray-100 dark:border-gray-800 transition-all duration-200 shadow-sm hover:shadow-md"
       >
-        <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+        <div className="relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-surface-800">
           {product.thumbnail && (
-            <Image src={product.thumbnail} alt={product.name} fill className="object-cover" sizes="64px" />
+            <Image src={product.thumbnail} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="64px" />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">{product.name}</p>
-          <p className="text-sm font-semibold text-primary-600 mt-0.5">{formatPrice(product.price)}</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1 group-hover:text-primary-600 transition-colors">{product.name}</p>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-sm font-bold text-primary-600 dark:text-primary-400">{formatPrice(product.price, language)}</span>
+            {product.comparePrice && product.comparePrice > product.price && (
+              <span className="text-xs text-gray-400 line-through">{formatPrice(product.comparePrice, language)}</span>
+            )}
+          </div>
         </div>
       </Link>
     );
@@ -90,118 +100,207 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.01 }}
-      className="group relative h-full card hover:shadow-2xl transition-all duration-200 ease-smooth-out cursor-pointer motion-reduce:transition-none max-sm:hover:shadow-premium max-sm:hover:translate-y-0"
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="group relative flex flex-col justify-between h-full bg-white dark:bg-surface-850 rounded-2xl sm:rounded-3xl border border-gray-100/90 dark:border-surface-700/80 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_32px_rgba(0,0,0,0.09)] dark:hover:shadow-[0_16px_32px_rgba(0,0,0,0.35)] hover:border-primary-500/30 dark:hover:border-primary-500/40 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
-      {/* Image */}
-      <div className="relative aspect-square bg-gray-50 dark:bg-gray-800 overflow-hidden">
+      {/* Top Image Container */}
+      <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/60 dark:from-surface-800 dark:to-surface-900">
         {product.thumbnail ? (
           <Image
             src={product.thumbnail}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-200 ease-smooth-out group-hover:scale-105 motion-reduce:transition-none"
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 ease-out group-hover:scale-108"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
-            <ShoppingCart className="w-12 h-12" />
+          <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+            <ShoppingCart className="w-12 h-12 stroke-1" />
           </div>
         )}
 
-        {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
+        {/* Soft dark vignette on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+        {/* Badges (Top Left) */}
+        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
           {discount > 0 && (
-            <span className="badge bg-red-500 text-white text-xs">-{discount}%</span>
+            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:py-1 rounded-full shadow-md shadow-red-500/20 tracking-tight">
+              <span>-{discount}%</span>
+            </span>
           )}
           {product.isFeatured && (
-            <span className="badge bg-primary-600 text-white text-xs">{t(language, 'productsFeaturedOnlyLabel')}</span>
+            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:py-0.5 rounded-full shadow-md shadow-amber-500/20 tracking-wide">
+              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-100 fill-amber-100" />
+              <span>{t(language, 'badgeFeatured')}</span>
+            </span>
           )}
           {product.stock === 0 && (
-            <span className="badge bg-gray-800/80 text-white text-xs">{t(language, 'outOfStock')}</span>
+            <span className="inline-flex items-center bg-gray-900/85 backdrop-blur-md text-white text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 sm:py-1 rounded-full shadow-sm">
+              {t(language, 'outOfStock')}
+            </span>
           )}
         </div>
 
-        {/* Visual hover tint only — must not capture taps while invisible (mobile) */}
-        <div className="absolute inset-0 pointer-events-none bg-black/0 group-hover:bg-black/10 transition-colors duration-200 ease-smooth-out" />
-        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-smooth-out translate-x-2 group-hover:translate-x-0 z-10 motion-reduce:transition-none">
+        {/* Floating Quick Action Buttons (Top Right) */}
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-10 flex flex-col gap-1.5 sm:gap-2">
+          {/* Wishlist Button */}
           <motion.button
-            whileHover={{ scale: 1.15, rotate: 5 }}
+            whileHover={{ scale: 1.12 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleWishlist}
-            className={`w-10 h-10 rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 ease-smooth-out ${
+            aria-label="Add to wishlist"
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-md border transition-all duration-200 ${
               isWishlisted
-                ? 'bg-red-500 text-white'
-                : 'glass text-gray-600 dark:text-gray-300 hover:text-red-500'
+                ? 'bg-rose-500 text-white border-rose-500 shadow-rose-500/30'
+                : 'bg-white/90 dark:bg-surface-800/90 text-gray-700 dark:text-gray-200 border-white/60 dark:border-white/10 hover:text-rose-500 hover:bg-white dark:hover:bg-surface-700'
             }`}
           >
-            <Heart className="w-4.5 h-4.5" fill={isWishlisted ? 'currentColor' : 'none'} />
+            <Heart className={`w-4 h-4 transition-transform duration-200 ${isWishlisted ? 'fill-current scale-110' : ''}`} />
           </motion.button>
+
+          {/* Quick View Button */}
           <motion.button
-            whileHover={{ scale: 1.15, rotate: -5 }}
+            whileHover={{ scale: 1.12 }}
             whileTap={{ scale: 0.9 }}
-            onClick={(e) => { e.stopPropagation(); router.push(`/products/${product.slug}`); }}
-            className="w-10 h-10 glass rounded-2xl shadow-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-all duration-200 ease-smooth-out"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/products/${product.slug}`);
+            }}
+            aria-label="Quick view"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 dark:bg-surface-800/90 text-gray-700 dark:text-gray-200 border border-white/60 dark:border-white/10 hover:text-primary-600 hover:bg-white dark:hover:bg-surface-700 flex items-center justify-center backdrop-blur-md shadow-md opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200"
           >
-            <Eye className="w-4.5 h-4.5" />
+            <Eye className="w-4 h-4" />
           </motion.button>
         </div>
 
-        {/* Quick add — always visible on touch; hover on desktop */}
-        <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 z-10 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0 transition-all duration-200 ease-smooth-out motion-reduce:transition-none">
+        {/* Desktop Slide-up Quick Add Button */}
+        <div className="absolute bottom-3 left-3 right-3 z-10 hidden sm:block opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 ease-out">
           <button
             onClick={handleAddToCart}
             disabled={isAddingToCart || product.stock === 0}
-            className="w-full btn-primary py-2.5 sm:py-3 text-xs sm:text-sm active:scale-[0.98] group/btn shadow-lg"
+            className={`w-full py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm shadow-xl backdrop-blur-md flex items-center justify-center gap-2 active:scale-98 transition-all duration-200 ${
+              product.stock === 0
+                ? 'bg-gray-800/90 text-gray-400 cursor-not-allowed'
+                : justAdded
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-900/90 hover:bg-gray-950 text-white dark:bg-white/95 dark:text-gray-950 dark:hover:bg-white'
+            }`}
           >
-            <ShoppingCart className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform duration-200 ease-smooth-out mr-1 shrink-0" />
-            <span className="truncate">
-              {isAddingToCart ? t(language, 'adding') : product.stock === 0 ? t(language, 'outOfStock') : t(language, 'addToCart')}
-            </span>
+            {justAdded ? (
+              <>
+                <Check className="w-4 h-4 text-white animate-scale-in" />
+                <span>{t(language, 'addedToCart')}</span>
+              </>
+            ) : isAddingToCart ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span>{t(language, 'adding')}</span>
+              </span>
+            ) : product.stock === 0 ? (
+              <span>{t(language, 'outOfStock')}</span>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                <span>{t(language, 'addToCart')}</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-3 sm:p-4 space-y-1.5">
-        {product.brand && (
-          <p className="text-[11px] sm:text-xs font-medium text-gray-400 uppercase tracking-wide">{product.brand}</p>
-        )}
-        <h3 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 transition-colors duration-200 ease-smooth-out">
-          {product.name}
-        </h3>
+      {/* Card Content & Details */}
+      <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between gap-2 sm:gap-3">
+        {/* Brand & Title */}
+        <div className="space-y-1">
+          {product.brand ? (
+            <p className="text-[10px] sm:text-[11px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider line-clamp-1">
+              {product.brand}
+            </p>
+          ) : (
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              SH-Shop
+            </p>
+          )}
 
-        {/* Rating */}
-        {product.reviewCount > 0 && (
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <div className="flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                  key={s}
-                  className={`w-3 h-3 ${s <= Math.round(product.rating) ? 'text-amber-400 fill-current' : 'text-gray-300'}`}
-                />
-              ))}
-            </div>
-            <span className="text-[11px] sm:text-xs text-gray-400">({product.reviewCount})</span>
+          <h3 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
+            {product.name}
+          </h3>
+        </div>
+
+        {/* Rating Row */}
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                className={`w-3 h-3 ${
+                  product.reviewCount > 0 && s <= Math.round(product.rating || 0)
+                    ? 'text-amber-400 fill-amber-400'
+                    : 'text-gray-200 dark:text-surface-700 fill-gray-200 dark:fill-surface-700'
+                }`}
+              />
+            ))}
           </div>
-        )}
-
-        {/* Price */}
-        <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5">
-          <span className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
-            {formatPrice(product.price)}
-          </span>
-          {product.comparePrice && product.comparePrice > product.price && (
-            <span className="text-xs sm:text-sm text-gray-400 line-through">
-              {formatPrice(product.comparePrice)}
+          {product.reviewCount > 0 ? (
+            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 tabular-nums">
+              ({product.reviewCount})
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+              New
             </span>
           )}
         </div>
 
-        {product.stock > 0 && product.stock <= 10 && (
-          <p className="text-[11px] sm:text-xs text-orange-500">{t(language, 'onlyLeft').replace('{count}', String(product.stock))}</p>
-        )}
+        {/* Price and Mobile Quick-Add Button Row */}
+        <div className="flex items-center justify-between pt-1 border-t border-gray-100/80 dark:border-surface-800/80">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight">
+                {formatPrice(product.price, language)}
+              </span>
+              {product.comparePrice && product.comparePrice > product.price && (
+                <span className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 line-through tabular-nums">
+                  {formatPrice(product.comparePrice, language)}
+                </span>
+              )}
+            </div>
+
+            {/* Low stock alert */}
+            {product.stock > 0 && product.stock <= 5 && (
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                {t(language, 'onlyLeft').replace('{count}', String(product.stock))}
+              </span>
+            )}
+          </div>
+
+          {/* Quick-Add Button (Always visible on mobile, icon button) */}
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || product.stock === 0}
+            aria-label="Add to cart"
+            className={`sm:hidden w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
+              product.stock === 0
+                ? 'bg-gray-100 text-gray-400 dark:bg-surface-800 dark:text-gray-600 cursor-not-allowed'
+                : justAdded
+                ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                : 'bg-primary-600 text-white shadow-primary-600/20 hover:bg-primary-700 active:scale-95'
+            }`}
+          >
+            {justAdded ? (
+              <Check className="w-4 h-4 stroke-[2.5]" />
+            ) : isAddingToCart ? (
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+            )}
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );

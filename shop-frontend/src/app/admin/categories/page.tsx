@@ -5,8 +5,12 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Category } from '@/types';
 import { adminApi, categoryApi } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { adminT } from '@/lib/admin-i18n';
 
 export default function AdminCategoriesPage() {
+  const { language } = useAdminLanguageStore();
+  const isKhmer = language === 'km';
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -56,7 +60,7 @@ export default function AdminCategoriesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Name is required');
+      toast.error(isKhmer ? 'សូមបញ្ចូលឈ្មោះប្រភេទ' : 'Category name is required');
       return;
     }
     setSaving(true);
@@ -71,10 +75,10 @@ export default function AdminCategoriesPage() {
       };
       if (editing) {
         await categoryApi.update(editing.id, payload);
-        toast.success('Category updated');
+        toast.success(adminT(language, 'categoryUpdated'));
       } else {
         await categoryApi.create(payload);
-        toast.success('Category created');
+        toast.success(adminT(language, 'categoryCreated'));
       }
       setShowModal(false);
       load();
@@ -89,13 +93,17 @@ export default function AdminCategoriesPage() {
   const handleDelete = async (c: Category) => {
     const n = c._count?.products ?? 0;
     if (n > 0) {
-      toast.error(`Cannot delete: ${n} product(s) use this category. Reassign products first.`);
+      toast.error(
+        isKhmer
+          ? `មិនអាចលុបបានទេ៖ មានទំនិញ ${n} កំពុងប្រើប្រភេទនេះ។ សូមប្តូរប្រភេទរបស់ទំនិញទាំងនោះជាមុនសិន។`
+          : `Cannot delete: ${n} product(s) use this category. Reassign products first.`
+      );
       return;
     }
-    if (!window.confirm(`Delete category “${c.name}”?`)) return;
+    if (!window.confirm(isKhmer ? `តើអ្នកចង់លុបប្រភេទ «${c.name}» មែនទេ?` : `Delete category "${c.name}"?`)) return;
     try {
       await categoryApi.delete(c.id);
-      toast.success('Category removed');
+      toast.success(adminT(language, 'categoryRemoved'));
       load();
     } catch {
       toast.error('Delete failed');
@@ -103,14 +111,23 @@ export default function AdminCategoriesPage() {
   };
 
   return (
-    <div>
+    <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Categories</h1>
-          <p className="text-gray-500 text-sm">{categories.length} categories (including subcategories)</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {adminT(language, 'categoriesTitle')}
+          </h1>
+          <p className="text-gray-500 text-sm">
+            {categories.length}{' '}
+            {isKhmer
+              ? 'ប្រភេទ (រួមទាំងប្រភេទរង)'
+              : language === 'zh'
+              ? '个分类 (包含子分类)'
+              : 'categories (including subcategories)'}
+          </p>
         </div>
-        <button type="button" onClick={openCreate} className="btn-primary text-sm">
-          <Plus className="w-4 h-4" /> Add category
+        <button type="button" onClick={openCreate} className="btn-primary text-sm inline-flex items-center gap-2">
+          <Plus className="w-4 h-4" /> {adminT(language, 'addCategory')}
         </button>
       </div>
 
@@ -119,20 +136,38 @@ export default function AdminCategoriesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Name</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">
+                  {isKhmer ? 'ឈ្មោះប្រភេទ' : language === 'zh' ? '分类名称' : 'Name'}
+                </th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Slug</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Parent</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">Products</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Order</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">Status</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">Actions</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">
+                  {adminT(language, 'parentCategory')}
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">
+                  {adminT(language, 'productsCount')}
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">
+                  {adminT(language, 'sortOrder')}
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">
+                  {adminT(language, 'activeCol')}
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">
+                  {adminT(language, 'actionCol')}
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-10 text-center text-gray-400">
-                    Loading…
+                    {isKhmer ? 'កំពុងដំណើរការ...' : 'Loading...'}
+                  </td>
+                </tr>
+              ) : categories.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-gray-400">
+                    {adminT(language, 'noCategoriesYet')}
                   </td>
                 </tr>
               ) : (
@@ -148,25 +183,29 @@ export default function AdminCategoriesPage() {
                     <td className="py-3 px-4">{c.sortOrder}</td>
                     <td className="py-3 px-4">
                       <span
-                        className={`badge ${c.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-gray-100 text-gray-600'}`}
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                          c.isActive
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-gray-100 text-gray-600 dark:bg-surface-800 dark:text-gray-400'
+                        }`}
                       >
-                        {c.isActive ? 'Active' : 'Off'}
+                        {c.isActive ? adminT(language, 'activeStatus') : adminT(language, 'inactiveStatus')}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <button
                         type="button"
                         onClick={() => openEdit(c)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg"
-                        aria-label="Edit"
+                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg transition-colors"
+                        aria-label={adminT(language, 'editBtn')}
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(c)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg"
-                        aria-label="Delete"
+                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                        aria-label={adminT(language, 'deleteBtn')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -180,14 +219,16 @@ export default function AdminCategoriesPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 border border-gray-100 dark:border-surface-800">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-              {editing ? 'Edit category' : 'New category'}
+              {editing ? adminT(language, 'editCategory') : adminT(language, 'createCategory')}
             </h2>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Name *</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {adminT(language, 'categoryName')}
+                </label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
@@ -196,7 +237,9 @@ export default function AdminCategoriesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Description</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {adminT(language, 'categoryDescription')}
+                </label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
@@ -205,7 +248,9 @@ export default function AdminCategoriesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Image URL</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {adminT(language, 'categoryImage')}
+                </label>
                 <input
                   value={form.image}
                   onChange={(e) => setForm((p) => ({ ...p, image: e.target.value }))}
@@ -215,7 +260,9 @@ export default function AdminCategoriesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Sort order</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                    {adminT(language, 'sortOrder')}
+                  </label>
                   <input
                     type="number"
                     value={form.sortOrder}
@@ -224,13 +271,15 @@ export default function AdminCategoriesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">Parent</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                    {adminT(language, 'parentCategory')}
+                  </label>
                   <select
                     value={form.parentId}
                     onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value }))}
                     className="input text-sm"
                   >
-                    <option value="">— Top level —</option>
+                    <option value="">{adminT(language, 'noParent')}</option>
                     {categories
                       .filter((x) => x.id !== editing?.id)
                       .map((x) => (
@@ -249,15 +298,23 @@ export default function AdminCategoriesPage() {
                     onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
                     className="w-4 h-4 rounded"
                   />
-                  <span className="text-sm dark:text-gray-300">Active in store</span>
+                  <span className="text-sm dark:text-gray-300">
+                    {isKhmer ? 'សកម្មក្នុងហាង' : 'Active in store'}
+                  </span>
                 </label>
               )}
               <div className="flex gap-2 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">
-                  Cancel
+                  {adminT(language, 'close')}
                 </button>
                 <button type="submit" disabled={saving} className="btn-primary flex-1">
-                  {saving ? 'Saving…' : editing ? 'Update' : 'Create'}
+                  {saving
+                    ? isKhmer
+                      ? 'កំពុងរក្សាទុក...'
+                      : 'Saving...'
+                    : editing
+                    ? adminT(language, 'editBtn')
+                    : adminT(language, 'saveCategory')}
                 </button>
               </div>
             </form>

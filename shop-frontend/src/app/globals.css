@@ -64,7 +64,46 @@
   }
 
   .glass {
-    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/20 dark:border-gray-800/50;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.04), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .dark .glass {
+    background: rgba(15, 17, 23, 0.75);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .liquid-glass {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.52) 100%);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 12px 36px 0 rgba(99, 102, 241, 0.08), 0 4px 12px 0 rgba(0, 0, 0, 0.03), inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95);
+  }
+  .dark .liquid-glass {
+    background: linear-gradient(135deg, rgba(20, 22, 32, 0.8) 0%, rgba(12, 14, 20, 0.65) 100%);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.55), 0 4px 12px 0 rgba(0, 0, 0, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.16);
+  }
+
+  .liquid-pill {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  }
+  .dark .liquid-pill {
+    background: rgba(25, 28, 40, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.12);
   }
 
   .focus-ring {
@@ -72,25 +111,59 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] rounded-2xl transition-all duration-200 ease-smooth-out disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-lg shadow-primary-600/20 hover:shadow-primary-600/30 motion-reduce:transition-none motion-reduce:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-white bg-gradient-to-r from-primary-600 via-primary-500 to-indigo-600 hover:from-primary-500 hover:to-indigo-500 active:scale-[0.98] rounded-2xl transition-all duration-300 ease-smooth-out disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/35 border border-white/20;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-800 active:scale-[0.98] rounded-2xl transition-all duration-200 ease-smooth-out disabled:opacity-50 disabled:active:scale-100 shadow-sm hover:shadow-md motion-reduce:transition-none motion-reduce:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold text-gray-800 dark:text-gray-100 active:scale-[0.98] rounded-2xl transition-all duration-300 ease-smooth-out disabled:opacity-50 disabled:active:scale-100;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.8);
   }
+  .dark .btn-secondary {
+    background: rgba(28, 30, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  }
+
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200 disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 rounded-xl transition-all duration-200 disabled:opacity-50 shadow-md shadow-red-500/20 border border-white/20;
   }
+
   .card {
-    @apply bg-white dark:bg-gray-900 rounded-3xl shadow-premium border border-gray-100/50 dark:border-gray-800/50 overflow-hidden transition-all duration-300 ease-smooth-out motion-reduce:transition-none;
+    @apply rounded-3xl overflow-hidden transition-all duration-300 ease-smooth-out motion-reduce:transition-none;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+  }
+  .dark .card {
+    background: rgba(18, 20, 29, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 30px -2px rgba(0, 0, 0, 0.45), inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
   }
   @media (prefers-reduced-motion: no-preference) {
     .card:hover {
-      @apply border-gray-200/80 dark:border-gray-700/80 shadow-card-hover -translate-y-px;
+      box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+    }
+    .dark .card:hover {
+      box-shadow: 0 20px 40px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
     }
   }
+
   .input {
-    @apply w-full px-5 py-3 text-sm bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-200 ease-smooth-out motion-reduce:transition-none;
+    @apply w-full px-5 py-3 text-sm rounded-2xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/80 transition-all duration-200 ease-smooth-out;
+    background: rgba(245, 247, 250, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .dark .input {
+    background: rgba(12, 14, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
   }
   /* No letter-spacing tightening: breaks Khmer Unicode clusters (coeng, vowel reordering). */
   .section-title {

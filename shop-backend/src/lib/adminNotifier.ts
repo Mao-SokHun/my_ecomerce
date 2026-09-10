@@ -49,17 +49,18 @@ const khPaymentStatus = (value: string): string => {
 
 const khShippingCarrier = (value?: string | null): string => {
   const v = String(value || '').toUpperCase();
-  if (v === 'VET') return 'VET (វីរះប៊ុនថាំ)';
+  if (v === 'VET') return 'VET (វីរៈប៊ុនថាំ)';
   if (v === 'JNT') return 'J&T (ជេអែនធី)';
   return 'មិនមាន';
 };
 
 const khPaymentType = (value?: string | null): string => {
   const v = String(value || '').toLowerCase();
-  if (v === 'bakong') return '🏦 បង់តាមបាគង (KHQR)';
+  if (v === 'bakong' || v === 'khqr') return '🏦 បង់តាមបាគង (KHQR)';
+  if (v === 'cod' || v === 'cash') return '💵 បង់ប្រាក់ពេលទទួល (COD)';
   if (v === 'card') return '💳 បង់តាម Visa/Master card';
   if (v === 'aba') return '🏛️ បង់តាម ABA PayWay';
-  return 'មិនមាន';
+  return v ? `🏦 ${v}` : '🏦 បង់តាមបាគង (KHQR)';
 };
 
 export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent): Promise<void> => {
@@ -124,7 +125,7 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
     `🎟️ <b>បញ្ចុះតម្លៃ:</b> -${formatMoney(order.discount)}`,
     `🚚 <b>ថ្លៃដឹកជញ្ជូន:</b> ${formatMoney(order.shippingCost)}`,
     `💵 <b>តម្លៃសរុប:</b> <b>${formatMoney(order.total)}</b>`,
-    `🛒 <b>មុខទំនិញសរុប:</b> ${totalLines} មុខ (จำนวน ${totalUnits})`,
+    `🛒 <b>មុខទំនិញសរុប:</b> ${totalLines} មុខ (ចំនួនសរុប ${totalUnits})`,
     ``,
     `🛍️ <b>មុខទំនិញ៖</b>`,
     itemsBlock || 'មិនមានទំនិញ',
