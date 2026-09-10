@@ -102,11 +102,11 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
     <motion.div
       whileHover={{ y: -5 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="group relative flex flex-col justify-between h-full bg-white dark:bg-surface-900 rounded-2xl sm:rounded-3xl border border-gray-200/90 dark:border-surface-750 shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/50 hover:border-primary-500/40 dark:hover:border-primary-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
+      className="group relative flex flex-col justify-between h-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/60 hover:border-primary-500/40 dark:hover:border-primary-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
       {/* Top Image Container */}
-      <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-b from-gray-50 to-gray-100/70 dark:from-surface-800 dark:to-surface-850">
+      <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-850/80">
         {product.thumbnail ? (
           <Image
             src={product.thumbnail}
@@ -116,13 +116,13 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+          <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
             <ShoppingCart className="w-12 h-12 stroke-1" />
           </div>
         )}
 
         {/* Soft dark vignette on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
         {/* Badges (Top Left) */}
         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
@@ -160,7 +160,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center backdrop-blur-md shadow-md border transition-all duration-200 ${
               isWishlisted
                 ? 'bg-rose-500 text-white border-rose-500 shadow-rose-500/30'
-                : 'bg-white/90 dark:bg-surface-800/90 text-gray-700 dark:text-gray-200 border-white/60 dark:border-white/10 hover:text-rose-500 hover:bg-white dark:hover:bg-surface-700'
+                : 'bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border-white/60 dark:border-white/10 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-700'
             }`}
           >
             <Heart className={`w-4 h-4 transition-transform duration-200 ${isWishlisted ? 'fill-current scale-110' : ''}`} />
@@ -175,7 +175,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               router.push(`/products/${product.slug}`);
             }}
             aria-label="Quick view"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 dark:bg-surface-800/90 text-gray-700 dark:text-gray-200 border border-white/60 dark:border-white/10 hover:text-primary-600 hover:bg-white dark:hover:bg-surface-700 flex items-center justify-center backdrop-blur-md shadow-md opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-white/60 dark:border-white/10 hover:text-primary-600 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center backdrop-blur-md shadow-md opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200"
           >
             <Eye className="w-4 h-4" />
           </motion.button>
@@ -188,10 +188,10 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             disabled={isAddingToCart || product.stock === 0}
             className={`w-full py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm shadow-xl backdrop-blur-md flex items-center justify-center gap-2 active:scale-98 transition-all duration-200 ${
               product.stock === 0
-                ? 'bg-gray-800/90 text-gray-400 cursor-not-allowed'
+                ? 'bg-slate-800/90 text-slate-400 cursor-not-allowed'
                 : justAdded
                 ? 'bg-emerald-600 text-white'
-                : 'bg-gray-900/90 hover:bg-gray-950 text-white dark:bg-white/95 dark:text-gray-950 dark:hover:bg-white'
+                : 'bg-slate-900/95 hover:bg-black text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100'
             }`}
           >
             {justAdded ? (
@@ -216,8 +216,8 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         </div>
       </div>
 
-      {/* Card Content & Details */}
-      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 sm:gap-3 bg-white dark:bg-surface-900">
+      {/* Card Content & Details (Dark mode high-contrast background) */}
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 sm:gap-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80">
         {/* Brand & Title */}
         <div className="space-y-1">
           {product.brand ? (
@@ -225,12 +225,12 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               {product.brand}
             </p>
           ) : (
-            <p className="text-[10px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               SH-Shop
             </p>
           )}
 
-          <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-50 line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
             {product.name}
           </h3>
         </div>
@@ -244,13 +244,13 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
                 className={`w-3 h-3 ${
                   product.reviewCount > 0 && s <= Math.round(product.rating || 0)
                     ? 'text-amber-400 fill-amber-400'
-                    : 'text-gray-200 dark:text-surface-700 fill-gray-200 dark:fill-surface-700'
+                    : 'text-slate-200 dark:text-slate-700 fill-slate-200 dark:fill-slate-700'
                 }`}
               />
             ))}
           </div>
           {product.reviewCount > 0 ? (
-            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 tabular-nums">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
               ({product.reviewCount})
             </span>
           ) : (
@@ -261,14 +261,14 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         </div>
 
         {/* Price and Mobile Quick-Add Button Row */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-surface-800">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex flex-col min-w-0">
             <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-sm sm:text-base md:text-lg font-black text-gray-950 dark:text-white tabular-nums tracking-tight">
+              <span className="text-sm sm:text-base md:text-lg font-black text-slate-950 dark:text-white tabular-nums tracking-tight">
                 {formatPrice(product.price, language)}
               </span>
               {product.comparePrice && product.comparePrice > product.price && (
-                <span className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 line-through tabular-nums">
+                <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-500 line-through tabular-nums">
                   {formatPrice(product.comparePrice, language)}
                 </span>
               )}
@@ -291,7 +291,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             aria-label="Add to cart"
             className={`sm:hidden w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 shadow-sm ${
               product.stock === 0
-                ? 'bg-gray-100 text-gray-400 dark:bg-surface-800 dark:text-gray-600 cursor-not-allowed'
+                ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                 : justAdded
                 ? 'bg-emerald-600 text-white shadow-emerald-600/20'
                 : 'bg-primary-600 text-white shadow-primary-600/20 hover:bg-primary-700 active:scale-95'
