@@ -11,8 +11,24 @@ import { adminT } from '@/lib/admin-i18n';
 export default function AdminCategoriesPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_categories');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_categories');
+        if (cached && JSON.parse(cached).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const [form, setForm] = useState({
@@ -25,17 +41,23 @@ export default function AdminCategoriesPage() {
   });
   const [saving, setSaving] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (silent = false) => {
+    if (!silent && categories.length === 0) setLoading(true);
     adminApi
       .getCategories()
-      .then(({ data }) => setCategories(data.data || []))
+      .then(({ data }) => {
+        const cats = data.data || [];
+        setCategories(cats);
+        try {
+          sessionStorage.setItem('admin_cached_categories', JSON.stringify(cats));
+        } catch {}
+      })
       .catch(() => toast.error('Failed to load categories'))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    load();
+    load(categories.length > 0);
   }, []);
 
   const openCreate = () => {

@@ -19,9 +19,34 @@ export default function AdminProductsPage() {
   }`;
   const modalInputCls = 'input text-sm min-h-[44px]';
   const modalGridCls = 'grid sm:grid-cols-2 gap-4 sm:gap-5';
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_products');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_categories');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_products');
+        if (cached && JSON.parse(cached).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
+  const [isFetching, setIsFetching] = useState(false);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -31,7 +56,13 @@ export default function AdminProductsPage() {
   const [isRestocking, setIsRestocking] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    // Only show full skeleton loader if we have no products displayed at all
+    if (products.length === 0) {
+      setLoading(true);
+    } else {
+      setIsFetching(true);
+    }
+
     const params: Record<string, unknown> = {
       limit: 100,
       search: search.trim() || undefined,
@@ -49,10 +80,21 @@ export default function AdminProductsPage() {
           list = list.filter((p) => p.stock <= 0);
         }
         setProducts(list);
-        setCategories(catRes.data.data || []);
+        const cats = catRes.data.data || [];
+        setCategories(cats);
+
+        if (!search.trim() && filterMode === 'all') {
+          try {
+            sessionStorage.setItem('admin_cached_products', JSON.stringify(list));
+            sessionStorage.setItem('admin_cached_categories', JSON.stringify(cats));
+          } catch {}
+        }
       })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setIsFetching(false);
+      });
   }, [search, filterMode]);
 
   const openRestock = (product: Product) => {

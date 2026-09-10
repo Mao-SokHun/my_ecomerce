@@ -101,8 +101,24 @@ function HubLinkCard({
 export default function AdminDashboard() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_dashboard');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_dashboard');
+        if (cached) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [period, setPeriod] = useState<7 | 30 | 90>(30);
 
   const panelCls = 'rounded-3xl border border-white/70 dark:border-gray-800 bg-white/90 dark:bg-surface-900/80 backdrop-blur shadow-lg shadow-slate-200/60 dark:shadow-black/20';
@@ -110,19 +126,24 @@ export default function AdminDashboard() {
   useEffect(() => {
     let isMounted = true;
     const fetchDashboard = (isSilent = false) => {
-      if (!isSilent) setLoading(true);
+      if (!isSilent && !data) setLoading(true);
       adminApi
         .getDashboard()
         .then(({ data: res }) => {
-          if (isMounted) setData(res.data);
+          if (isMounted) {
+            setData(res.data);
+            try {
+              sessionStorage.setItem('admin_cached_dashboard', JSON.stringify(res.data));
+            } catch {}
+          }
         })
         .catch(console.error)
         .finally(() => {
-          if (isMounted && !isSilent) setLoading(false);
+          if (isMounted) setLoading(false);
         });
     };
 
-    fetchDashboard();
+    fetchDashboard(!!data);
     const interval = setInterval(() => {
       fetchDashboard(true);
     }, 5000);

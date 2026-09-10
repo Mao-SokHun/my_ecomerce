@@ -14,8 +14,24 @@ import Image from 'next/image';
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_orders');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_orders');
+        if (cached && JSON.parse(cached).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -104,6 +120,12 @@ export default function AdminOrdersPage() {
       incomingOrders.forEach((o) => knownOrderIdsRef.current.add(o.id));
       isFirstLoadRef.current = false;
       setOrders(incomingOrders);
+
+      if (!search && !statusFilter) {
+        try {
+          sessionStorage.setItem('admin_cached_orders', JSON.stringify(incomingOrders));
+        } catch {}
+      }
 
       // Keep selectedOrder in sync if open
       if (selectedOrder) {
