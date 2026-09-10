@@ -520,29 +520,31 @@ export default function SupportChatWidget() {
 
               {/* In-Timeline FAQ Suggestions (Clean Card Buttons) */}
               {!inquiryId && !showDetailsForm && (
-                <div className="pt-2 space-y-2.5 shrink-0">
+                <div className="pt-2 space-y-2.5 shrink-0" style={{ flexShrink: 0 }}>
                   <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-1">
                     {language === 'km' ? 'សំណួរដែលសួរញឹកញាប់ ៖' : language === 'zh' ? '常见问题：' : 'Frequently Asked Questions:'}
                   </p>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2.5" style={{ display: 'flex', flexDirection: 'column' }}>
                     {faqList.map((faq) => (
                       <button
                         key={faq.key}
                         type="button"
                         onClick={() => handleFAQClick(faq)}
-                        className="w-full min-h-[44px] text-left text-xs px-4 py-3 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-800 dark:text-gray-100 hover:text-primary-600 rounded-2xl border border-gray-200/80 dark:border-surface-700 shadow-sm transition-all duration-200 flex items-center justify-between group font-medium shrink-0"
+                        style={{ minHeight: '48px', height: 'auto', flexShrink: 0 }}
+                        className="w-full text-left text-xs px-4 py-3 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-800 dark:text-gray-100 hover:text-primary-600 rounded-2xl border border-gray-200/90 dark:border-surface-700 shadow-sm transition-all duration-200 flex items-center justify-between group font-semibold shrink-0 leading-normal"
                       >
-                        <span className="truncate pr-2 font-semibold">{faq.question[language] || faq.question['en']}</span>
+                        <span className="truncate pr-2">{faq.question[language] || faq.question['en']}</span>
                         <span className="text-primary-500 opacity-60 group-hover:opacity-100 transition-opacity text-sm font-bold shrink-0">➔</span>
                       </button>
                     ))}
                     <button
                       type="button"
                       onClick={handleContactAdmin}
-                      className="w-full min-h-[46px] text-left text-xs px-4 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white rounded-2xl shadow-md shadow-primary-500/20 transition-all duration-200 font-bold flex items-center justify-between shrink-0 mt-1"
+                      style={{ minHeight: '48px', height: 'auto', flexShrink: 0 }}
+                      className="w-full text-left text-xs px-4 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white rounded-2xl shadow-md shadow-primary-500/25 transition-all duration-200 font-bold flex items-center justify-between shrink-0 mt-1 leading-normal"
                     >
                       <span className="flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4 text-white" />
+                        <MessageCircle className="w-4 h-4 text-white shrink-0" />
                         <span>{label.talkToHuman}</span>
                       </span>
                       <Send className="w-4 h-4 text-white shrink-0" />
