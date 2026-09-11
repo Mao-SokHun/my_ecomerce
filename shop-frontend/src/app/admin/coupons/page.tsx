@@ -18,6 +18,14 @@ import {
   Clock,
   Users,
   CheckCircle2,
+  Copy,
+  Check,
+  Search,
+  Pencil,
+  Trash2,
+  Calendar,
+  Ticket,
+  AlertCircle,
 } from 'lucide-react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -71,6 +79,16 @@ export default function AdminCouponsPage() {
     expiresAt: '',
   });
   const [editingCouponId, setEditingCouponId] = useState<string | null>(null);
+  const [tableSearch, setTableSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'EXPIRED'>('ALL');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(isKhmer ? `បានចម្លងកូដ: ${code}` : `Copied: ${code}`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
 
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -128,6 +146,26 @@ export default function AdminCouponsPage() {
       };
     });
   }, [form.discountType, discountVal, maxDiscountVal, minOrderVal]);
+
+  const filteredCoupons = useMemo(() => {
+    return coupons.filter((c) => {
+      const q = tableSearch.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        c.code.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q));
+
+      const isExpired = c.expiresAt ? new Date(c.expiresAt).getTime() < Date.now() : false;
+      const matchStatus =
+        statusFilter === 'ALL'
+          ? true
+          : statusFilter === 'EXPIRED'
+          ? isExpired
+          : !isExpired;
+
+      return matchSearch && matchStatus;
+    });
+  }, [coupons, tableSearch, statusFilter]);
 
   const applyPreset = (preset: {
     code: string;
@@ -699,102 +737,300 @@ export default function AdminCouponsPage() {
       </div>
 
       {/* Existing Coupons Table */}
-      <div className="card overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-            <Tag className="w-4 h-4 text-primary-600" />
-            {adminT(language, 'existingCoupons')}
-          </h2>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-            {coupons.length} {isKhmer ? 'គូប៉ុង' : 'Coupons'}
-          </span>
-        </div>
-        {loading ? (
-          <div className="p-12 flex justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-surface-900 shadow-xl shadow-slate-200/40 dark:shadow-black/40 overflow-hidden">
+        {/* Table Header & Toolbar */}
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-slate-50/50 via-white to-indigo-50/30 dark:from-surface-900 dark:via-surface-900 dark:to-primary-950/20">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20">
+              <Tag className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-gray-900 dark:text-white text-base">
+                  {adminT(language, 'existingCoupons')}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/40">
+                  {coupons.length} {isKhmer ? 'គូប៉ុង' : 'Coupons'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {isKhmer
+                  ? 'គ្រប់គ្រងកូដបញ្ចុះតម្លៃ ពិនិត្យចំនួនប្រើប្រាស់ និងកំណត់កាលបរិច្ឆេទ'
+                  : 'Manage promo codes, monitor usage quota, and configure expiry dates'}
+              </p>
+            </div>
           </div>
-        ) : coupons.length === 0 ? (
-          <p className="p-8 text-center text-gray-500">
-            {adminT(language, 'noCouponsYet')}
-          </p>
+
+          {/* Search & Status Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[180px] sm:w-56">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                placeholder={isKhmer ? 'ស្វែងរកតាមកូដ...' : 'Search coupon code...'}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-100/80 dark:bg-slate-800 border-none text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-primary-500"
+              />
+              {tableSearch && (
+                <button
+                  type="button"
+                  onClick={() => setTableSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                  statusFilter === 'ALL'
+                    ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-300 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {isKhmer ? 'ទាំងអស់' : 'All'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ACTIVE')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                  statusFilter === 'ACTIVE'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {isKhmer ? 'សកម្ម' : 'Active'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('EXPIRED')}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                  statusFilter === 'EXPIRED'
+                    ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {isKhmer ? 'ផុតកំណត់' : 'Expired'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-16 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            <p className="text-xs text-slate-400">{isKhmer ? 'កំពុងទាញយកទិន្នន័យ...' : 'Loading coupons...'}</p>
+          </div>
+        ) : filteredCoupons.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Ticket className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              {tableSearch || statusFilter !== 'ALL'
+                ? isKhmer
+                  ? 'រកមិនឃើញគូប៉ុងត្រូវតាមលក្ខខណ្ឌស្វែងរក'
+                  : 'No coupons match your filter'
+                : adminT(language, 'noCouponsYet')}
+            </p>
+            {(tableSearch || statusFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTableSearch('');
+                  setStatusFilter('ALL');
+                }}
+                className="mt-3 text-xs text-primary-600 dark:text-primary-400 font-semibold hover:underline"
+              >
+                {isKhmer ? 'សម្អាតការស្វែងរក' : 'Clear search & filters'}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800/60 text-left text-xs uppercase tracking-wider text-gray-500">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50/90 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <tr>
-                  <th className="p-3.5 font-bold">{adminT(language, 'codeCol')}</th>
-                  <th className="p-3.5 font-bold">{adminT(language, 'discountCol')}</th>
-                  <th className="p-3.5 font-bold">{isKhmer ? 'លក្ខខណ្ឌ' : 'Rules'}</th>
-                  <th className="p-3.5 font-bold">{adminT(language, 'usedCol')}</th>
-                  <th className="p-3.5 font-bold">{adminT(language, 'expiresCol')}</th>
-                  <th className="p-3.5 font-bold text-right">{adminT(language, 'actionCol')}</th>
+                  <th className="p-4 w-[28%] min-w-[220px] font-bold">{adminT(language, 'codeCol')}</th>
+                  <th className="p-4 w-[16%] min-w-[130px] font-bold">{adminT(language, 'discountCol')}</th>
+                  <th className="p-4 w-[18%] min-w-[140px] font-bold">{isKhmer ? 'លក្ខខណ្ឌ' : 'Rules'}</th>
+                  <th className="p-4 w-[14%] min-w-[120px] font-bold">{adminT(language, 'usedCol')}</th>
+                  <th className="p-4 w-[14%] min-w-[120px] font-bold">{adminT(language, 'expiresCol')}</th>
+                  <th className="p-4 w-[10%] min-w-[90px] font-bold text-right">{adminT(language, 'actionCol')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {coupons.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/50 px-2 py-0.5 rounded border border-primary-100 dark:border-primary-900/30">
-                          {c.code}
-                        </span>
-                        {c.description && (
-                          <span className="text-xs text-gray-500 line-clamp-1">
-                            {c.description}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatDiscount(c)}
-                      </span>
-                      {c.discountType === 'PERCENTAGE' && c.maxDiscount != null && (
-                        <span className="block text-[11px] text-amber-600 font-medium">
-                          Max: ${c.maxDiscount}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3.5 text-xs text-gray-600 dark:text-gray-400">
-                      {c.minOrder != null && (
-                        <span className="block">Min: ${c.minOrder}</span>
-                      )}
-                      {c.usageLimit != null && (
-                        <span className="block">Limit: {c.usageLimit}</span>
-                      )}
-                      {c.minOrder == null && c.usageLimit == null && (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3.5 font-mono text-xs">
-                      {c.usedCount}
-                      {c.usageLimit != null ? ` / ${c.usageLimit}` : ''}
-                    </td>
-                    <td className="p-3.5 text-xs text-gray-500">
-                      {c.expiresAt
-                        ? new Date(c.expiresAt).toLocaleDateString()
-                        : isKhmer
-                        ? 'គ្មានដែនកំណត់'
-                        : 'Never'}
-                    </td>
-                    <td className="p-3.5 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(c)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-all"
-                      >
-                        {adminT(language, 'editBtn')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeCoupon(c.id)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60 text-red-600 dark:text-red-400 transition-all"
-                      >
-                        {adminT(language, 'deleteBtn')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                {filteredCoupons.map((c) => {
+                  const isExpired = c.expiresAt ? new Date(c.expiresAt).getTime() < Date.now() : false;
+                  const usagePercent = c.usageLimit && c.usageLimit > 0 ? Math.min(100, Math.round((c.usedCount / c.usageLimit) * 100)) : 0;
+                  const isLimitReached = c.usageLimit != null && c.usedCount >= c.usageLimit;
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group"
+                    >
+                      {/* Column 1: Code & Description */}
+                      <td className="p-4 align-middle">
+                        <div className="flex flex-col gap-1.5 max-w-[260px]">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCode(c.code)}
+                              className="group/code inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-primary-500/10 via-indigo-500/10 to-violet-500/10 dark:from-primary-950/60 dark:to-indigo-950/60 border border-primary-200/80 dark:border-primary-800/60 hover:border-primary-400 font-mono font-bold text-xs text-primary-700 dark:text-primary-300 transition-all shadow-xs"
+                              title="Click to copy code"
+                            >
+                              <Ticket className="w-3.5 h-3.5 text-primary-500 shrink-0" />
+                              <span>{c.code}</span>
+                              {copiedCode === c.code ? (
+                                <Check className="w-3 h-3 text-emerald-500 ml-0.5" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-primary-400/70 opacity-0 group-hover/code:opacity-100 transition-opacity ml-0.5" />
+                              )}
+                            </button>
+
+                            {isExpired ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40">
+                                {isKhmer ? 'ផុតកំណត់' : 'Expired'}
+                              </span>
+                            ) : isLimitReached ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/40">
+                                {isKhmer ? 'អស់ចំនួន' : 'Maxed'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40">
+                                {isKhmer ? 'សកម្ម' : 'Active'}
+                              </span>
+                            )}
+                          </div>
+
+                          {c.description ? (
+                            <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 leading-snug pl-0.5">
+                              {c.description}
+                            </p>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic pl-0.5">
+                              {isKhmer ? 'គ្មានការពណ៌នា' : 'No description'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 2: Discount Value */}
+                      <td className="p-4 align-middle">
+                        <div className="flex flex-col gap-1">
+                          <div className="inline-flex items-center gap-1 font-black text-sm text-emerald-600 dark:text-emerald-400">
+                            <span>{formatDiscount(c)}</span>
+                          </div>
+                          {c.discountType === 'PERCENTAGE' && c.maxDiscount != null && (
+                            <span className="inline-flex items-center text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md w-max border border-amber-200/60 dark:border-amber-900/40">
+                              Max: ${c.maxDiscount}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 3: Rules & Conditions */}
+                      <td className="p-4 align-middle">
+                        <div className="flex flex-col gap-1 text-xs">
+                          {c.minOrder != null && (
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300 bg-slate-100/90 dark:bg-slate-800 px-2 py-0.5 rounded-md w-max">
+                              <ShoppingBag className="w-3 h-3 text-slate-400" />
+                              <span>Min: ${c.minOrder}</span>
+                            </span>
+                          )}
+                          {c.usageLimit != null && (
+                            <span className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300 bg-slate-100/90 dark:bg-slate-800 px-2 py-0.5 rounded-md w-max">
+                              <Users className="w-3 h-3 text-slate-400" />
+                              <span>Limit: {c.usageLimit}</span>
+                            </span>
+                          )}
+                          {c.minOrder == null && c.usageLimit == null && (
+                            <span className="text-slate-400 text-xs">—</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 4: Usage Progress */}
+                      <td className="p-4 align-middle">
+                        <div className="w-24">
+                          <div className="flex justify-between items-center text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                            <span>{c.usedCount}</span>
+                            <span className="text-slate-400 text-[11px] font-normal">
+                              {c.usageLimit ? `/ ${c.usageLimit}` : 'times'}
+                            </span>
+                          </div>
+                          {c.usageLimit ? (
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  usagePercent >= 100
+                                    ? 'bg-rose-500'
+                                    : usagePercent >= 75
+                                    ? 'bg-amber-500'
+                                    : 'bg-primary-500'
+                                }`}
+                                style={{ width: `${usagePercent}%` }}
+                              />
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-slate-400">{isKhmer ? 'គ្មានកម្រិត' : 'Unlimited'}</div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 5: Expiration */}
+                      <td className="p-4 align-middle">
+                        <div className="flex flex-col gap-0.5 text-xs text-slate-600 dark:text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {c.expiresAt
+                                ? new Date(c.expiresAt).toLocaleDateString('en-GB')
+                                : isKhmer
+                                ? 'គ្មានដែនកំណត់'
+                                : 'Never'}
+                            </span>
+                          </div>
+                          {c.expiresAt && (
+                            <span className="text-[10px] text-slate-400 pl-4.5">
+                              {isExpired ? (isKhmer ? 'បានផុត' : 'Ended') : isKhmer ? 'នៅមានសុពលភាព' : 'Valid'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Column 6: Actions */}
+                      <td className="p-4 align-middle text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(c)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/60 text-slate-700 hover:text-primary-600 dark:text-slate-300 dark:hover:text-primary-400 transition-all hover:scale-105"
+                            title={adminT(language, 'editBtn')}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{adminT(language, 'editBtn')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCoupon(c.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-all hover:scale-105"
+                            title={adminT(language, 'deleteBtn')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">{adminT(language, 'deleteBtn')}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
