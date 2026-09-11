@@ -6,6 +6,7 @@ import { supportApi } from '@/lib/api';
 import { Phone, Send, MessageSquare, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import { playMessageAlertChime } from '@/lib/soundAlert';
 import toast from 'react-hot-toast';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 type Inquiry = {
   id: string;
@@ -234,6 +235,27 @@ export default function AdminSupportInboxPage() {
   };
 
   // Filters
+  const priorityOptions: DropdownOption[] = [
+    { value: 'ALL', label: t.allPriorities, dotColor: '#94a3b8' },
+    { value: 'ORDER', label: priorityLabel('ORDER'), dotColor: '#3b82f6' },
+    { value: 'PAYMENT', label: priorityLabel('PAYMENT'), dotColor: '#f59e0b' },
+    { value: 'PRODUCT', label: priorityLabel('PRODUCT'), dotColor: '#8b5cf6' },
+    { value: 'GENERAL', label: priorityLabel('GENERAL'), dotColor: '#64748b' },
+  ];
+
+  const statusFilterOptions: DropdownOption[] = [
+    { value: 'ALL', label: t.allStatuses, dotColor: '#94a3b8' },
+    { value: 'open', label: t.open, dotColor: '#ef4444' },
+    { value: 'in_progress', label: t.inProgress, dotColor: '#3b82f6' },
+    { value: 'resolved', label: t.resolved, dotColor: '#10b981' },
+  ];
+
+  const statusActionOptions: DropdownOption[] = [
+    { value: 'open', label: t.open, dotColor: '#ef4444' },
+    { value: 'in_progress', label: t.inProgress, dotColor: '#3b82f6' },
+    { value: 'resolved', label: t.resolved, dotColor: '#10b981' },
+  ];
+
   const filteredRows = rows.filter((r) => {
     const matchesPriority = priorityFilter === 'ALL' || r.priority === priorityFilter;
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter || (statusFilter === 'open' && !r.status);
@@ -283,28 +305,19 @@ export default function AdminSupportInboxPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <select
-              className="input h-8 text-[11px] py-0 px-2"
+            <CustomDropdown
+              size="xs"
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as 'ALL' | 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL')}
-            >
-              <option value="ALL">{t.allPriorities}</option>
-              <option value="ORDER">{priorityLabel('ORDER')}</option>
-              <option value="PAYMENT">{priorityLabel('PAYMENT')}</option>
-              <option value="PRODUCT">{priorityLabel('PRODUCT')}</option>
-              <option value="GENERAL">{priorityLabel('GENERAL')}</option>
-            </select>
+              onChange={(val) => setPriorityFilter(val as 'ALL' | 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL')}
+              options={priorityOptions}
+            />
 
-            <select
-              className="input h-8 text-[11px] py-0 px-2"
+            <CustomDropdown
+              size="xs"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'open' | 'in_progress' | 'resolved')}
-            >
-              <option value="ALL">{t.allStatuses}</option>
-              <option value="open">{t.open}</option>
-              <option value="in_progress">{t.inProgress}</option>
-              <option value="resolved">{t.resolved}</option>
-            </select>
+              onChange={(val) => setStatusFilter(val as 'ALL' | 'open' | 'in_progress' | 'resolved')}
+              options={statusFilterOptions}
+            />
           </div>
         </div>
 
@@ -384,15 +397,13 @@ export default function AdminSupportInboxPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-gray-500 font-medium">{t.status}:</span>
-                  <select
-                    className="input h-8 text-[11px] py-0 px-2.5 font-semibold bg-white dark:bg-surface-800 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer"
+                  <CustomDropdown
+                    size="xs"
+                    align="right"
                     value={activeInquiry.status || 'open'}
-                    onChange={(e) => handleStatusChange(activeInquiry.id, e.target.value)}
-                  >
-                    <option value="open">{t.open}</option>
-                    <option value="in_progress">{t.inProgress}</option>
-                    <option value="resolved">{t.resolved}</option>
-                  </select>
+                    onChange={(val) => handleStatusChange(activeInquiry.id, val)}
+                    options={statusActionOptions}
+                  />
                 </div>
               </div>
             </div>

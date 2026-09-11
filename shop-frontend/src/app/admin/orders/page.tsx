@@ -10,6 +10,7 @@ import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
 import { playNewOrderChime, printThermalReceipt } from '@/components/admin/ThermalReceiptPrinter';
 import Image from 'next/image';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -177,6 +178,25 @@ export default function AdminOrdersPage() {
 
   const statuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
+  const orderStatusOptions: DropdownOption[] = [
+    { value: 'PENDING', label: 'PENDING', dotColor: '#eab308' },
+    { value: 'CONFIRMED', label: 'CONFIRMED', dotColor: '#3b82f6' },
+    { value: 'PROCESSING', label: 'PROCESSING', dotColor: '#8b5cf6' },
+    { value: 'SHIPPED', label: 'SHIPPED', dotColor: '#6366f1' },
+    { value: 'DELIVERED', label: 'DELIVERED', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: 'CANCELLED', dotColor: '#ef4444' },
+  ];
+
+  const orderFilterOptions: DropdownOption[] = [
+    { value: '', label: adminT(language, 'allStatuses'), dotColor: '#94a3b8' },
+    ...orderStatusOptions,
+  ];
+
+  const paperWidthOptions: DropdownOption[] = [
+    { value: '80mm', label: '80mm (Standard)' },
+    { value: '58mm', label: '58mm (Small)' },
+  ];
+
   return (
     <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
       {/* Top Header */}
@@ -225,14 +245,12 @@ export default function AdminOrdersPage() {
           </button>
 
           {/* Paper Size Selector */}
-          <select
+          <CustomDropdown
+            size="xs"
             value={paperWidth}
-            onChange={(e) => handlePaperChange(e.target.value as '80mm' | '58mm')}
-            className="text-xs px-2 py-1.5 bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl font-mono text-gray-700 dark:text-gray-200 focus:outline-none"
-          >
-            <option value="80mm">80mm (Standard)</option>
-            <option value="58mm">58mm (Small)</option>
-          </select>
+            onChange={(val) => handlePaperChange(val as '80mm' | '58mm')}
+            options={paperWidthOptions}
+          />
 
           {/* Test Chime Button */}
           <button
@@ -267,18 +285,13 @@ export default function AdminOrdersPage() {
             className="input pl-9 text-sm"
           />
         </div>
-        <select
+        <CustomDropdown
+          size="sm"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="input text-sm w-auto"
-        >
-          <option value="">{adminT(language, 'allStatuses')}</option>
-          {statuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          onChange={(val) => setStatusFilter(val)}
+          options={orderFilterOptions}
+          className="w-44 shrink-0"
+        />
       </div>
 
       {/* Orders Table */}
@@ -375,18 +388,14 @@ export default function AdminOrdersPage() {
                         </button>
 
                         {/* Order Status Select */}
-                        <select
+                        <CustomDropdown
+                          size="xs"
+                          align="right"
                           value={order.status}
-                          onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                          onChange={(val) => handleStatusUpdate(order.id, val)}
                           disabled={updatingId === order.id}
-                          className="text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-800 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:text-white"
-                        >
-                          {statuses.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
+                          options={orderStatusOptions}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -617,18 +626,14 @@ export default function AdminOrdersPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
+                  <CustomDropdown
+                    size="sm"
+                    align="right"
                     value={selectedOrder.status}
-                    onChange={(e) => handleStatusUpdate(selectedOrder.id, e.target.value)}
+                    onChange={(val) => handleStatusUpdate(selectedOrder.id, val)}
                     disabled={updatingId === selectedOrder.id}
-                    className="text-xs font-semibold border border-primary-300 dark:border-primary-800 bg-white dark:bg-surface-800 text-gray-900 dark:text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-xs"
-                  >
-                    {statuses.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
+                    options={orderStatusOptions}
+                  />
                 </div>
               </div>
             </div>
