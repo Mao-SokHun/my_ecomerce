@@ -67,7 +67,11 @@ export const addToCart = async (req: AuthRequest, res: Response, next: NextFunct
     const variantIdValue: string | null = variantId ? String(variantId) : null;
 
     const existingItem = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productId: String(productId), variantId: variantIdValue ?? undefined },
+      where: {
+        cartId: cart.id,
+        productId: String(productId),
+        variantId: variantIdValue === null ? null : variantIdValue,
+      },
     });
 
     if (existingItem) {

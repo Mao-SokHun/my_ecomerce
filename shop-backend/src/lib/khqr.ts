@@ -38,15 +38,17 @@ const formatTlv = (tag: string, val: string | number): string => {
 };
 
 export const buildEmvcoKhqr = ({
-  bakongAccount,
-  merchantName,
+  bakongAccount = 'abaakhppxxx@abaa',
+  accountNumber = '005282269',
+  merchantName = 'MAO SOKHUN',
   merchantCity = 'Phnom Penh',
   currency = 'USD',
   amount,
   billNumber,
-  storeLabel = 'ShopHub',
+  storeLabel = 'SH-Shop',
 }: {
-  bakongAccount: string;
+  bakongAccount?: string;
+  accountNumber?: string;
   merchantName: string;
   merchantCity?: string;
   currency?: 'USD' | 'KHR';
@@ -59,10 +61,12 @@ export const buildEmvcoKhqr = ({
   payload += formatTlv('01', '12'); // 12 = Dynamic QR Code with Amount
 
   // Tag 29: Merchant Account Information
-  const cleanAccount = bakongAccount.includes('@') ? bakongAccount : `${bakongAccount.replace(/\s+/g, '')}@aba`;
-  const sub00 = formatTlv('00', cleanAccount);
-  const sub01 = formatTlv('01', merchantName);
-  payload += formatTlv('29', sub00 + sub01);
+  let tag29 = '';
+  const cleanBakong = bakongAccount.includes('@') ? bakongAccount : `${bakongAccount.replace(/\s+/g, '')}@aba`;
+  tag29 += formatTlv('00', cleanBakong);
+  if (accountNumber) tag29 += formatTlv('01', accountNumber.replace(/\s+/g, ''));
+  tag29 += formatTlv('02', 'ABA Bank');
+  payload += formatTlv('29', tag29);
 
   payload += formatTlv('52', '5999'); // Merchant category code
   payload += formatTlv('53', currency === 'KHR' ? '116' : '840'); // Currency (840 = USD, 116 = KHR)
@@ -74,7 +78,7 @@ export const buildEmvcoKhqr = ({
   // Tag 62: Additional Data
   let tag62 = '';
   if (billNumber) tag62 += formatTlv('01', billNumber);
-  if (storeLabel) tag62 += formatTlv('03', storeLabel);
+  if (storeLabel) tag62 += formatTlv('07', storeLabel);
   if (tag62) payload += formatTlv('62', tag62);
 
   // Tag 63: CRC16 Checksum
@@ -98,36 +102,54 @@ const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
   const merchantName = process.env.KHQR_MERCHANT_NAME || 'MAO SOKHUN';
   const merchantCity = process.env.KHQR_MERCHANT_CITY || 'Phnom Penh';
-  const accountUsd = (process.env.KHQR_ACCOUNT_USD || '005 282 269').trim();
-  const accountKhr = (process.env.KHQR_ACCOUNT_KHR || '005 282 293').trim();
+  const accountUsd = (process.env.KHQR_ACCOUNT_USD || '005282269').replace(/\s+/g, '');
+  const accountKhr = (process.env.KHQR_ACCOUNT_KHR || '005282293').replace(/\s+/g, '');
+  const bakongId = (process.env.KHQR_BAKONG_ID || 'abaakhppxxx@abaa').trim();
   const amountUsd = Number(order.total.toFixed(2));
   const amountKhr = Math.round(order.total * 4100);
 
   // 1. Build EMVCo Dynamic USD QR
   const qrPayloadUsd = buildEmvcoKhqr({
-    bakongAccount: accountUsd,
+    bakongAccount: bakongId,
     merchantName,
     merchantCity,
     currency: 'USD',
     amount: amountUsd,
     billNumber: order.orderNumber,
-    storeLabel: 'ShopHub',
+    storeLabel: 'SH-Shop',
   });
 
   // 2. Build EMVCo Dynamic KHR QR
   const qrPayloadKhr = buildEmvcoKhqr({
-    bakongAccount: accountKhr,
+    bakongAccount: bakongId,
     merchantName,
     merchantCity,
     currency: 'KHR',
     amount: amountKhr,
     billNumber: order.orderNumber,
-    storeLabel: 'ShopHub',
+    storeLabel: 'SH-Shop',
   });
 
-  // 3. Use Official Verified ABA Merchant QR images
-  const qrUrlUsd = '/payments/aba_pay_khqr.png';
-  const qrUrlKhr = '/payments/aba_qr_khr.png';
+  // 3. Generate High-Res Dynamic QR Base64 Data URLs
+  const qrUrlUsd = await QRCode.toDataURL(qrPayloadUsd, {
+    width: 320,
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: {
+      dark: '#000000',
+      light: '#ffffff',
+    },
+  });
+
+  const qrUrlKhr = await QRCode.toDataURL(qrPayloadKhr, {
+    width: 320,
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: {
+      dark: '#000000',
+      light: '#ffffff',
+    },
+  });
 
   return {
     reference,

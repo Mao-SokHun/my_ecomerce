@@ -93,6 +93,10 @@
     box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-normal border transition-colors;
+  }
+
   .liquid-pill {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300;
     background: rgba(255, 255, 255, 0.65);

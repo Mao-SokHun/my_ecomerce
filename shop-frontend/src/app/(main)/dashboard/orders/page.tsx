@@ -11,7 +11,7 @@ import { orderApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
-import { formatPrice, formatDate, getOrderStatusColor, cn } from '@/lib/utils';
+import { formatPrice, formatDate, getOrderStatusColor, getPaymentStatusColor, cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 function orderStatusAccent(status: Order['status']): string {
@@ -157,22 +157,10 @@ export default function OrdersPage() {
                           {order.orderNumber}
                         </span>
                         <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                          <span
-                            className={cn(
-                              'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ring-black/5 dark:ring-white/10',
-                              getOrderStatusColor(order.status),
-                            )}
-                          >
+                          <span className={cn('badge', getOrderStatusColor(order.status))}>
                             {t(language, `orderStatus_${order.status}`)}
                           </span>
-                          <span
-                            className={cn(
-                              'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset',
-                              order.paymentStatus === 'PAID'
-                                ? 'bg-emerald-50 text-emerald-900 ring-emerald-600/15 dark:bg-emerald-900/35 dark:text-emerald-300 dark:ring-emerald-500/25'
-                                : 'bg-amber-50 text-amber-950 ring-amber-600/15 dark:bg-amber-900/35 dark:text-amber-200 dark:ring-amber-500/25',
-                            )}
-                          >
+                          <span className={cn('badge', getPaymentStatusColor(order.paymentStatus))}>
                             {t(language, order.paymentStatus === 'PAID' ? 'paymentStatus_PAID' : 'paymentStatus_PENDING')}
                           </span>
                         </div>

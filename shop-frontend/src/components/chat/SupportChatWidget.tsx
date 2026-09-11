@@ -447,57 +447,57 @@ export default function SupportChatWidget() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 24 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[380px] max-w-[calc(100vw-24px)] rounded-[28px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.22)] flex flex-col h-[560px] max-h-[calc(100vh-40px)] bg-white/95 dark:bg-surface-900/95 backdrop-blur-2xl border border-white/60 dark:border-white/10"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[350px] max-w-[calc(100vw-24px)] rounded-2xl overflow-hidden shadow-[0_16px_48px_rgba(0,0,0,0.2)] flex flex-col h-[500px] max-h-[calc(100vh-32px)] bg-white/95 dark:bg-surface-900/95 backdrop-blur-2xl border border-white/60 dark:border-white/10"
           >
             {/* Header: iOS Curved Liquid Glass Bar */}
-            <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white shrink-0 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between px-3.5 py-2.5 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white shrink-0 shadow-sm relative overflow-hidden">
               <div className="absolute inset-0 bg-white/10 backdrop-blur-md pointer-events-none" />
-              <div className="flex items-center gap-3 min-w-0 relative z-10">
-                <div className="relative w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-lg flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-indigo-700 animate-pulse" />
+              <div className="flex items-center gap-2.5 min-w-0 relative z-10">
+                <div className="relative w-8 h-8 rounded-xl bg-white/20 backdrop-blur-lg flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-indigo-700 animate-pulse" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-sm leading-tight truncate drop-shadow-sm">
+                  <p className="font-bold text-xs leading-tight truncate drop-shadow-sm">
                     {inquiryId ? label.liveTitle : label.title}
                   </p>
-                  <p className="text-[11px] text-indigo-100 flex items-center gap-1.5 mt-0.5 font-medium">
+                  <p className="text-[10px] text-indigo-100 flex items-center gap-1 mt-0.5 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     <span>{inquiryId ? 'Live Admin Connected' : 'Online • 24/7 Support'}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 shrink-0 relative z-10">
+              <div className="flex items-center gap-1 shrink-0 relative z-10">
                 {inquiryId && (
                   <button
                     type="button"
                     onClick={handleResetChat}
                     title={language === 'km' ? 'ជជែកសារថ្មី' : 'Restart Chat'}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className="w-3 h-3" />
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close chat"
-                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/10 hover:bg-white/25 text-white transition backdrop-blur-sm"
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
             {/* Chat Body / Messages Timeline */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/60 dark:bg-surface-950/60 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50/60 dark:bg-surface-950/60 scroll-smooth">
               {messages.map((m, i) => {
                 const isUser = m.role === 'user';
                 const isAdmin = m.role === 'admin';
 
                 return (
-                  <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
+                  <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-0.5`}>
                     {/* Sender Identity */}
                     <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1">
                       {isAdmin ? (
@@ -525,7 +525,7 @@ export default function SupportChatWidget() {
 
                     {/* Message Bubble */}
                     <div
-                      className={`text-xs p-3.5 rounded-2xl leading-relaxed max-w-[88%] whitespace-pre-line ${
+                      className={`text-xs p-2.5 rounded-xl leading-relaxed max-w-[88%] whitespace-pre-line ${
                         isUser
                           ? 'bg-gradient-to-tr from-primary-600 via-primary-500 to-indigo-600 text-white rounded-tr-xs shadow-[0_4px_14px_rgba(79,70,229,0.25)]'
                           : isAdmin
@@ -538,12 +538,12 @@ export default function SupportChatWidget() {
 
                     {/* Interactive Contact Channels */}
                     {m.isContactOptions && (
-                      <div className="bg-white dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-2xl p-3 space-y-2 max-w-[90%] shadow-sm mt-1">
+                      <div className="bg-white dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl p-2.5 space-y-1.5 max-w-[90%] shadow-sm mt-1">
                         <a
                           href="https://t.me/+855974944390"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-white bg-[#0088cc] rounded-xl hover:opacity-90 transition shadow-sm"
+                          className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-white bg-[#0088cc] rounded-lg hover:opacity-90 transition shadow-sm"
                         >
                           <TelegramIcon className="w-3.5 h-3.5 shrink-0" />
                           <span>Telegram: @new_user_sh_shop_bot</span>
@@ -553,25 +553,25 @@ export default function SupportChatWidget() {
                           href="https://facebook.com/maosokhun"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-white bg-[#1877f2] rounded-xl hover:opacity-90 transition shadow-sm"
+                          className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium text-white bg-[#1877f2] rounded-lg hover:opacity-90 transition shadow-sm"
                         >
                           <Facebook className="w-3.5 h-3.5 shrink-0" />
                           <span>Facebook: Mao Sokhun</span>
                         </a>
 
-                        <div className="border-t border-gray-100 dark:border-surface-700 pt-1.5 space-y-1">
+                        <div className="border-t border-gray-100 dark:border-surface-700 pt-1 space-y-1">
                           <a
                             href="tel:0974944390"
-                            className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition"
+                            className="flex items-center gap-2 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-md hover:bg-gray-100 dark:hover:bg-surface-800 transition"
                           >
-                            <Phone className="w-3.5 h-3.5 text-gray-500" />
+                            <Phone className="w-3 h-3 text-gray-500" />
                             <span>097 494 4390</span>
                           </a>
                           <a
                             href="mailto:shshopbyonline@gmail.com"
-                            className="flex items-center gap-2.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-lg hover:bg-gray-100 dark:hover:bg-surface-800 transition"
+                            className="flex items-center gap-2 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-900 rounded-md hover:bg-gray-100 dark:hover:bg-surface-800 transition"
                           >
-                            <Mail className="w-3.5 h-3.5 text-gray-500" />
+                            <Mail className="w-3 h-3 text-gray-500" />
                             <span>shshopbyonline@gmail.com</span>
                           </a>
                         </div>
@@ -581,36 +581,34 @@ export default function SupportChatWidget() {
                 );
               })}
 
-              {/* In-Timeline FAQ Suggestions (Clean Card Buttons) */}
+              {/* In-Timeline FAQ Suggestions (Compact & Clean) */}
               {!inquiryId && !showDetailsForm && (
-                <div className="pt-2 space-y-2.5 shrink-0" style={{ flexShrink: 0 }}>
-                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 px-1">
+                <div className="pt-1.5 space-y-1.5 shrink-0">
+                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 px-1 uppercase tracking-wider">
                     {language === 'km' ? 'សំណួរដែលសួរញឹកញាប់ ៖' : language === 'zh' ? '常见问题：' : 'Frequently Asked Questions:'}
                   </p>
-                  <div className="flex flex-col gap-2.5" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="flex flex-col gap-1.5">
                     {faqList.map((faq) => (
                       <button
                         key={faq.key}
                         type="button"
                         onClick={() => handleFAQClick(faq)}
-                        style={{ minHeight: '48px', height: 'auto', flexShrink: 0 }}
-                        className="w-full text-left text-xs px-4 py-3 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-800 dark:text-gray-100 hover:text-primary-600 rounded-2xl border border-gray-200/90 dark:border-surface-700 shadow-sm transition-all duration-200 flex items-center justify-between group font-semibold shrink-0 leading-normal"
+                        className="w-full text-left text-xs px-3 py-2 bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-surface-700 text-gray-800 dark:text-gray-100 hover:text-primary-600 rounded-xl border border-gray-200/80 dark:border-surface-700/80 shadow-2xs transition-all duration-150 flex items-center justify-between group font-medium shrink-0"
                       >
                         <span className="truncate pr-2">{faq.question[language] || faq.question['en']}</span>
-                        <span className="text-primary-500 opacity-60 group-hover:opacity-100 transition-opacity text-sm font-bold shrink-0">➔</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-primary-500 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
                       </button>
                     ))}
                     <button
                       type="button"
                       onClick={handleContactAdmin}
-                      style={{ minHeight: '48px', height: 'auto', flexShrink: 0 }}
-                      className="w-full text-left text-xs px-4 py-3 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white rounded-2xl shadow-md shadow-primary-500/25 transition-all duration-200 font-bold flex items-center justify-between shrink-0 mt-1 leading-normal"
+                      className="w-full text-left text-xs px-3 py-2 bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white rounded-xl shadow-sm shadow-primary-500/25 transition-all duration-150 font-semibold flex items-center justify-between shrink-0 mt-0.5"
                     >
-                      <span className="flex items-center gap-2">
-                        <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                      <span className="flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-white shrink-0" />
                         <span>{label.talkToHuman}</span>
                       </span>
-                      <Send className="w-4 h-4 text-white shrink-0" />
+                      <Send className="w-3.5 h-3.5 text-white shrink-0" />
                     </button>
                   </div>
                 </div>

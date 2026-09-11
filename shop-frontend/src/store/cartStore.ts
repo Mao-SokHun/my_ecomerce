@@ -71,29 +71,39 @@ export const useCartStore = create<CartState>((set, get) => ({
   isOpen: false,
 
   fetchCart: async () => {
-    const token = localStorage.getItem('token');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) {
-      set({ cart: loadGuestCart() });
+      set({ cart: loadGuestCart(), isLoading: false });
       return;
     }
 
     set({ isLoading: true });
     try {
       const guest = loadGuestCart();
-      if (guest.items.length > 0) {
+      if (guest && guest.items && guest.items.length > 0) {
         for (const item of guest.items) {
-          await cartApi.add({
-            productId: item.productId,
-            quantity: item.quantity,
-            variantId: item.variantId,
-          });
+          try {
+            await cartApi.add({
+              productId: item.productId,
+              quantity: item.quantity,
+              variantId: item.variantId,
+            });
+          } catch (e) {
+            console.warn('Failed to sync guest cart item:', item, e);
+          }
         }
         clearGuestCartStorage();
       }
       const { data } = await cartApi.get();
       set({ cart: data.data, isLoading: false });
-    } catch {
-      set({ isLoading: false });
+    } catch (err) {
+      console.error('Failed to fetch cart:', err);
+      const fallbackGuest = loadGuestCart();
+      if (fallbackGuest.items.length > 0) {
+        set({ cart: fallbackGuest, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
     }
   },
 

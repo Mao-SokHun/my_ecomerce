@@ -283,7 +283,6 @@ export default function CheckoutPage() {
         couponCode: normalizedCoupon || undefined,
       });
       const orderId = data.data.order.id as string;
-      await fetchCart();
 
       if (paymentMethod === 'bakong') {
         const khqrRes = await paymentApi.createKhqr(orderId);
@@ -529,7 +528,9 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!cart && step < 3) {
+  const isPaymentActive = Boolean(khqrPayment || abaPayment || cardPaymentOrder || completedOrder || isProcessing);
+
+  if (!cart && step === 0 && !isPaymentActive) {
     return (
       <div className="page-container py-20 text-center min-h-[50vh] flex flex-col items-center justify-center">
         <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -540,7 +541,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cart && cart.items.length === 0 && step < 3) {
+  if (cart && cart.items.length === 0 && step === 0 && !isPaymentActive) {
     return (
       <div className="page-container py-20 min-h-[60vh] flex flex-col items-center justify-center">
         <EmptyState
@@ -1014,63 +1015,63 @@ export default function CheckoutPage() {
       </div>
 
       {khqrPayment && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-[420px] bg-white dark:bg-surface-900 rounded-[28px] p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.35)] border border-gray-100 dark:border-surface-750 text-center relative max-h-[92vh] overflow-y-auto"
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[390px] my-auto bg-white dark:bg-surface-900 rounded-3xl p-4 sm:p-5 shadow-2xl border border-slate-200/80 dark:border-surface-750 text-center relative flex flex-col shrink-0"
           >
             {/* Top Bar with Branding & Close */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100 dark:border-surface-800">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-surface-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
                   ABA
                 </div>
                 <div className="text-left">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
                     {language === 'km' ? 'ទូទាត់ប្រាក់តាម Bakong KHQR' : 'Bakong KHQR Payment'}
                   </h3>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
-                    {language === 'km' ? 'ស្កែនបានគ្រប់ធនាគារទាំងអស់' : 'Scan with all KH banks'}
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                    {language === 'km' ? 'ស្កែនបានគ្រប់ធនាគារទាំងអស់' : 'Scan with all Cambodian bank apps'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setKhqrPayment(null)}
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-surface-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition"
+                className="w-7 h-7 rounded-full bg-slate-100 dark:bg-surface-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition"
                 aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Total Amount Display Hero */}
-            <div className="py-4 text-center">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                {language === 'km' ? 'ចំនួនទឹកប្រាក់សរុប' : 'Total Amount'}
-              </p>
-              <div className="flex items-baseline justify-center gap-2">
-                <span className="text-3xl font-black text-gray-950 dark:text-white tracking-tight">
+            {/* Total Amount Display Banner */}
+            <div className="py-2.5 flex items-center justify-between px-3 bg-slate-50 dark:bg-surface-800/60 rounded-xl my-2.5 border border-slate-100 dark:border-surface-750">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                {language === 'km' ? 'ទឹកប្រាក់សរុប' : 'Total'}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
                   {formatPrice(khqrPayment.amount, language)}
                 </span>
-                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200/60 dark:border-amber-900/60">
-                  ≈ {formatKhrPrice(khqrPayment.amount)}
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                  ({formatKhrPrice(khqrPayment.amount)})
                 </span>
               </div>
             </div>
 
-            {/* Segmented Currency Switcher */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-surface-800/90 rounded-2xl mb-4 text-xs font-bold">
+            {/* Currency Switcher */}
+            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-surface-800 rounded-xl mb-3 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setKhqrVariant('aba_pay')}
-                className={`py-2 rounded-xl transition-all ${
+                className={`py-1.5 rounded-lg transition-all ${
                   khqrVariant === 'aba_pay'
-                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
                 USD ($)
@@ -1078,78 +1079,57 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={() => setKhqrVariant('aba_khr')}
-                className={`py-2 rounded-xl transition-all ${
+                className={`py-1.5 rounded-lg transition-all ${
                   khqrVariant === 'aba_khr'
-                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
                 KHR (៛)
               </button>
-              <button
-                type="button"
-                onClick={() => setKhqrVariant('aba_poster')}
-                className={`py-2 rounded-xl transition-all ${
-                  khqrVariant === 'aba_poster'
-                    ? 'bg-white dark:bg-surface-700 text-red-600 dark:text-red-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
-                }`}
-              >
-                Poster
-              </button>
             </div>
 
-            {/* Official KHQR Code Card Container */}
-            <div className="bg-slate-50 dark:bg-surface-800/50 p-3 rounded-2xl border border-gray-100 dark:border-surface-750 flex flex-col items-center mb-4">
-              {khqrVariant === 'aba_poster' ? (
-                <div className="w-full flex flex-col items-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/payments/aba_payway_mao_sokhun.png"
-                    alt="ABA Bank KHQR Poster MAO SOKHUN"
-                    className="w-full max-h-[300px] object-contain rounded-xl shadow-sm"
-                  />
+            {/* Dynamic KHQR Code Card Container */}
+            <div className="w-full flex flex-col items-center mb-3">
+              {/* Authentic ABA KHQR Red Header with Dynamic Amount */}
+              <div className="w-full max-w-[240px] bg-[#E1251B] text-white py-1.5 px-3 rounded-t-xl flex items-center justify-between font-bold text-xs shadow-sm">
+                <div className="flex items-center gap-1">
+                  <span className="font-black text-xs tracking-tight">ABA</span>
+                  <span className="text-[9px] bg-white/20 px-1 py-0.2 rounded font-mono font-bold">KHQR</span>
                 </div>
-              ) : (
-                <div className="w-full flex flex-col items-center">
-                  {/* Authentic ABA KHQR Header */}
-                  <div className="w-full max-w-[260px] bg-[#E1251B] text-white py-2 px-3.5 rounded-t-2xl flex items-center justify-between font-bold text-xs shadow-sm">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-black text-sm tracking-tight">ABA</span>
-                      <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">KHQR</span>
-                    </div>
-                    <span className="text-xs font-mono font-black">
-                      {khqrVariant === 'aba_pay'
-                        ? `$${Number(khqrPayment.amount).toFixed(2)}`
-                        : `៛${(khqrPayment.amountKhr || Math.round(khqrPayment.amount * 4100)).toLocaleString()}`}
-                    </span>
-                  </div>
+                <span className="text-xs font-mono font-black">
+                  {khqrVariant === 'aba_pay'
+                    ? `$${Number(khqrPayment.amount).toFixed(2)}`
+                    : `៛${(khqrPayment.amountKhr || Math.round(khqrPayment.amount * 4100)).toLocaleString()}`}
+                </span>
+              </div>
 
-                  {/* QR Code Canvas */}
-                  <div className="w-full max-w-[260px] bg-white p-3.5 border-x-2 border-b-2 border-[#E1251B] rounded-b-2xl shadow-md flex flex-col items-center">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        khqrVariant === 'aba_pay'
-                          ? (khqrPayment.qrImageUrl && !khqrPayment.qrImageUrl.startsWith('data:') ? khqrPayment.qrImageUrl : '/payments/aba_pay_khqr.png')
-                          : (khqrPayment.qrImageUrlKhr && !khqrPayment.qrImageUrlKhr.startsWith('data:') ? khqrPayment.qrImageUrlKhr : '/payments/aba_qr_khr.png')
-                      }
-                      alt={`ABA Bank Dynamic KHQR ${khqrVariant === 'aba_pay' ? 'USD' : 'KHR'}`}
-                      className="w-[200px] h-[200px] object-contain"
-                    />
-                    <div className="mt-2 flex items-center justify-between w-full pt-1.5 border-t border-gray-100 text-[11px] text-gray-700 font-bold">
-                      <span>{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
-                      <span className="font-mono text-red-600">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
-                    </div>
-                  </div>
-
-                  <p className="mt-2.5 text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                    {language === 'km'
-                      ? 'ស្កេនជាមួយ ABA, Bakong ឬ Banking App ទាំងអស់'
-                      : 'Scan with ABA Mobile, Bakong or any Mobile Banking App'}
-                  </p>
+              {/* Dynamic QR Code Canvas */}
+              <div className="w-full max-w-[240px] bg-white p-2.5 border-x-2 border-b-2 border-[#E1251B] rounded-b-xl shadow-md flex flex-col items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={
+                    khqrVariant === 'aba_pay'
+                      ? khqrPayment.qrImageUrl
+                      : (khqrPayment.qrImageUrlKhr || khqrPayment.qrImageUrl)
+                  }
+                  alt={`Dynamic KHQR ${khqrVariant === 'aba_pay' ? 'USD' : 'KHR'}`}
+                  className="w-[170px] h-[170px] object-contain"
+                />
+                <div className="mt-1 flex items-center justify-between w-full pt-1 border-t border-slate-100 text-[10px] text-slate-800 font-bold">
+                  <span>{khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}</span>
+                  <span className="font-mono text-red-600">{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
                 </div>
-              )}
+              </div>
+
+              <p className="mt-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>
+                  {language === 'km'
+                    ? 'ស្កេនជាមួយ ABA, Bakong ឬ Banking App ទាំងអស់'
+                    : 'Scan with ABA, Bakong or any Banking App'}
+                </span>
+              </p>
             </div>
 
             {/* Quick Open in ABA App Link */}
@@ -1157,23 +1137,23 @@ export default function CheckoutPage() {
               href="https://link.payway.com.kh/ABAPAYQf518577C"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-950 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm mb-3"
+              className="w-full py-2 px-3 bg-slate-900 hover:bg-black dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs mb-2"
             >
-              <Landmark className="w-4 h-4 text-red-500" />
+              <Landmark className="w-3.5 h-3.5 text-red-500" />
               <span>{language === 'km' ? 'បើកទូទាត់ក្នុង ABA Mobile App' : 'Open in ABA Mobile App'}</span>
-              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              <ExternalLink className="w-3 h-3 opacity-70" />
             </a>
 
             {/* Account Details with Copy Button */}
-            <div className="bg-gray-50 dark:bg-surface-800/60 rounded-2xl p-3 text-xs space-y-2 text-left mb-4 border border-gray-100 dark:border-surface-750">
+            <div className="bg-slate-50 dark:bg-surface-800/60 rounded-xl p-2.5 text-[11px] space-y-1.5 text-left mb-3 border border-slate-100 dark:border-surface-750">
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 dark:text-gray-400">ឈ្មោះគណនី:</span>
-                <span className="font-bold text-gray-900 dark:text-white">
+                <span className="text-slate-500 dark:text-slate-400">ឈ្មោះគណនី:</span>
+                <span className="font-bold text-slate-900 dark:text-white">
                   {khqrVariant === 'aba_pay' ? 'MAO SOKHUN ($)' : 'MAO SOKHUN (៛)'}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 dark:text-gray-400">លេខគណនី:</span>
+                <span className="text-slate-500 dark:text-slate-400">លេខគណនី:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1181,16 +1161,16 @@ export default function CheckoutPage() {
                     navigator.clipboard.writeText(acc.replace(/\s/g, ''));
                     toast.success('បានចម្លងលេខគណនី ' + acc);
                   }}
-                  className="flex items-center gap-1.5 font-mono font-bold text-red-600 dark:text-red-400 hover:underline"
+                  className="flex items-center gap-1 font-mono font-bold text-red-600 dark:text-red-400 hover:underline"
                   title="Click to copy"
                 >
                   <span>{khqrVariant === 'aba_pay' ? '005 282 269' : '005 282 293'}</span>
                   <Copy className="w-3 h-3 opacity-70" />
                 </button>
               </div>
-              <div className="flex justify-between items-center pt-1 border-t border-gray-200/80 dark:border-surface-700 text-[11px]">
-                <span className="text-gray-400">លេខសម្គាល់ (Ref):</span>
-                <span className="font-mono text-gray-700 dark:text-gray-300 font-semibold">{khqrPayment.reference}</span>
+              <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 dark:border-surface-700 text-[10px]">
+                <span className="text-slate-400">Ref:</span>
+                <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">{khqrPayment.reference}</span>
               </div>
             </div>
 
@@ -1198,7 +1178,7 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={() => setKhqrPayment(null)}
-              className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-surface-750 dark:hover:bg-surface-700 text-gray-800 dark:text-white rounded-2xl text-xs font-bold transition"
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-surface-750 dark:hover:bg-surface-700 text-slate-800 dark:text-white rounded-xl text-xs font-bold transition"
             >
               {language === 'km' ? 'រួចរាល់ / បិទ' : 'Done / Close'}
             </button>

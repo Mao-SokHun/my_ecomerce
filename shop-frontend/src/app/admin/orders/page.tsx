@@ -365,13 +365,7 @@ export default function AdminOrdersPage() {
                       <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span
-                        className={`badge ${
-                          order.paymentStatus === 'PAID'
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}
-                      >
+                      <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
                         {order.paymentStatus}
                       </span>
                     </td>
@@ -445,11 +439,7 @@ export default function AdminOrdersPage() {
                       {selectedOrder.status}
                     </span>
                     <span
-                      className={`badge text-[11px] ${
-                        selectedOrder.paymentStatus === 'PAID'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                      }`}
+                      className={`badge text-[11px] ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}
                     >
                       {selectedOrder.paymentStatus === 'PAID' ? 'PAID (បានបង់)' : 'UNPAID (មិនទាន់បង់)'}
                     </span>

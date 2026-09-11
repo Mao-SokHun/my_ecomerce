@@ -51,25 +51,42 @@ export const getDiscountPercent = (price: number, comparePrice: number): number 
 
 export const getOrderStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    CONFIRMED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    PROCESSING: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    SHIPPED: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-    DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    REFUNDED: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+    PENDING:
+      'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25 dark:border-amber-500/30',
+    CONFIRMED:
+      'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25 dark:border-sky-500/30',
+    PROCESSING:
+      'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/25 dark:border-purple-500/30',
+    SHIPPED:
+      'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/25 dark:border-blue-500/30',
+    DELIVERED:
+      'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 dark:border-emerald-500/30',
+    CANCELLED:
+      'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25 dark:border-rose-500/30',
+    REFUNDED:
+      'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/25 dark:border-slate-500/30',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return (
+    colors[status] ||
+    'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/25 dark:border-gray-500/30'
+  );
 };
 
 export const getPaymentStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    PAID: 'bg-green-100 text-green-800',
-    FAILED: 'bg-red-100 text-red-800',
-    REFUNDED: 'bg-gray-100 text-gray-800',
+    PENDING:
+      'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25 dark:border-rose-500/30',
+    PAID:
+      'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25 dark:border-emerald-500/30',
+    FAILED:
+      'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25 dark:border-rose-500/30',
+    REFUNDED:
+      'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/25 dark:border-purple-500/30',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return (
+    colors[status] ||
+    'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/25 dark:border-gray-500/30'
+  );
 };
 
 export const truncateText = (text: string, maxLength: number): string => {

@@ -471,36 +471,36 @@ export default function AdminProductsPage() {
 
   return (
     <div
-      className="space-y-6"
+      className="space-y-4"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
       {/* ========================================================================= */}
-      {/* KPI STATS CARDS (LUXURY REDESIGN) */}
+      {/* KPI STATS CARDS (COMPACT & SLEEK) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
         {/* 1. Total Catalog */}
         <button
           type="button"
           onClick={() => setFilterMode('all')}
-          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
             filterMode === 'all'
-              ? 'bg-gradient-to-br from-indigo-50/90 to-white dark:from-indigo-950/40 dark:to-surface-900 border-indigo-500/50 shadow-md ring-2 ring-indigo-500/20'
+              ? 'bg-gradient-to-br from-indigo-50/90 to-white dark:from-indigo-950/40 dark:to-surface-900 border-indigo-500/50 shadow-sm ring-2 ring-indigo-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-indigo-300 dark:hover:border-indigo-800'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isKhmer ? 'ទំនិញសរុប' : 'Total Catalog'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40">
-              <Boxes className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40">
+              <Boxes className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+          <div className="flex items-baseline justify-between mt-1.5">
+            <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
               {totalCount}
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-300">
+            <span className="text-[11px] font-semibold px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-300">
               {isKhmer ? 'មុខ' : 'items'}
             </span>
           </div>
@@ -510,26 +510,26 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('active')}
-          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
             filterMode === 'active'
-              ? 'bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-surface-900 border-emerald-500/50 shadow-md ring-2 ring-emerald-500/20'
+              ? 'bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-surface-900 border-emerald-500/50 shadow-sm ring-2 ring-emerald-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-emerald-300 dark:hover:border-emerald-800'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>{isKhmer ? 'កំពុងលក់' : 'Active'}</span>
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+          <div className="flex items-baseline justify-between mt-1.5">
+            <span className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
               {activeCount}
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
+            <span className="text-[11px] font-semibold px-1.5 py-0.2 rounded-md bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
               {isKhmer ? 'សកម្ម' : 'live'}
             </span>
           </div>
@@ -539,25 +539,25 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('low_stock')}
-          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
             filterMode === 'low_stock'
-              ? 'bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-surface-900 border-amber-500/50 shadow-md ring-2 ring-amber-500/20'
+              ? 'bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-surface-900 border-amber-500/50 shadow-sm ring-2 ring-amber-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-amber-300 dark:hover:border-amber-800'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
               {isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
-              <AlertTriangle className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
+              <AlertTriangle className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
+          <div className="flex items-baseline justify-between mt-1.5">
+            <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
               {lowStockCount}
             </span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
+            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
               lowStockCount > 0
                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse'
                 : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
@@ -571,25 +571,25 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('out_of_stock')}
-          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
             filterMode === 'out_of_stock'
-              ? 'bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-surface-900 border-rose-500/50 shadow-md ring-2 ring-rose-500/20'
+              ? 'bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-surface-900 border-rose-500/50 shadow-sm ring-2 ring-rose-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-rose-300 dark:hover:border-rose-800'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
               {isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
-              <RotateCcw className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
+              <RotateCcw className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
+          <div className="flex items-baseline justify-between mt-1.5">
+            <span className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
               {outOfStockCount}
             </span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
+            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
               outOfStockCount > 0
                 ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                 : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
@@ -603,25 +603,25 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('featured')}
-          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left col-span-2 sm:col-span-1 transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left col-span-2 sm:col-span-1 transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
             filterMode === 'featured'
-              ? 'bg-gradient-to-br from-purple-50/90 to-white dark:from-purple-950/40 dark:to-surface-900 border-purple-500/50 shadow-md ring-2 ring-purple-500/20'
+              ? 'bg-gradient-to-br from-purple-50/90 to-white dark:from-purple-950/40 dark:to-surface-900 border-purple-500/50 shadow-sm ring-2 ring-purple-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-purple-300 dark:hover:border-purple-800'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
               {isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
-              <Sparkles className="w-4 h-4 text-amber-500" />
+            <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             </div>
           </div>
-          <div className="flex items-baseline justify-between mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 tabular-nums tracking-tight">
+          <div className="flex items-baseline justify-between mt-1.5">
+            <span className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 tabular-nums tracking-tight">
               {featuredCount}
             </span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-purple-100/70 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300">
+            <span className="text-[11px] font-semibold px-1.5 py-0.2 rounded-md bg-purple-100/70 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300">
               {isKhmer ? 'លើ Home' : 'on home'}
             </span>
           </div>
@@ -629,25 +629,25 @@ export default function AdminProductsPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* MAIN SEARCH & FILTERS TOOLBAR (PREMIUM REDESIGN) */}
+      {/* MAIN SEARCH & FILTERS TOOLBAR (COMPACT & SLEEK) */}
       {/* ========================================================================= */}
-      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-surface-750 bg-white dark:bg-surface-900 shadow-sm p-4 sm:p-5 space-y-4">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+      <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 dark:border-surface-750 bg-white dark:bg-surface-900 shadow-2xs p-3 sm:p-3.5 space-y-2.5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Search input */}
-          <div className="relative flex-1 min-w-[240px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand, Category...' : 'Search products by name, brand, category...'}
-              className="w-full h-11 pl-10 pr-9 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+              className="w-full h-9 pl-9 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -655,34 +655,34 @@ export default function AdminProductsPage() {
           </div>
 
           {/* Right: Category Dropdown & Add Product Button */}
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
             {categories.length > 0 && (
               <CustomDropdown
-                size="md"
+                size="sm"
                 value={selectedCategory}
                 onChange={setSelectedCategory}
                 options={categoryOptions}
-                icon={<Layers className="w-4 h-4 text-slate-400" />}
-                className="min-w-[180px] sm:min-w-[220px]"
+                icon={<Layers className="w-3.5 h-3.5 text-slate-400" />}
+                className="min-w-[160px] sm:min-w-[200px]"
               />
             )}
 
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
             >
-              <Plus className="w-4 h-4" />
-              <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add New Product'}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add Product'}</span>
             </button>
           </div>
         </div>
 
         {/* Filter Tabs & Total Count Info */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 dark:border-surface-800">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
-              <Tag className="w-3.5 h-3.5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-surface-800">
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
+              <Tag className="w-3 h-3" />
               <span>{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
             </span>
             {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
@@ -690,9 +690,9 @@ export default function AdminProductsPage() {
                 key={mode}
                 type="button"
                 onClick={() => setFilterMode(mode)}
-                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 flex items-center gap-1.5 ${
                   filterMode === mode
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm ring-1 ring-slate-900/10'
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs ring-1 ring-slate-900/10'
                     : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
                 }`}
               >
@@ -730,7 +730,7 @@ export default function AdminProductsPage() {
             ))}
           </div>
 
-          <div className="text-xs text-slate-400 font-medium">
+          <div className="text-[11px] text-slate-400 font-medium">
             {isKhmer
               ? `បង្ហាញ ${filteredProducts.length} នៃ ${totalCount} មុខ`
               : `Showing ${filteredProducts.length} of ${totalCount} items`}
@@ -739,20 +739,20 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Luxury Product Table */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
         {loading ? (
-          <div className="p-12 text-center space-y-4">
-            <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-sm font-semibold text-slate-500 animate-pulse">
+          <div className="p-8 text-center space-y-3">
+            <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs font-semibold text-slate-500 animate-pulse">
               {isKhmer ? 'កំពុងផ្ទុកបញ្ជីទំនិញ...' : 'Loading products catalog...'}
             </p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
-              <Package className="w-8 h-8 stroke-1" />
+          <div className="p-8 text-center space-y-2.5">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
+              <Package className="w-6 h-6 stroke-1" />
             </div>
-            <p className="text-base font-bold text-slate-900 dark:text-white">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
               {isKhmer ? 'រកមិនឃើញទំនិញឡើយ' : 'No products found'}
             </p>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -765,17 +765,17 @@ export default function AdminProductsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  <th className="py-3.5 px-4 sm:px-6">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                  <th className="py-3.5 px-4 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
-                  <th className="py-3.5 px-4">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
-                  <th className="py-3.5 px-4">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                  <th className="py-3.5 px-4 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
-                  <th className="py-3.5 px-4 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
+                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
+                  <th className="py-2.5 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
+                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
                 {filteredProducts.map((product) => {
                   const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                   const isLow = product.stock > 0 && product.stock <= 5;
@@ -787,35 +787,35 @@ export default function AdminProductsPage() {
                       className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
                     >
                       {/* Product Name & Thumbnail */}
-                      <td className="py-3 px-4 sm:px-6">
-                        <div className="flex items-center gap-3.5">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-md transition-shadow">
+                      <td className="py-2.5 px-3 sm:px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-sm transition-shadow">
                             {product.thumbnail ? (
                               <Image
                                 src={product.thumbnail}
                                 alt={product.name}
                                 fill
                                 className="object-cover group-hover:scale-110 transition-transform duration-300"
-                                sizes="48px"
+                                sizes="40px"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                <Package className="w-5 h-5" />
+                                <Package className="w-4 h-4" />
                               </div>
                             )}
                           </div>
                           <div className="min-w-0 max-w-xs sm:max-w-sm">
-                            <p className="font-bold text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                            <p className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                               {product.name}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-0.5">
                               {product.brand && (
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                   {product.brand}
                                 </span>
                               )}
                               {product.category && (
-                                <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate md:hidden">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate md:hidden">
                                   • {product.category.name}
                                 </span>
                               )}
@@ -825,24 +825,24 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Category */}
-                      <td className="py-3 px-4 hidden md:table-cell">
+                      <td className="py-2.5 px-3 hidden md:table-cell">
                         {product.category ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                             {product.category.name}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-[11px] text-slate-400">—</span>
                         )}
                       </td>
 
                       {/* Price */}
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-3">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
                             {formatPrice(product.price, language)}
                           </span>
                           {hasDiscount && (
-                            <span className="text-[11px] text-slate-400 line-through tabular-nums">
+                            <span className="text-[10px] text-slate-400 line-through tabular-nums">
                               {formatPrice(product.comparePrice || 0, language)}
                             </span>
                           )}
@@ -850,12 +850,12 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Stock & Quick Restock Button */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-1.5">
                           <button
                             type="button"
                             onClick={(e) => openRestock(product, e)}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${
                               isOut
                                 ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
                                 : isLow
@@ -875,23 +875,23 @@ export default function AdminProductsPage() {
                           <button
                             type="button"
                             onClick={(e) => openRestock(product, e)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
                             title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-2.5 h-2.5" />
                             <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
                           </button>
                         </div>
                       </td>
 
                       {/* Featured (1-Click Interactive Star Toggle) */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleFeatured(product, e)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
                             product.isFeatured
-                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-xs hover:bg-amber-100'
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-2xs hover:bg-amber-100'
                               : 'bg-slate-100/60 dark:bg-surface-800/60 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-transparent hover:border-amber-200'
                           }`}
                           title={
@@ -901,7 +901,7 @@ export default function AdminProductsPage() {
                           }
                         >
                           <Star
-                            className={`w-3.5 h-3.5 transition-transform ${
+                            className={`w-3 h-3 transition-transform ${
                               product.isFeatured ? 'text-amber-500 fill-amber-500 scale-110' : 'text-slate-400'
                             }`}
                           />
@@ -910,13 +910,13 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Status (1-Click Interactive Active Toggle) */}
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleActive(product, e)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
                             product.isActive
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-xs'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-2xs'
                               : 'bg-slate-100 dark:bg-surface-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                           }`}
                           title={
@@ -926,7 +926,7 @@ export default function AdminProductsPage() {
                           }
                         >
                           <span
-                            className={`w-2 h-2 rounded-full ${
+                            className={`w-1.5 h-1.5 rounded-full ${
                               product.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
                             }`}
                           />
@@ -935,15 +935,15 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 sm:px-6 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-2.5 px-3 sm:px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             href={`/products/${product.slug}`}
                             target="_blank"
-                            className="p-2 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
                           <button
                             type="button"
