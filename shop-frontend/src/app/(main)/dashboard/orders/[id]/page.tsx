@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck, Copy, X } from 'lucide-react';
+import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck, Copy, X, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Invoice, Order } from '@/types';
 import { orderApi, paymentApi, settingApi } from '@/lib/api';
@@ -593,6 +593,51 @@ export default function OrderDetailsPage() {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Policy Notice: Dispatch After Payment */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-bold">
+                  {language === 'km'
+                    ? 'ចំណាំ៖ សូមធ្វើការទូទាត់ប្រាក់ដើម្បីឱ្យហាងយើងខ្ញុំអាចរៀបចំផ្ញើទំនិញជូនលោកអ្នក!'
+                    : language === 'zh'
+                    ? '提示：请尽快完成付款，以便我们为您安排打包并发货！'
+                    : 'Notice: Please complete your payment so we can pack and dispatch your order!'}
+                </span>
+                <p className="text-[11px] text-amber-700/90 dark:text-amber-300/80 mt-0.5">
+                  {language === 'km'
+                    ? 'ទំនិញរបស់អ្នកត្រូវបានរក្សាទុក ហើយនឹងត្រូវរៀបចំវេចខ្ចប់ផ្ញើចេញភ្លាមៗ ក្រោយពេលប្រព័ន្ធទទួលបានការទូទាត់ប្រាក់រួចរាល់។'
+                    : language === 'zh'
+                    ? '您的商品已保留，收到付款后将立即为您安排发货。'
+                    : 'Your items are reserved and will be dispatched immediately once payment is confirmed.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {order.paymentStatus === 'PAID' && (
+          <div className="rounded-2xl border border-emerald-200/90 bg-emerald-50/70 dark:border-emerald-800/60 dark:bg-emerald-950/20 p-3 sm:p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                {language === 'km'
+                  ? 'ការទូទាត់ប្រាក់ជោគជ័យ — ហាងកំពុងរៀបចំផ្ញើទំនិញជូន!'
+                  : language === 'zh'
+                  ? '付款已成功 — 正在为您打包并发货！'
+                  : 'Payment Successful — Packing and dispatching your items!'}
+              </p>
+              <p className="text-[11px] text-emerald-700/90 dark:text-emerald-300/80 mt-0.5">
+                {language === 'km'
+                  ? 'ទំនិញរបស់អ្នកនឹងត្រូវប្រគល់ជូនសេវាដឹកជញ្ជូនក្នុងពេលឆាប់ៗនេះ។'
+                  : language === 'zh'
+                  ? '您的商品将很快移交给快递派送。'
+                  : 'Your package will be handed over to the courier shortly.'}
+              </p>
             </div>
           </div>
         )}

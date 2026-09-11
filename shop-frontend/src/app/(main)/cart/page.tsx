@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Minus, Plus, Trash2, ArrowRight, Tag } from 'lucide-react';
+import { ShoppingBag, Minus, Plus, Trash2, ArrowRight, Tag, ShieldCheck } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/lib/utils';
@@ -160,6 +160,18 @@ export default function CartPage() {
                 {language === 'km' ? 'ថ្លៃដឹកជញ្ជូនចុងក្រោយត្រូវបានគណនានៅពេលទូទាត់' : language === 'zh' ? '最终运费在结账时计算' : 'Final shipping calculated at checkout'}
               </div>
 
+              {/* Policy note */}
+              <div className="mt-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 flex items-center gap-2 text-xs text-amber-800 dark:text-amber-200">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600" />
+                <span className="font-medium">
+                  {language === 'km'
+                    ? 'រៀបចំវេចខ្ចប់ និងផ្ញើជូនភ្លាមៗ ក្រោយទូទាត់ប្រាក់រួចរាល់'
+                    : language === 'zh'
+                    ? '付款成功后立即安排打包发货'
+                    : 'Dispatched immediately upon payment completion'}
+                </span>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
@@ -170,7 +182,7 @@ export default function CartPage() {
                   }
                   router.push('/checkout');
                 }}
-                className="btn-primary w-full mt-5"
+                className="btn-primary w-full mt-4"
               >
                 {t(language, 'checkout')} <ArrowRight className="w-4 h-4" />
               </button>

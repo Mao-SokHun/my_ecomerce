@@ -576,6 +576,36 @@ export default function CheckoutPage() {
         </div>
       )}
 
+      {/* Policy Notice: Dispatch After Payment */}
+      {step < 3 && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-primary-500/10 to-indigo-500/10 border border-amber-500/30 dark:border-amber-500/20 flex items-start gap-3.5 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="flex-1 text-left">
+            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span>
+                {language === 'km'
+                  ? 'គោលការណ៍ដឹកជញ្ជូន និងការទូទាត់ប្រាក់ (Dispatch Policy)'
+                  : language === 'zh'
+                  ? '发货与付款政策'
+                  : 'Payment & Dispatch Policy'}
+              </span>
+              <span className="px-2 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+                {language === 'km' ? 'សំខាន់' : 'Important'}
+              </span>
+            </h4>
+            <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 leading-relaxed">
+              {language === 'km'
+                ? 'សូមបញ្ជាក់៖ រាល់ការបញ្ជាទិញទាំងអស់ ហាងយើងខ្ញុំនឹងរៀបចំវេចខ្ចប់ និងផ្ញើចេញជូនភ្លាមៗ បន្ទាប់ពីទទួលបានការទូទាត់ប្រាក់រួចរាល់ (Paid via Bakong KHQR)។'
+                : language === 'zh'
+                ? '请注意：所有订单将在确认收到付款（通过 Bakong KHQR 付款）后立即为您打包并发货。'
+                : 'Please note: All orders will be packed and dispatched immediately after payment is completed (Paid via Bakong KHQR).'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main content */}
         <div className="lg:col-span-2">
@@ -856,6 +886,18 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
+                  {/* Payment notice & dispatch reminder */}
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-300/60 dark:border-amber-800/40 mb-4 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span className="font-semibold">
+                      {language === 'km'
+                        ? 'ទំនិញនឹងត្រូវរៀបចំវេចខ្ចប់ និងផ្ញើចេញភ្លាមៗ បន្ទាប់ពីការទូទាត់ប្រាក់បានជោគជ័យ។'
+                        : language === 'zh'
+                        ? '订单将在确认付款成功后立即为您打包并发货。'
+                        : 'Your order will be packed and dispatched immediately after successful payment.'}
+                    </span>
+                  </div>
+
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
                     {t(language, 'checkoutPrivacyNoticePrefix')}{' '}
                     <Link href="/legal/privacy" className="text-primary-600 hover:underline font-medium">
@@ -911,6 +953,23 @@ export default function CheckoutPage() {
                 <p className="text-sm font-mono font-bold text-primary-600 mt-3 mb-1">{completedOrder.orderNumber}</p>
                 <p className="text-gray-500 text-sm">Total: <span className="font-bold text-gray-900 dark:text-white">{formatPrice(completedOrder.total)}</span></p>
                 <p className="text-sm text-gray-400 mt-3">A confirmation email has been sent to {user?.email}</p>
+
+                {/* Dispatch Confirmation Notice */}
+                <div className="mt-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-800 dark:text-amber-200 max-w-md mx-auto flex items-center gap-2.5 text-left shadow-2xs">
+                  <ShieldCheck className="w-5 h-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-bold text-slate-900 dark:text-white">
+                      {language === 'km' ? 'បញ្ជាក់ការដឹកជញ្ជូន (Dispatch Confirmation)' : language === 'zh' ? '发货确认' : 'Dispatch Confirmation'}
+                    </p>
+                    <p className="mt-0.5 leading-relaxed">
+                      {language === 'km'
+                        ? 'ហាងយើងខ្ញុំនឹងរៀបចំវេចខ្ចប់ និងផ្ញើចេញទំនិញជូនលោកអ្នកភ្លាមៗ បន្ទាប់ពីទទួលបានការទូទាត់ប្រាក់រួចរាល់។'
+                        : language === 'zh'
+                        ? '确认收到付款后，我们将立即为您打包并发货。'
+                        : 'Your items will be packed and dispatched right after payment is received.'}
+                    </p>
+                  </div>
+                </div>
 
                 <div className="flex gap-3 justify-center mt-6">
                   <button onClick={() => router.push('/dashboard/orders')} className="btn-primary">
@@ -1130,6 +1189,18 @@ export default function CheckoutPage() {
                     : 'Scan with ABA, Bakong or any Banking App'}
                 </span>
               </p>
+
+              {/* Fast dispatch reminder badge */}
+              <div className="mt-2 w-full p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 text-[10.5px] font-bold text-amber-800 dark:text-amber-200 flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                <span>
+                  {language === 'km'
+                    ? 'រៀបចំផ្ញើជូនភ្លាមៗ ក្រោយពេលទូទាត់ប្រាក់រួចរាល់'
+                    : language === 'zh'
+                    ? '付款完成后立即安排发货'
+                    : 'Dispatched immediately upon payment completion'}
+                </span>
+              </div>
             </div>
 
             {/* Quick Open in ABA App Link */}

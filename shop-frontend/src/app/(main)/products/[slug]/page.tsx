@@ -382,15 +382,39 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Benefits */}
-          <div className="mt-6 space-y-2.5 p-4 bg-gray-50 dark:bg-surface-800 rounded-2xl">
+          <div className="mt-6 space-y-2.5 p-4 bg-gray-50 dark:bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700/60">
             {[
-              { icon: Truck, text: 'Free delivery on orders over $50' },
-              { icon: ShieldCheck, text: '2-year warranty included' },
-              { icon: RefreshCw, text: '30-day hassle-free returns' },
+              {
+                icon: Truck,
+                text:
+                  language === 'km'
+                    ? 'រៀបចំវេចខ្ចប់ និងផ្ញើជូនភ្លាមៗ ក្រោយទូទាត់ប្រាក់រួចរាល់'
+                    : language === 'zh'
+                    ? '确认付款成功后立即安排打包发货'
+                    : 'Dispatched immediately upon payment completion',
+              },
+              {
+                icon: ShieldCheck,
+                text:
+                  language === 'km'
+                    ? 'ទំនិញគុណភាព និងការធានាត្រឹមត្រូវ'
+                    : language === 'zh'
+                    ? '正品保证与品质保障'
+                    : 'Quality guarantee & genuine products',
+              },
+              {
+                icon: RefreshCw,
+                text:
+                  language === 'km'
+                    ? 'សេវាកម្មរហ័សទាន់ចិត្ត និងគាំទ្រ ២៤/៧'
+                    : language === 'zh'
+                    ? '快速服务与 24/7 全天候客服支持'
+                    : 'Fast service & 24/7 customer support',
+              },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                <Icon className="w-4 h-4 text-primary-600 flex-shrink-0" />
-                {text}
+              <div key={text} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 font-medium">
+                <Icon className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                <span>{text}</span>
               </div>
             ))}
           </div>
