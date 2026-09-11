@@ -16,6 +16,9 @@ import {
   ShieldCheck,
   Zap,
   ArrowUpRight,
+  CheckCircle2,
+  RotateCcw,
+  Lock,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -74,7 +77,7 @@ export function CartDrawer() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             onClick={closeCart}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[90]"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[90]"
           />
 
           {/* Luxury Slide-over Drawer */}
@@ -82,26 +85,31 @@ export function CartDrawer() {
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="relative z-[100] h-full w-full max-w-md sm:max-w-lg bg-white dark:bg-surface-900 shadow-[-20px_0_50px_rgba(0,0,0,0.25)] flex flex-col border-l border-slate-100 dark:border-surface-800"
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="relative z-[100] h-full w-full max-w-md sm:max-w-lg bg-white/95 dark:bg-[#11141b]/98 backdrop-blur-2xl shadow-[-25px_0_60px_rgba(0,0,0,0.35)] flex flex-col border-l border-slate-200/80 dark:border-white/[0.08]"
           >
             {/* Header: Glassmorphism with Item Count Pill */}
-            <div className="relative px-6 py-4.5 bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 dark:from-surface-900 dark:via-surface-900 dark:to-primary-950/20 border-b border-slate-150 dark:border-surface-800 shrink-0 flex items-center justify-between">
+            <div className="relative px-5 py-4 bg-gradient-to-r from-slate-50/90 via-white/90 to-indigo-50/40 dark:from-[#151922] dark:via-[#11141b] dark:to-primary-950/20 border-b border-slate-200/80 dark:border-white/[0.08] shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/25">
-                  <ShoppingBag className="w-5 h-5" />
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-600 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-primary-500/25">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  {cart && cart.items.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-[#11141b] rounded-full animate-pulse" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                      {isKhmer ? 'កន្ត្រកទំនិញ' : 'Shopping Cart'}
+                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      {isKhmer ? 'កន្ត្រកទំនិញ' : 'Shopping Bag'}
                     </h2>
-                    <span className="px-2.5 py-0.5 text-xs font-bold font-mono rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300">
+                    <span className="px-2.5 py-0.5 text-xs font-black font-mono rounded-full bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/50">
                       {cart?.itemCount || 0} {isKhmer ? 'មុខ' : (cart?.itemCount === 1 ? 'item' : 'items')}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isKhmer ? 'ពិនិត្យទំនិញ និងទូទាត់ប្រាក់' : 'Review items & checkout securely'}
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isKhmer ? 'ទំនិញដែលបានជ្រើសរើសក្នុងកន្ត្រករបស់អ្នក' : 'Review your selected items'}
                   </p>
                 </div>
               </div>
@@ -110,7 +118,7 @@ export function CartDrawer() {
                 type="button"
                 onClick={closeCart}
                 aria-label="Close cart"
-                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-750 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition-all active:scale-90"
+                className="w-9 h-9 rounded-xl bg-slate-100/80 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition-all border border-slate-200/60 dark:border-white/[0.08] active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -118,40 +126,43 @@ export function CartDrawer() {
 
             {/* Free Shipping Dynamic Meter */}
             {cart && cart.items.length > 0 && (
-              <div className="px-6 py-3 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-primary-50/80 dark:from-surface-850 dark:via-surface-850 dark:to-surface-850 border-b border-indigo-100/60 dark:border-surface-800 shrink-0">
-                <div className="flex items-center justify-between text-xs mb-1.5 font-medium">
+              <div className="px-5 py-3 bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-primary-50/70 dark:from-[#181c26] dark:via-[#161a24] dark:to-[#181c26] border-b border-indigo-100/60 dark:border-white/[0.06] shrink-0">
+                <div className="flex items-center justify-between text-xs mb-2 font-medium">
                   <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-                    <Truck className={`w-4 h-4 ${isFreeShipping ? 'text-emerald-500' : 'text-primary-600'}`} />
-                    <span>
+                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${isFreeShipping ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-primary-100 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400'}`}>
+                      {isFreeShipping ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Truck className="w-3.5 h-3.5" />}
+                    </div>
+                    <span className="text-xs">
                       {isFreeShipping ? (
-                        <strong className="text-emerald-600 dark:text-emerald-400">
+                        <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
                           {isKhmer ? '🎉 អ្នកទទួលបានការដឹកជញ្ជូនឥតគិតថ្លៃ!' : '🎉 Free Shipping Unlocked!'}
                         </strong>
                       ) : (
                         <span>
                           {isKhmer ? (
-                            <>ថែម <strong className="text-primary-600 dark:text-primary-400 font-mono">{formatPrice(freeShippingRemaining)}</strong> ទៀតដើម្បីទទួលបាន <strong className="text-emerald-600 dark:text-emerald-400">ដឹកជញ្ជូនឥតគិតថ្លៃ</strong></>
+                            <>ថែម <strong className="text-primary-600 dark:text-primary-400 font-mono font-bold">{formatPrice(freeShippingRemaining, language)}</strong> ទៀត ដើម្បីទទួលបាន <strong className="text-emerald-600 dark:text-emerald-400 font-bold">ដឹកជញ្ជូនឥតគិតថ្លៃ</strong></>
                           ) : (
-                            <>Add <strong className="text-primary-600 font-mono">{formatPrice(freeShippingRemaining)}</strong> more for <strong className="text-emerald-600">Free Shipping</strong></>
+                            <>Add <strong className="text-primary-600 dark:text-primary-400 font-mono font-bold">{formatPrice(freeShippingRemaining, language)}</strong> more for <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Free Shipping</strong></>
                           )}
                         </span>
                       )}
                     </span>
                   </div>
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+                  <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 font-mono">
                     {freeShippingProgress}%
                   </span>
                 </div>
 
-                <div className="w-full h-1.5 bg-slate-200 dark:bg-surface-750 rounded-full overflow-hidden">
+                {/* Progress Track */}
+                <div className="w-full h-2 bg-slate-200/80 dark:bg-surface-800 rounded-full overflow-hidden p-0.5 border border-slate-200/60 dark:border-white/[0.04]">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${freeShippingProgress}%` }}
                     transition={{ duration: 0.5, ease: 'easeOut' }}
                     className={`h-full rounded-full transition-all ${
                       isFreeShipping
-                        ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm shadow-emerald-500/50'
-                        : 'bg-gradient-to-r from-primary-500 to-indigo-600'
+                        ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-xs shadow-emerald-500/50'
+                        : 'bg-gradient-to-r from-primary-500 via-indigo-500 to-violet-500 shadow-xs shadow-primary-500/40'
                     }`}
                   />
                 </div>
@@ -159,7 +170,7 @@ export function CartDrawer() {
             )}
 
             {/* Cart Items List */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3.5 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 custom-scrollbar overscroll-contain">
               {cart?.items.length === 0 || !cart ? (
                 <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                   <div className="relative mb-5">
@@ -218,10 +229,10 @@ export function CartDrawer() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         key={item.id}
-                        className="group relative flex gap-3.5 p-3.5 bg-slate-50/70 hover:bg-slate-50 dark:bg-surface-850 dark:hover:bg-surface-800/90 rounded-2xl border border-slate-150/80 dark:border-surface-750 transition-all shadow-xs hover:shadow-md"
+                        className="group relative flex gap-3.5 p-3.5 bg-white dark:bg-[#151922] hover:bg-slate-50/90 dark:hover:bg-[#181d28] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] transition-all shadow-xs hover:shadow-md"
                       >
-                        {/* Thumbnail */}
-                        <div className="relative w-20 h-20 sm:w-22 sm:h-22 shrink-0 rounded-xl overflow-hidden bg-white dark:bg-surface-800 border border-slate-100 dark:border-surface-700 shadow-xs">
+                        {/* Thumbnail with Luxury Glass Mask */}
+                        <div className="relative w-20 h-20 sm:w-22 sm:h-22 shrink-0 rounded-2xl overflow-hidden bg-slate-100 dark:bg-surface-800 border border-slate-200/60 dark:border-white/[0.06] shadow-xs">
                           {item.product.thumbnail ? (
                             <Image
                               src={item.product.thumbnail}
@@ -244,7 +255,7 @@ export function CartDrawer() {
                               <Link
                                 href={`/products/${item.product.slug}`}
                                 onClick={closeCart}
-                                className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 line-clamp-2 transition-colors leading-snug"
+                                className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 line-clamp-2 transition-colors leading-snug"
                               >
                                 {item.product.name}
                               </Link>
@@ -252,7 +263,8 @@ export function CartDrawer() {
                                 type="button"
                                 onClick={() => handleRemove(item.id)}
                                 aria-label="Remove item"
-                                className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center transition-colors shrink-0"
+                                title={isKhmer ? 'លុបចេញពីកន្ត្រក' : 'Remove item'}
+                                className="w-7 h-7 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 dark:hover:text-rose-400 flex items-center justify-center transition-all shrink-0 active:scale-90"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -260,44 +272,46 @@ export function CartDrawer() {
 
                             {/* Stock Warning Tag */}
                             {isLowStock && (
-                              <div className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-md mt-1">
+                              <div className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/60 px-2 py-0.5 rounded-md mt-1 border border-amber-200/60 dark:border-amber-800/40">
                                 <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                                <span>{isKhmer ? `នៅសល់តែ ${item.product.stock}` : `Only ${item.product.stock} left`}</span>
+                                <span>{isKhmer ? `នៅសល់តែ ${item.product.stock} គ្រឿង` : `Only ${item.product.stock} left`}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between gap-2 mt-2 pt-1 border-t border-slate-200/50 dark:border-surface-750">
+                          <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-150/80 dark:border-white/[0.06]">
                             {/* Price */}
                             <div>
-                              <p className="text-sm font-black text-primary-600 dark:text-primary-400 font-mono tracking-tight">
-                                {formatPrice(item.product.price * item.quantity)}
+                              <p className="text-sm font-black text-primary-600 dark:text-primary-400 font-mono tracking-tight tabular-nums">
+                                {formatPrice(item.product.price * item.quantity, language)}
                               </p>
                               {item.quantity > 1 && (
-                                <p className="text-[10px] text-slate-400 font-mono">
-                                  {formatPrice(item.product.price)} {isKhmer ? '/ឯកតា' : 'each'}
+                                <p className="text-[10px] font-medium text-slate-400 font-mono">
+                                  {formatPrice(item.product.price, language)} {isKhmer ? '/ឯកតា' : 'each'}
                                 </p>
                               )}
                             </div>
 
                             {/* Capsule Stepper */}
-                            <div className="flex items-center bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 rounded-xl p-0.5 shadow-2xs">
+                            <div className="flex items-center bg-slate-100/90 dark:bg-surface-800 border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-0.5 shadow-2xs">
                               <button
                                 type="button"
                                 onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                                 disabled={isLoading || item.quantity <= 1}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-700 disabled:opacity-30 disabled:hover:bg-transparent transition active:scale-90"
+                                aria-label="Decrease quantity"
+                                className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-surface-700 hover:shadow-xs disabled:opacity-30 disabled:hover:bg-transparent transition active:scale-90"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className="w-7 text-center text-xs font-bold font-mono text-slate-900 dark:text-white">
+                              <span className="w-7 text-center text-xs font-black font-mono text-slate-900 dark:text-white tabular-nums">
                                 {item.quantity}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.product.stock)}
                                 disabled={isLoading || item.quantity >= item.product.stock}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-700 disabled:opacity-30 disabled:hover:bg-transparent transition active:scale-90"
+                                aria-label="Increase quantity"
+                                className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-surface-700 hover:shadow-xs disabled:opacity-30 disabled:hover:bg-transparent transition active:scale-90"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
@@ -307,38 +321,60 @@ export function CartDrawer() {
                       </motion.div>
                     );
                   })}
+
+                  {/* Trust & Guarantee Strip */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 to-indigo-50/40 dark:from-[#151922] dark:to-primary-950/20 border border-slate-200/60 dark:border-white/[0.06] space-y-2 mt-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>{isKhmer ? 'ទំនិញសុទ្ធ ១០០%' : '100% Authentic'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <RotateCcw className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{isKhmer ? 'ប្តូរវិញក្នុង ៧ថ្ងៃ' : '7-Day Easy Returns'}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Footer Summary & Checkout */}
             {cart && cart.items.length > 0 && (
-              <div className="border-t border-slate-200/80 dark:border-surface-800 bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl p-5 sm:p-6 space-y-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.06)]">
-                {/* Cost Breakdown */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
+              <div className="border-t border-slate-200/80 dark:border-white/[0.08] bg-white/95 dark:bg-[#12151c]/95 backdrop-blur-2xl p-5 sm:p-6 space-y-4 shrink-0 shadow-[0_-12px_35px_rgba(0,0,0,0.08)] dark:shadow-[0_-12px_35px_rgba(0,0,0,0.4)]">
+                {/* Cost Breakdown Card */}
+                <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/[0.06] space-y-2">
+                  <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
                     <span>{isKhmer ? 'សរុបរង (Subtotal)' : 'Subtotal'}</span>
-                    <span className="font-mono font-semibold text-slate-900 dark:text-white">{formatPrice(cart.cartTotal)}</span>
+                    <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                      {formatPrice(cart.cartTotal, language)}
+                    </span>
                   </div>
 
-                  <div className="flex justify-between items-center text-xs">
+                  <div className="flex justify-between items-center text-xs font-medium">
                     <span className="text-slate-600 dark:text-slate-400">{isKhmer ? 'ថ្លៃដឹកជញ្ជូន (Delivery)' : 'Estimated Delivery'}</span>
                     {isFreeShipping ? (
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40">
                         {isKhmer ? 'ឥតគិតថ្លៃ ($0.00)' : 'FREE ($0.00)'}
                       </span>
                     ) : (
-                      <span className="font-mono font-semibold text-slate-900 dark:text-white">$9.99</span>
+                      <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                        {formatPrice(9.99, language)}
+                      </span>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center text-sm sm:text-base font-black text-slate-900 dark:text-white pt-2.5 border-t border-slate-200/70 dark:border-surface-800">
+                  <div className="flex justify-between items-center pt-2.5 border-t border-slate-200/80 dark:border-white/[0.08]">
                     <div>
-                      <span>{isKhmer ? 'សរុបរួម (Total)' : 'Total'}</span>
-                      <p className="text-[10px] font-normal text-slate-400">{isKhmer ? 'រួមបញ្ចូលពន្ធ VAT' : 'Including VAT'}</p>
+                      <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                        {isKhmer ? 'សរុបរួម (Total)' : 'Total'}
+                      </span>
+                      <p className="text-[10px] font-medium text-slate-400">
+                        {isKhmer ? 'រួមបញ្ចូលពន្ធ VAT' : 'Including VAT'}
+                      </p>
                     </div>
-                    <span className="text-lg sm:text-xl font-mono text-primary-600 dark:text-primary-400 font-black">
-                      {formatPrice(cart.cartTotal + (isFreeShipping ? 0 : 9.99))}
+                    <span className="text-xl sm:text-2xl font-mono text-primary-600 dark:text-primary-400 font-black tabular-nums tracking-tight">
+                      {formatPrice(cart.cartTotal + (isFreeShipping ? 0 : 9.99), language)}
                     </span>
                   </div>
                 </div>
@@ -355,7 +391,7 @@ export function CartDrawer() {
                       }
                       router.push('/checkout');
                     }}
-                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+                    className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-extrabold text-sm shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
                     type="button"
                   >
                     <span>{isKhmer ? 'បន្តទៅទូទាត់ប្រាក់' : 'Proceed to Checkout'}</span>
@@ -365,29 +401,31 @@ export function CartDrawer() {
                   <Link
                     href="/cart"
                     onClick={closeCart}
-                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-750 text-slate-700 dark:text-slate-300 font-semibold text-xs transition flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-100/90 hover:bg-slate-200/90 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-300 font-bold text-xs transition flex items-center justify-center gap-1.5 border border-slate-200/60 dark:border-white/[0.08]"
                   >
                     <span>{isKhmer ? 'មើលកន្ត្រកពេញ (View Full Cart)' : 'View Full Cart'}</span>
                     <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
                   </Link>
                 </div>
 
-                {/* Security Trust Badges */}
-                <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 pt-1">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                    {isKhmer ? 'សុវត្ថិភាព 100%' : '100% Secure'}
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Truck className="w-3 h-3 text-primary-500" />
-                    {isKhmer ? 'ដឹកជញ្ជូនរហ័ស' : 'Fast Delivery'}
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-amber-500" />
-                    {isKhmer ? 'គាំទ្រ 24/7' : '24/7 Support'}
-                  </span>
+                {/* Security Trust Badges & Verified Payment Logos */}
+                <div className="pt-1 flex items-center justify-between border-t border-slate-150 dark:border-white/[0.06]">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    <Lock className="w-3 h-3 text-emerald-500" />
+                    <span>{isKhmer ? 'ទូទាត់សុវត្ថិភាព' : 'Secure Checkout'}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/[0.06]">
+                      VISA
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-white/[0.08] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/[0.06]">
+                      KHQR
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-white/[0.08] text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+                      SSL
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
