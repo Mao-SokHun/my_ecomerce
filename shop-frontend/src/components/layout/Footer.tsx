@@ -305,8 +305,8 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Col 2: Shop & Categories (2.5 cols) */}
-          <div className="lg:col-span-2.5 space-y-4">
+          {/* Col 2: Shop & Categories (3 cols) */}
+          <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-primary-500" />
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -318,9 +318,9 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-xs sm:text-sm text-slate-400 hover:text-white flex items-center gap-1.5 group transition-colors"
+                    className="text-xs sm:text-sm text-slate-400 hover:text-white flex items-start gap-1.5 group transition-colors leading-relaxed"
                   >
-                    <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-primary-400 group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-primary-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
                     <span>{link.label}</span>
                   </Link>
                 </li>
@@ -328,8 +328,8 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Col 3: Account & Support (2.5 cols) */}
-          <div className="lg:col-span-2.5 space-y-4">
+          {/* Col 3: Account & Support (2 cols) */}
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-indigo-500" />
               <h4 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -341,9 +341,9 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-xs sm:text-sm text-slate-400 hover:text-white flex items-center gap-1.5 group transition-colors"
+                    className="text-xs sm:text-sm text-slate-400 hover:text-white flex items-start gap-1.5 group transition-colors leading-relaxed"
                   >
-                    <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
                     <span>{link.label}</span>
                   </Link>
                 </li>
@@ -368,11 +368,11 @@ export function Footer() {
                 <span className="leading-relaxed">{address}</span>
               </li>
 
-              <li className="flex items-center gap-3 text-xs sm:text-sm text-slate-400">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 text-primary-400">
+              <li className="flex items-start gap-3 text-xs sm:text-sm text-slate-400">
+                <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 mt-0.5 text-primary-400">
                   <Phone className="w-3.5 h-3.5" />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-0.5">
                   {phones.map((phone, idx) => (
                     <a
                       key={idx}
