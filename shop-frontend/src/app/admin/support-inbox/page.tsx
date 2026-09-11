@@ -41,7 +41,7 @@ export default function AdminSupportInboxPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const prevInquiriesCountRef = useRef<number>(-1);
   const prevUserMsgCountRef = useRef<number>(-1);
   const isFirstLoadInquiries = useRef<boolean>(true);
@@ -67,6 +67,15 @@ export default function AdminSupportInboxPage() {
     lastUpdate: language === 'km' ? 'អាប់ដេតចុងក្រោយ' : language === 'zh' ? '最后更新' : 'Last update',
     noInquiries: language === 'km' ? 'មិនទាន់មានសំណួរគាំទ្រ' : language === 'zh' ? '暂无咨询记录' : 'No inquiries found.'
   };
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  }, []);
 
   const loadInquiries = useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -146,10 +155,14 @@ export default function AdminSupportInboxPage() {
     return () => clearInterval(messagesTimer);
   }, [selectedId, loadMessages]);
 
-  // Scroll to bottom when messages load or change
+  // Scroll to bottom when messages load or change (chat box only, never scrolls parent page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    scrollToBottom(false);
+  }, [selectedId, scrollToBottom]);
+
+  useEffect(() => {
+    scrollToBottom(true);
+  }, [messages, scrollToBottom]);
 
   const handleSendReply = () => {
     const text = replyText.trim();
@@ -230,7 +243,7 @@ export default function AdminSupportInboxPage() {
   const activeInquiry = rows.find((r) => r.id === selectedId);
 
   return (
-    <div className="h-[calc(100vh-140px)] min-h-[500px] flex gap-4 text-sm">
+    <div className="h-[calc(100vh-140px)] min-h-[500px] max-h-[calc(100vh-140px)] flex gap-4 text-sm overflow-hidden">
       {/* LEFT COLUMN: Conversation List */}
       <div className="w-[320px] shrink-0 card p-0 flex flex-col h-full overflow-hidden border border-gray-100 dark:border-gray-800">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 shrink-0 space-y-3 bg-gray-50/50 dark:bg-surface-900/50">
@@ -296,7 +309,7 @@ export default function AdminSupportInboxPage() {
         </div>
 
         {/* Inquiry Cards List */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1.5 bg-gray-50/20 dark:bg-surface-950/20">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-2 space-y-1.5 bg-gray-50/20 dark:bg-surface-950/20">
           {loading ? (
             <p className="text-center py-6 text-xs text-gray-500">Loading inquiries...</p>
           ) : filteredRows.length === 0 ? (
@@ -307,6 +320,7 @@ export default function AdminSupportInboxPage() {
               return (
                 <button
                   key={r.id}
+                  type="button"
                   onClick={() => setSelectedId(r.id)}
                   className={`w-full text-left p-3 rounded-xl border transition-all duration-200 flex flex-col gap-1.5 ${
                     isActive
@@ -384,7 +398,10 @@ export default function AdminSupportInboxPage() {
             </div>
 
             {/* Chat Messages Timeline */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/20 dark:bg-surface-950/10">
+            <div
+              ref={chatContainerRef}
+              className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-gray-50/20 dark:bg-surface-950/10"
+            >
               {messagesLoading && messages.length === 0 ? (
                 <p className="text-center py-10 text-xs text-gray-400">Loading messages...</p>
               ) : messages.length === 0 ? (
@@ -416,7 +433,6 @@ export default function AdminSupportInboxPage() {
                   );
                 })
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Reply Input Box */}
@@ -433,6 +449,7 @@ export default function AdminSupportInboxPage() {
                 disabled={sending}
               />
               <button
+                type="button"
                 onClick={handleSendReply}
                 disabled={!replyText.trim() || sending}
                 className="btn-primary h-9 px-4 flex items-center justify-center gap-1.5 text-xs font-semibold disabled:opacity-50 shrink-0"
