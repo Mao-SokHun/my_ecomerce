@@ -374,22 +374,6 @@ export default function AdminSettingsPage() {
       className="max-w-[1500px] mx-auto space-y-6"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
-      <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-violet-500/15 via-indigo-500/15 to-fuchsia-500/15 border border-primary-100 dark:border-primary-900/30 p-6 shadow-[0_15px_35px_-22px_rgba(79,70,229,0.7)]">
-        <div className="pointer-events-none absolute -right-12 -top-12 w-44 h-44 rounded-full bg-primary-400/20 blur-2xl" />
-        <h1 className={`text-gray-900 dark:text-white flex items-center gap-2 ${isKhmer ? 'text-[32px] font-bold' : 'text-3xl font-black tracking-tight'}`}>
-          <Settings className="w-6 h-6 text-primary-600" />
-          {tx.globalConfigurations}
-        </h1>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-          Organize and manage store content by sections: shipping, store contact (email & phones), header, homepage ads, footer links, and invoice details.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="text-xs px-2.5 py-1 rounded-full bg-white/70 dark:bg-surface-800 border border-gray-200 dark:border-gray-700">Modern UI</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-white/70 dark:bg-surface-800 border border-gray-200 dark:border-gray-700">Upload Support</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-white/70 dark:bg-surface-800 border border-gray-200 dark:border-gray-700">Easy For Admin</span>
-        </div>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid lg:grid-cols-[260px_1fr] gap-6 items-start">
           <SettingsSidebar
