@@ -35,6 +35,7 @@ import { formatPrice, normalizeImageListToFullUrls, resolveToFullImageUrl } from
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 export default function AdminProductsPage() {
   const { language } = useAdminLanguageStore();
@@ -458,174 +459,218 @@ export default function AdminProductsPage() {
   const outOfStockCount = products.filter((p) => p.stock <= 0).length;
   const featuredCount = products.filter((p) => p.isFeatured).length;
 
+  // Category Dropdown options
+  const categoryOptions: DropdownOption[] = useMemo(() => [
+    { value: 'all', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់ (All Categories)' : 'All Categories', dotColor: '#6366f1' },
+    ...categories.map((c) => ({
+      value: c.id,
+      label: c.parent ? `${c.parent.name} › ${c.name}` : c.name,
+      dotColor: '#3b82f6',
+    })),
+  ], [categories, isKhmer]);
+
   return (
     <div
       className="space-y-6"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
-      {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* ========================================================================= */}
+      {/* KPI STATS CARDS (LUXURY REDESIGN) */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        {/* 1. Total Catalog */}
         <button
           type="button"
           onClick={() => setFilterMode('all')}
-          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
+          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
             filterMode === 'all'
-              ? 'bg-primary-50/90 dark:bg-primary-950/40 border-primary-500/50 shadow-md ring-2 ring-primary-500/20'
-              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs'
+              ? 'bg-gradient-to-br from-indigo-50/90 to-white dark:from-indigo-950/40 dark:to-surface-900 border-indigo-500/50 shadow-md ring-2 ring-indigo-500/20'
+              : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-indigo-300 dark:hover:border-indigo-800'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               {isKhmer ? 'ទំនិញសរុប' : 'Total Catalog'}
             </span>
-            <Package className="w-4 h-4 text-slate-400 group-hover:text-primary-500 transition-colors" />
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40">
+              <Boxes className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{totalCount}</span>
-            <span className="text-xs font-semibold text-slate-400">{isKhmer ? 'មុខ' : 'items'}</span>
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
+              {totalCount}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-300">
+              {isKhmer ? 'មុខ' : 'items'}
+            </span>
           </div>
         </button>
 
+        {/* 2. Active Selling */}
         <button
           type="button"
           onClick={() => setFilterMode('active')}
-          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
+          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
             filterMode === 'active'
-              ? 'bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-500/50 shadow-md ring-2 ring-emerald-500/20'
-              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-emerald-300 shadow-xs'
+              ? 'bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-surface-900 border-emerald-500/50 shadow-md ring-2 ring-emerald-500/20'
+              : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-emerald-300 dark:hover:border-emerald-800'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              {isKhmer ? 'កំពុងលក់ (Active)' : 'Active Selling'}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{isKhmer ? 'កំពុងលក់' : 'Active'}</span>
             </span>
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-900/40">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300 tabular-nums">{activeCount}</span>
-            <span className="text-xs font-semibold text-emerald-600/70">{isKhmer ? 'សកម្ម' : 'live'}</span>
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
+              {activeCount}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
+              {isKhmer ? 'សកម្ម' : 'live'}
+            </span>
           </div>
         </button>
 
+        {/* 3. Low Stock */}
         <button
           type="button"
           onClick={() => setFilterMode('low_stock')}
-          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
+          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
             filterMode === 'low_stock'
-              ? 'bg-amber-500/15 dark:bg-amber-950/50 border-amber-500/50 shadow-md ring-2 ring-amber-500/30'
-              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-amber-300 shadow-xs'
+              ? 'bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-surface-900 border-amber-500/50 shadow-md ring-2 ring-amber-500/20'
+              : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-amber-300 dark:hover:border-amber-800'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
-              <span>⚠️</span>
-              <span>{isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock (≤5)'}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              {isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}
             </span>
-            {lowStockCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 animate-pulse">
-                {isKhmer ? 'ប្រញាប់' : 'Urgent'}
-              </span>
-            )}
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-100 dark:border-amber-900/40">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-amber-700 dark:text-amber-300 tabular-nums">{lowStockCount}</span>
-            <span className="text-xs font-semibold text-amber-600/70">{isKhmer ? 'មុខ' : 'items'}</span>
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
+              {lowStockCount}
+            </span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
+              lowStockCount > 0
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse'
+                : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
+            }`}>
+              {lowStockCount > 0 ? (isKhmer ? 'ប្រញាប់' : 'urgent') : (isKhmer ? 'ល្អ' : 'ok')}
+            </span>
           </div>
         </button>
 
+        {/* 4. Out of Stock */}
         <button
           type="button"
           onClick={() => setFilterMode('out_of_stock')}
-          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
+          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
             filterMode === 'out_of_stock'
-              ? 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-500/50 shadow-md ring-2 ring-rose-500/30'
-              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-rose-300 shadow-xs'
+              ? 'bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-surface-900 border-rose-500/50 shadow-md ring-2 ring-rose-500/20'
+              : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-rose-300 dark:hover:border-rose-800'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
-              <span>🔴</span>
-              <span>{isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              {isKhmer ? 'អស់ស្តុក (0)' : 'Out of Stock'}
             </span>
-            {outOfStockCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-700 dark:text-rose-300">
-                {isKhmer ? 'ដាច់ស្តុក' : 'Restock'}
-              </span>
-            )}
+            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-100 dark:border-rose-900/40">
+              <RotateCcw className="w-4 h-4" />
+            </div>
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-rose-700 dark:text-rose-300 tabular-nums">{outOfStockCount}</span>
-            <span className="text-xs font-semibold text-rose-600/70">{isKhmer ? 'មុខ' : 'items'}</span>
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
+              {outOfStockCount}
+            </span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
+              outOfStockCount > 0
+                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
+            }`}>
+              {outOfStockCount > 0 ? (isKhmer ? 'ដាច់ស្តុក' : 'restock') : '0'}
+            </span>
           </div>
         </button>
 
+        {/* 5. Featured Products */}
         <button
           type="button"
           onClick={() => setFilterMode('featured')}
-          className={`group flex flex-col p-4 rounded-2xl border transition-all text-left col-span-2 sm:col-span-1 relative overflow-hidden ${
+          className={`group relative p-4 sm:p-5 rounded-2xl sm:rounded-3xl border text-left col-span-2 sm:col-span-1 transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-xs ${
             filterMode === 'featured'
-              ? 'bg-purple-50/90 dark:bg-purple-950/40 border-purple-500/50 shadow-md ring-2 ring-purple-500/20'
-              : 'bg-white/90 dark:bg-surface-900/90 border-slate-200/80 dark:border-slate-800 hover:border-purple-300 shadow-xs'
+              ? 'bg-gradient-to-br from-purple-50/90 to-white dark:from-purple-950/40 dark:to-surface-900 border-purple-500/50 shadow-md ring-2 ring-purple-500/20'
+              : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-purple-300 dark:hover:border-purple-800'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>{isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+              {isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}
             </span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+            </div>
           </div>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-purple-700 dark:text-purple-300 tabular-nums">{featuredCount}</span>
-            <span className="text-xs font-semibold text-purple-600/70">{isKhmer ? 'លើ Home' : 'on home'}</span>
+          <div className="flex items-baseline justify-between mt-3">
+            <span className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 tabular-nums tracking-tight">
+              {featuredCount}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-purple-100/70 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300">
+              {isKhmer ? 'លើ Home' : 'on home'}
+            </span>
           </div>
         </button>
       </div>
 
-      {/* Main Controls Card */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm p-4 sm:p-5 backdrop-blur-xl space-y-4">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
-          {/* Search bar with instant clear */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      {/* ========================================================================= */}
+      {/* MAIN SEARCH & FILTERS TOOLBAR (PREMIUM REDESIGN) */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-surface-750 bg-white dark:bg-surface-900 shadow-sm p-4 sm:p-5 space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+          {/* Left: Search input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand, Category...' : 'Search products by name, brand, category...'}
-              className="input pl-10 pr-9 text-sm w-full h-11 rounded-2xl bg-slate-50 dark:bg-surface-800/80 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-surface-800"
+              className="w-full h-11 pl-10 pr-9 text-xs sm:text-sm rounded-2xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Category Filter + Add Product Button */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {/* Right: Category Dropdown & Add Product Button */}
+          <div className="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
             {categories.length > 0 && (
-              <select
+              <CustomDropdown
+                size="md"
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="input h-11 text-xs sm:text-sm font-semibold rounded-2xl bg-slate-50 dark:bg-surface-800/80 border-slate-200 dark:border-slate-700 min-w-[150px]"
-              >
-                <option value="all">{isKhmer ? 'គ្រប់ប្រភេទ (Categories)' : 'All Categories'}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.parent ? `${c.parent.name} › ${c.name}` : c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedCategory}
+                options={categoryOptions}
+                icon={<Layers className="w-4 h-4 text-slate-400" />}
+                className="min-w-[180px] sm:min-w-[220px]"
+              />
             )}
 
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-semibold text-sm shadow-md shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-5 h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
             >
               <Plus className="w-4 h-4" />
               <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add New Product'}</span>
@@ -633,39 +678,63 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-          <span className="text-xs font-semibold text-slate-400 mr-1.5">{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
-          {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setFilterMode(mode)}
-              className={`text-xs px-3.5 py-1.5 rounded-xl font-semibold transition-all duration-150 ${
-                filterMode === mode
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
-                  : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
-              }`}
-            >
-              {mode === 'all'
-                ? isKhmer
-                  ? `ទាំងអស់ (${totalCount})`
-                  : `All (${totalCount})`
-                : mode === 'featured'
-                ? `⭐ Featured (${featuredCount})`
-                : mode === 'low_stock'
-                ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'} (${lowStockCount})`
-                : mode === 'out_of_stock'
-                ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'} (${outOfStockCount})`
-                : mode === 'active'
-                ? isKhmer
-                  ? `សកម្ម (${activeCount})`
-                  : `Active (${activeCount})`
-                : isKhmer
-                ? `អសកម្ម (${totalCount - activeCount})`
-                : `Inactive (${totalCount - activeCount})`}
-            </button>
-          ))}
+        {/* Filter Tabs & Total Count Info */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-slate-100 dark:border-surface-800">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5" />
+              <span>{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
+            </span>
+            {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setFilterMode(mode)}
+                className={`text-xs px-3.5 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1.5 ${
+                  filterMode === mode
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm ring-1 ring-slate-900/10'
+                    : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
+                }`}
+              >
+                <span>
+                  {mode === 'all'
+                    ? isKhmer ? 'ទាំងអស់' : 'All'
+                    : mode === 'featured'
+                    ? '⭐ Featured'
+                    : mode === 'low_stock'
+                    ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}`
+                    : mode === 'out_of_stock'
+                    ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}`
+                    : mode === 'active'
+                    ? isKhmer ? 'សកម្ម' : 'Active'
+                    : isKhmer ? 'អសកម្ម' : 'Inactive'}
+                </span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  filterMode === mode
+                    ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
+                    : 'bg-slate-200 dark:bg-surface-700 text-slate-600 dark:text-slate-300'
+                }`}>
+                  {mode === 'all'
+                    ? totalCount
+                    : mode === 'featured'
+                    ? featuredCount
+                    : mode === 'low_stock'
+                    ? lowStockCount
+                    : mode === 'out_of_stock'
+                    ? outOfStockCount
+                    : mode === 'active'
+                    ? activeCount
+                    : totalCount - activeCount}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="text-xs text-slate-400 font-medium">
+            {isKhmer
+              ? `បង្ហាញ ${filteredProducts.length} នៃ ${totalCount} មុខ`
+              : `Showing ${filteredProducts.length} of ${totalCount} items`}
+          </div>
         </div>
       </div>
 
