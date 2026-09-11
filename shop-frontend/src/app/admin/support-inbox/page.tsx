@@ -146,11 +146,9 @@ export default function AdminSupportInboxPage() {
     return () => clearInterval(messagesTimer);
   }, [selectedId, loadMessages]);
 
-  // Scroll to bottom when messages load or change (scoped to messages container, not viewport)
+  // Scroll to bottom when messages load or change
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendReply = () => {
@@ -232,7 +230,7 @@ export default function AdminSupportInboxPage() {
   const activeInquiry = rows.find((r) => r.id === selectedId);
 
   return (
-    <div className="flex gap-4 text-sm" style={{ height: 'calc(100vh - 144px)', minHeight: '500px' }}>
+    <div className="h-[calc(100vh-140px)] min-h-[500px] flex gap-4 text-sm">
       {/* LEFT COLUMN: Conversation List */}
       <div className="w-[320px] shrink-0 card p-0 flex flex-col h-full overflow-hidden border border-gray-100 dark:border-gray-800">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 shrink-0 space-y-3 bg-gray-50/50 dark:bg-surface-900/50">
@@ -386,7 +384,7 @@ export default function AdminSupportInboxPage() {
             </div>
 
             {/* Chat Messages Timeline */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/20 dark:bg-surface-950/10" style={{ overscrollBehavior: 'contain' }}>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/20 dark:bg-surface-950/10">
               {messagesLoading && messages.length === 0 ? (
                 <p className="text-center py-10 text-xs text-gray-400">Loading messages...</p>
               ) : messages.length === 0 ? (
@@ -422,7 +420,7 @@ export default function AdminSupportInboxPage() {
             </div>
 
             {/* Reply Input Box */}
-            <div className="p-3 bg-white dark:bg-surface-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0" style={{ contain: 'layout' }}>
+            <div className="p-3 bg-white dark:bg-surface-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0">
               <input
                 type="text"
                 className="input text-xs flex-1 h-9 px-3"

@@ -136,15 +136,25 @@ if (process.env.NODE_ENV !== 'production') {
 const isProduction = process.env.NODE_ENV === 'production';
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  // In local dev, Next.js + admin polling can fire many requests quickly.
-  // Keep production strict while avoiding noisy 429 during development smoke tests.
-  max: isProduction ? 200 : 1500,
+  max: isProduction ? 1000 : 50000,
+  skip: (req) =>
+    !isProduction ||
+    req.ip === '127.0.0.1' ||
+    req.ip === '::1' ||
+    req.ip === '::ffff:127.0.0.1' ||
+    req.path === '/health' ||
+    req.path === '/',
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 10 : 50,
+  max: isProduction ? 50 : 1000,
+  skip: (req) => !isProduction || req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts, please try again later.' },
 });
 

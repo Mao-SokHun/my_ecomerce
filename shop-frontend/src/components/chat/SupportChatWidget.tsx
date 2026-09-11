@@ -3,7 +3,27 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Phone, Mail, Facebook, Send as TelegramIcon, RefreshCw, User, ShieldCheck, Sparkles, Minus, Bell } from 'lucide-react';
+import {
+  MessageCircle,
+  X,
+  Send,
+  Phone,
+  Mail,
+  Facebook,
+  Send as TelegramIcon,
+  RefreshCw,
+  User,
+  ShieldCheck,
+  Sparkles,
+  Minus,
+  Bell,
+  Headphones,
+  ArrowRight,
+  Loader2,
+  CheckCircle2,
+  MessageSquare,
+  AlertCircle,
+} from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
 import { supportApi } from '@/lib/api';
@@ -48,6 +68,9 @@ export default function SupportChatWidget() {
   const [tempInput, setTempInput] = useState('');
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showFallbackModal, setShowFallbackModal] = useState(false);
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+  const [lastPendingQuestion, setLastPendingQuestion] = useState<{ name: string; phone: string; text: string } | null>(null);
 
   // Auto-fill user information if logged in
   useEffect(() => {
@@ -223,6 +246,7 @@ export default function SupportChatWidget() {
 
   const startInquiryRequest = (name: string, phone: string, initialQuestion: string) => {
     setIsStartingChat(true);
+    setLastPendingQuestion({ name, phone, text: initialQuestion });
     supportApi.createInquiry({
       name: name || 'Customer',
       phone: phone || 'N/A',
@@ -242,15 +266,50 @@ export default function SupportChatWidget() {
           loadChatMessages(inquiry.id, token);
           setShowDetailsForm(false);
           setTempInput('');
+          setShowFallbackModal(false);
         }
       })
       .catch((err) => {
         console.error('Failed to start chat session:', err);
-        alert(language === 'km' ? 'មិនអាចភ្ជាប់ទៅ Admin បានទេ សូមព្យាយាមម្តងទៀត' : 'Could not connect to Admin. Please try again.');
+        // Replace native browser alert with modern luxury Fallback / Direct Contact Modal
+        setShowFallbackModal(true);
       })
       .finally(() => {
         setIsStartingChat(false);
       });
+  };
+
+  const handleSwitchToOfflineMockup = () => {
+    setShowFallbackModal(false);
+    setShowDetailsForm(false);
+    const questionText = lastPendingQuestion?.text || tempInput.trim();
+    if (questionText) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', text: questionText, createdAt: new Date().toISOString() },
+        {
+          role: 'bot',
+          text:
+            language === 'km'
+              ? '✅ យើងខ្ញុំបានកត់ត្រាសាររបស់អ្នកទុកក្នុងប្រព័ន្ធរួចរាល់! Admin នឹងពិនិត្យ និងឆ្លើយតបមកកាន់អ្នកវិញឱ្យបានលឿនបំផុត។ ប្រសិនបើបន្ទាន់ សូមទាក់ទងមក Telegram ផ្ទាល់: @new_user_sh_shop_bot ឬទូរស័ព្ទ 097 494 4390។'
+              : '✅ We have recorded your inquiry! Admin will review and reply as soon as possible. If urgent, please reach out directly on Telegram: @new_user_sh_shop_bot or call 097 494 4390.',
+          isContactOptions: true,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      setTempInput('');
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'bot',
+          text:
+            language === 'km'
+              ? 'លោកអ្នកអាចសរសេរសារ ឬសំណួរទុកនៅទីនេះបាន។ ប្រព័ន្ធបានកត់ត្រាទុក ហើយ Admin នឹងឆ្លើយតបមកកាន់លោកអ្នកវិញក្នុងពេលឆាប់ៗ!'
+              : 'You can leave your question or message here. Our system has logged it and Admin will get back to you shortly!',
+        },
+      ]);
+    }
   };
 
   const handleContactAdmin = () => {
@@ -303,14 +362,18 @@ export default function SupportChatWidget() {
   };
 
   const handleResetChat = () => {
-    if (confirm(language === 'km' ? 'តើអ្នកចង់ចាប់ផ្តើមការជជែកថ្មីមែនទេ?' : 'Do you want to start a new chat conversation?')) {
-      localStorage.removeItem('chat_inquiry_id');
-      localStorage.removeItem('chat_session_token');
-      setInquiryId(null);
-      setSessionToken(null);
-      setShowDetailsForm(false);
-      setMessages([{ role: 'bot', text: label.greeting }]);
-    }
+    setShowResetConfirmModal(true);
+  };
+
+  const confirmResetChat = () => {
+    localStorage.removeItem('chat_inquiry_id');
+    localStorage.removeItem('chat_session_token');
+    setInquiryId(null);
+    setSessionToken(null);
+    setShowDetailsForm(false);
+    setShowResetConfirmModal(false);
+    setMessages([{ role: 'bot', text: label.greeting }]);
+    toast.success(language === 'km' ? 'បានចាប់ផ្តើមការជជែកថ្មី' : 'Chat session reset');
   };
 
   // Hide chat widget on admin portal
@@ -632,6 +695,169 @@ export default function SupportChatWidget() {
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Support Connection Fallback / Direct Admin Contact Modal */}
+      <AnimatePresence>
+        {showFallbackModal && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/65 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowFallbackModal(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl shadow-black/35 w-full max-w-sm overflow-hidden border border-slate-200/90 dark:border-surface-750 p-6 space-y-4 text-center"
+            >
+              {/* Header Icon */}
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-primary-500 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-primary-500/30">
+                <Headphones className="w-7 h-7" />
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-1.5">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {language === 'km' ? 'ជំនួយការផ្ទាល់ពី Admin' : 'Direct Admin Support'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {language === 'km'
+                    ? 'ប្រព័ន្ធ Chat ផ្ទាល់កំពុងមមាញឹក ឬមិនទាន់ឆ្លើយតបទាន់។ លោកអ្នកអាចទាក់ទងមក Admin ផ្ទាល់ភ្លាមៗតាមបណ្តាញខាងក្រោម ឬផ្ញើសារទុកក្នុងប្រព័ន្ធ៖'
+                    : 'Live chat server is momentarily reconnecting. You can reach our Admin directly via the channels below or leave an offline message:'}
+                </p>
+              </div>
+
+              {/* Instant Contact Channels */}
+              <div className="space-y-2 text-left">
+                <a
+                  href="https://t.me/+855974944390"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-[#0088cc] hover:bg-[#0077b5] text-white text-xs font-bold transition shadow-md shadow-[#0088cc]/20 active:scale-98"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <TelegramIcon className="w-4 h-4" />
+                    <span>{language === 'km' ? 'Telegram ផ្ទាល់' : 'Direct Telegram'} (@new_user_sh_shop_bot)</span>
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 opacity-80" />
+                </a>
+
+                <a
+                  href="https://facebook.com/maosokhun"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-[#1877f2] hover:bg-[#166fe5] text-white text-xs font-bold transition shadow-md shadow-[#1877f2]/20 active:scale-98"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Facebook className="w-4 h-4" />
+                    <span>Facebook: Mao Sokhun</span>
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 opacity-80" />
+                </a>
+
+                <a
+                  href="tel:0974944390"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition border border-slate-200/80 dark:border-surface-700 active:scale-98"
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Phone className="w-4 h-4 text-emerald-500" />
+                    <span>{language === 'km' ? 'ទូរស័ព្ទហៅផ្ទាល់' : 'Direct Call'}: 097 494 4390</span>
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                </a>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (lastPendingQuestion) {
+                      startInquiryRequest(lastPendingQuestion.name, lastPendingQuestion.phone, lastPendingQuestion.text);
+                    } else {
+                      setShowFallbackModal(false);
+                    }
+                  }}
+                  disabled={isStartingChat}
+                  className="flex-1 h-10 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                >
+                  {isStartingChat ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>{language === 'km' ? 'កំពុងភ្ជាប់...' : 'Retrying...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{language === 'km' ? 'សាកម្តងទៀត' : 'Retry'}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSwitchToOfflineMockup}
+                  className="flex-1 h-10 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 text-white text-xs font-bold hover:from-primary-700 hover:to-indigo-700 shadow-md shadow-primary-500/20 transition active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>{language === 'km' ? 'ផ្ញើសារទុក' : 'Leave Message'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Reset Chat Confirmation Modal */}
+      <AnimatePresence>
+        {showResetConfirmModal && (
+          <div
+            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowResetConfirmModal(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl shadow-black/30 w-full max-w-xs overflow-hidden border border-slate-200/90 dark:border-surface-750 p-5 space-y-3.5 text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900/60">
+                <RefreshCw className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {language === 'km' ? 'ចាប់ផ្តើមការជជែកថ្មី?' : 'Start New Conversation?'}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {language === 'km'
+                    ? 'ប្រវត្តិជជែកបច្ចុប្បន្ននឹងត្រូវជម្រះ ដើម្បីចាប់ផ្តើមសន្ទនាថ្មី។'
+                    : 'Current conversation history will be cleared for a new session.'}
+                </p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirmModal(false)}
+                  className="flex-1 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                >
+                  {language === 'km' ? 'បោះបង់' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmResetChat}
+                  className="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-sm"
+                >
+                  {language === 'km' ? 'យល់ព្រម' : 'Restart'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

@@ -312,9 +312,7 @@ export const getUnreadCounts = async (req: AuthRequest, res: Response, next: Nex
         lastSeenUsersAt: true,
       },
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adminMetaAny = adminMeta as any;
-    const [orders, users, leads, lowStock, chat] = await Promise.all([
+    const [orders, users, leads, lowStock] = await Promise.all([
       prisma.order.count({
         where: adminMeta?.lastSeenOrdersAt
           ? { createdAt: { gt: adminMeta.lastSeenOrdersAt } }
@@ -333,18 +331,9 @@ export const getUnreadCounts = async (req: AuthRequest, res: Response, next: Nex
       prisma.product.count({
         where: { isActive: true, stock: { lte: 5 } },
       }),
-      // Count user messages from customers since admin last checked support inbox
-      prisma.supportMessage.count({
-        where: {
-          sender: 'USER',
-          ...(adminMetaAny?.lastSeenSupportAt
-            ? { createdAt: { gt: adminMetaAny.lastSeenSupportAt as Date } }
-            : {}),
-        },
-      }),
     ]);
 
-    res.json({ success: true, data: { orders, users, leads, lowStock, chat } });
+    res.json({ success: true, data: { orders, users, leads, lowStock } });
   } catch (error) {
     next(error);
   }
@@ -355,11 +344,11 @@ export const markSeen = async (req: AuthRequest, res: Response, next: NextFuncti
     const adminId = req.user!.id;
     const type = String(req.body?.type || '');
     const now = new Date();
-    const data: { lastSeenOrdersAt?: Date; lastSeenUsersAt?: Date; lastSeenLeadsAt?: Date } & Record<string, Date | undefined> = {};
+    const data: { lastSeenOrdersAt?: Date; lastSeenUsersAt?: Date; lastSeenLeadsAt?: Date; lastSeenSupportAt?: Date } = {};
     if (type === 'orders') data.lastSeenOrdersAt = now;
     else if (type === 'users') data.lastSeenUsersAt = now;
     else if (type === 'leads') data.lastSeenLeadsAt = now;
-    else if (type === 'support') data['lastSeenSupportAt'] = now;
+    else if (type === 'support') data.lastSeenSupportAt = now;
     else {
       res.status(400).json({ success: false, message: 'Invalid type' });
       return;

@@ -21,6 +21,13 @@ import {
   RotateCcw,
   AlertTriangle,
   ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  Boxes,
+  Layers,
+  Tag,
+  DollarSign,
+  Check,
 } from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productApi, adminApi, uploadApi } from '@/lib/api';
@@ -56,15 +63,13 @@ export default function AdminProductsPage() {
     }
     return [];
   });
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = sessionStorage.getItem('admin_cached_products');
-        if (cached && JSON.parse(cached).length > 0) return false;
-      } catch {}
-    }
-    return true;
-  });
+  const hasCachedData = typeof window !== 'undefined' && (() => {
+    try {
+      const cached = sessionStorage.getItem('admin_cached_products');
+      return !!(cached && JSON.parse(cached).length > 0);
+    } catch { return false; }
+  })();
+  const [loading, setLoading] = useState(!hasCachedData);
   const [isFetching, setIsFetching] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -74,7 +79,9 @@ export default function AdminProductsPage() {
 
   // Quick Restock State
   const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
-  const [restockAmount, setRestockAmount] = useState<number>(0);
+  const [restockMode, setRestockMode] = useState<'add' | 'set' | 'deduct'>('add');
+  const [restockQty, setRestockQty] = useState<number>(10);
+  const [restockReason, setRestockReason] = useState<string>('shipment');
   const [isRestocking, setIsRestocking] = useState(false);
 
   // Edit/Create Form State
@@ -97,12 +104,64 @@ export default function AdminProductsPage() {
   const [saving, setSaving] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
 
+  // Read URL filter params on mount (e.g. from low stock notification link)
   useEffect(() => {
-    if (products.length === 0) {
-      setLoading(true);
-    } else {
-      setIsFetching(true);
+    if (typeof window !== 'undefined') {
+      const urlFilter = new URLSearchParams(window.location.search).get('filter');
+      if (
+        urlFilter &&
+        ['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'].includes(urlFilter)
+      ) {
+        setFilterMode(urlFilter as any);
+      }
     }
+  }, []);
+
+  // Category lookup map for high performance
+  const categoriesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [categories]);
+
+  // Computed final stock based on mode and product
+  const calculatedStock = useMemo(() => {
+    if (!restockingProduct) return { finalStock: 0, diff: 0 };
+    const current = Number(restockingProduct.stock) || 0;
+    const qty = Math.max(0, Number(restockQty) || 0);
+
+    if (restockMode === 'add') {
+      const finalStock = current + qty;
+      return { finalStock, diff: qty };
+    }
+    if (restockMode === 'deduct') {
+      const actualDeduct = Math.min(current, qty);
+      const finalStock = Math.max(0, current - actualDeduct);
+      return { finalStock, diff: -actualDeduct };
+    }
+    // 'set' mode:
+    const finalStock = qty;
+    return { finalStock, diff: finalStock - current };
+  }, [restockingProduct, restockMode, restockQty]);
+
+  // Listen to Escape key to close Restock modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && restockingProduct) {
+        setRestockingProduct(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [restockingProduct]);
+
+  useEffect(() => {
+    setLoading((prev) => {
+      // Only show full loading spinner if we have no data yet
+      if (prev) return true;
+      return false;
+    });
+    setIsFetching(true);
 
     const params: Record<string, unknown> = {
       limit: 150,
@@ -142,24 +201,40 @@ export default function AdminProductsPage() {
   const openRestock = (product: Product, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setRestockingProduct(product);
-    setRestockAmount(product.stock);
+    setRestockMode('add');
+    setRestockQty(10);
+    setRestockReason('shipment');
   };
 
   const handleQuickRestockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!restockingProduct) return;
     setIsRestocking(true);
+    const { finalStock, diff } = calculatedStock;
     try {
       await productApi.update(restockingProduct.id, {
-        stock: Math.max(0, Number(restockAmount)),
+        stock: Math.max(0, finalStock),
       });
+
+      const reasonLabels: Record<string, { km: string; en: string }> = {
+        shipment: { km: '📦 នាំចូលថ្មី', en: '📦 New Shipment' },
+        audit: { km: '🔍 រាប់ស្តុកឡើងវិញ', en: '🔍 Stock Audit' },
+        damaged: { km: '⚠️ ខូចខាត/បាត់បង់', en: '⚠️ Damaged/Loss' },
+        return: { km: '🔄 អតិថិជនប្តូរ', en: '🔄 Customer Return' },
+      };
+      const reasonText = reasonLabels[restockReason]
+        ? ` · ${isKhmer ? reasonLabels[restockReason].km : reasonLabels[restockReason].en}`
+        : '';
+
+      const diffText = diff > 0 ? `(+${diff})` : diff < 0 ? `(${diff})` : '';
+
       toast.success(
         isKhmer
-          ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${restockAmount} គ្រឿង ✅`
-          : `Stock for "${restockingProduct.name}" updated to ${restockAmount} ✅`
+          ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${finalStock} គ្រឿង ${diffText}${reasonText} ✅`
+          : `Stock for "${restockingProduct.name}" updated to ${finalStock} ${diffText}${reasonText} ✅`
       );
       setProducts((prev) =>
-        prev.map((p) => (p.id === restockingProduct.id ? { ...p, stock: Math.max(0, Number(restockAmount)) } : p))
+        prev.map((p) => (p.id === restockingProduct.id ? { ...p, stock: Math.max(0, finalStock) } : p))
       );
       setRestockingProduct(null);
     } catch {
@@ -598,7 +673,7 @@ export default function AdminProductsPage() {
       <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
         {loading ? (
           <div className="p-12 text-center space-y-4">
-            <div className="w-10 h-10 border-3 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-sm font-semibold text-slate-500 animate-pulse">
               {isKhmer ? 'កំពុងផ្ទុកបញ្ជីទំនិញ...' : 'Loading products catalog...'}
             </p>
@@ -708,14 +783,17 @@ export default function AdminProductsPage() {
                       {/* Stock & Quick Restock Button */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold tabular-nums border ${
+                          <button
+                            type="button"
+                            onClick={(e) => openRestock(product, e)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${
                               isOut
-                                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
                                 : isLow
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
                             }`}
+                            title={isKhmer ? 'ចុចដើម្បីកែប្រែ ឬបំពេញស្តុក' : 'Click to adjust or restock inventory'}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
@@ -723,15 +801,16 @@ export default function AdminProductsPage() {
                               }`}
                             />
                             <span>{product.stock}</span>
-                          </span>
+                          </button>
 
                           <button
                             type="button"
                             onClick={(e) => openRestock(product, e)}
-                            className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 text-slate-600 hover:text-primary-600 dark:text-slate-300 dark:hover:text-primary-300 border border-slate-200 dark:border-slate-700 transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
                             title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
                           >
-                            + {isKhmer ? 'ស្តុក' : 'Stock'}
+                            <Plus className="w-3 h-3" />
+                            <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
                           </button>
                         </div>
                       </td>
@@ -827,151 +906,421 @@ export default function AdminProductsPage() {
       {/* Hyper-Luxury Quick Restock Modal */}
       <AnimatePresence>
         {restockingProduct && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setRestockingProduct(null);
+            }}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200/90 dark:border-slate-800"
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="bg-white dark:bg-surface-900 rounded-3xl shadow-2xl shadow-slate-900/25 w-full max-w-lg overflow-hidden border border-slate-200/90 dark:border-surface-750 flex flex-col max-h-[92vh]"
             >
-              {/* Modal Header */}
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-50 to-indigo-50/40 dark:from-surface-850 dark:to-surface-850">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200 dark:border-slate-700">
-                    {restockingProduct.thumbnail ? (
-                      <Image
-                        src={restockingProduct.thumbnail}
-                        alt={restockingProduct.name}
-                        fill
-                        className="object-cover"
-                        sizes="44px"
-                      />
-                    ) : (
-                      <Package className="w-5 h-5 text-slate-400 m-auto mt-3" />
-                    )}
+              {/* Modal Top Header */}
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-surface-800 flex items-center justify-between bg-gradient-to-r from-slate-50 via-indigo-50/30 to-slate-50 dark:from-surface-850 dark:via-surface-850 dark:to-surface-850">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0">
+                    <Boxes className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {isKhmer ? 'គ្រប់គ្រង & បំពេញស្តុក' : 'Manage Stock Inventory'}
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>{isKhmer ? 'គ្រប់គ្រង & បំពេញស្តុកទំនិញ' : 'Manage & Restock Inventory'}</span>
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {restockingProduct.name}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {isKhmer ? 'កែសម្រួលចំនួនស្តុក និងតាមដានតម្លៃស្តុកជាក់ស្តែង' : 'Adjust stock levels and monitor real-time inventory value'}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRestockingProduct(null)}
-                  className="w-8 h-8 rounded-full bg-white dark:bg-surface-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center shadow-xs"
+                  className="w-8 h-8 rounded-full bg-white dark:bg-surface-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-surface-700 flex items-center justify-center transition shadow-xs border border-slate-200/60 dark:border-surface-700"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <form onSubmit={handleQuickRestockSubmit} className="p-5 space-y-5">
-                {/* Counter Stepper Block */}
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-slate-800 text-center space-y-3">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    <span>{isKhmer ? 'ស្តុកបច្ចុប្បន្ន៖' : 'Current Stock:'} <strong className="text-slate-900 dark:text-white">{restockingProduct.stock}</strong></span>
-                    {restockAmount !== restockingProduct.stock && (
-                      <span
-                        className={`font-bold px-2 py-0.5 rounded-full text-[11px] ${
-                          restockAmount > restockingProduct.stock
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                            : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                        }`}
-                      >
-                        {restockAmount > restockingProduct.stock ? `+${restockAmount - restockingProduct.stock}` : `${restockAmount - restockingProduct.stock}`} ({isKhmer ? 'ផ្លាស់ប្តូរ' : 'diff'})
-                      </span>
+              {/* Modal Scrollable Body */}
+              <form onSubmit={handleQuickRestockSubmit} className="p-6 space-y-5 overflow-y-auto">
+                {/* Product Preview Card */}
+                <div className="p-3.5 rounded-2xl bg-slate-50/90 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 flex items-center gap-3.5">
+                  <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-white dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-surface-700 shadow-xs">
+                    {restockingProduct.thumbnail ? (
+                      <Image
+                        src={restockingProduct.thumbnail}
+                        alt={restockingProduct.name}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
+                    ) : (
+                      <Package className="w-6 h-6 text-slate-400 m-auto mt-4" />
                     )}
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {restockingProduct.name}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200/70 dark:bg-surface-700 text-slate-700 dark:text-slate-300">
+                        <Tag className="w-3 h-3 text-slate-500" />
+                        <span>{categoriesMap.get(restockingProduct.categoryId) || (isKhmer ? 'ទូទៅ' : 'General')}</span>
+                      </span>
+                      {restockingProduct.brand && (
+                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                          {restockingProduct.brand}
+                        </span>
+                      )}
+                      <span className="text-xs font-bold text-primary-600 dark:text-primary-400 tabular-nums">
+                        {formatPrice(restockingProduct.price, language)}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Stock Status Badge */}
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      {isKhmer ? 'ស្តុកបច្ចុប្បន្ន' : 'Current'}
+                    </div>
+                    <div
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums mt-0.5 border ${
+                        restockingProduct.stock === 0
+                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                          : restockingProduct.stock <= 5
+                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          restockingProduct.stock === 0
+                            ? 'bg-rose-500'
+                            : restockingProduct.stock <= 5
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        }`}
+                      />
+                      <span>{restockingProduct.stock} {isKhmer ? 'គ្រឿង' : 'pcs'}</span>
+                    </div>
+                  </div>
+                </div>
 
-                  {/* Stepper Controls */}
-                  <div className="flex items-center justify-center gap-2">
+                {/* Operation Mode Tabs (Add / Set / Deduct) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
+                    {isKhmer ? 'ជ្រើសរើសរបៀបកែសម្រួលស្តុក' : 'Select Adjustment Mode'}:
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800">
                     <button
                       type="button"
-                      onClick={() => setRestockAmount((prev) => Math.max(0, prev - 10))}
-                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs"
+                      onClick={() => {
+                        setRestockMode('add');
+                        setRestockQty(10);
+                        setRestockReason('shipment');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                        restockMode === 'add'
+                          ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{isKhmer ? 'បន្ថែមស្តុក' : 'Add Stock'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRestockMode('set');
+                        setRestockQty(restockingProduct.stock);
+                        setRestockReason('audit');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                        restockMode === 'set'
+                          ? 'bg-white dark:bg-surface-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>{isKhmer ? 'កំណត់ជាក់ស្តែង' : 'Set Exact'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRestockMode('deduct');
+                        setRestockQty(1);
+                        setRestockReason('damaged');
+                      }}
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                        restockMode === 'deduct'
+                          ? 'bg-white dark:bg-surface-700 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      <span>{isKhmer ? 'កាត់ចេញ' : 'Deduct'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Counter Stepper Control */}
+                <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <span>
+                      {restockMode === 'add'
+                        ? (isKhmer ? 'ចំនួនត្រូវបន្ថែមទៅស្តុក:' : 'Quantity to Add:')
+                        : restockMode === 'deduct'
+                        ? (isKhmer ? 'ចំនួនត្រូវកាត់ចេញពីស្តុក:' : 'Quantity to Deduct:')
+                        : (isKhmer ? 'ចំនួនស្តុកសរុបថ្មី:' : 'New Total Quantity:')}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {isKhmer ? 'ប្រើប៊ូតុង ឬវាយបញ្ចូលផ្ទាល់' : 'Use stepper or type below'}
+                    </span>
+                  </div>
+
+                  {/* High-End Stepper Controls */}
+                  <div className="flex items-center justify-center gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRestockQty((prev) => Math.max(0, prev - 10))}
+                      className="w-11 h-11 rounded-2xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
                       title="-10"
                     >
                       -10
                     </button>
                     <button
                       type="button"
-                      onClick={() => setRestockAmount((prev) => Math.max(0, prev - 1))}
-                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
+                      onClick={() => setRestockQty((prev) => Math.max(0, prev - 1))}
+                      className="w-11 h-11 rounded-2xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
                       title="-1"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
 
-                    <input
-                      type="number"
-                      min={0}
-                      value={restockAmount}
-                      onChange={(e) => setRestockAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="w-24 h-12 text-center text-2xl font-black rounded-xl bg-white dark:bg-surface-900 border-2 border-primary-500 text-slate-900 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-xs"
-                      required
-                      autoFocus
-                    />
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        value={restockQty}
+                        onChange={(e) => setRestockQty(Math.max(0, parseInt(e.target.value) || 0))}
+                        className={`w-28 sm:w-32 h-12 text-center text-2xl font-black rounded-2xl bg-white dark:bg-surface-900 border-2 text-slate-900 dark:text-white tabular-nums focus:outline-none shadow-xs transition ${
+                          restockMode === 'add'
+                            ? 'border-primary-500 focus:ring-2 focus:ring-primary-500/20'
+                            : restockMode === 'deduct'
+                            ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                            : 'border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                        }`}
+                        required
+                        autoFocus
+                      />
+                      <span className="absolute -top-2.5 right-2 px-1.5 py-0.5 bg-slate-800 text-[9px] font-bold text-white rounded-md uppercase tracking-wider">
+                        {isKhmer ? 'គ្រឿង' : 'pcs'}
+                      </span>
+                    </div>
 
                     <button
                       type="button"
-                      onClick={() => setRestockAmount((prev) => prev + 1)}
-                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
+                      onClick={() => setRestockQty((prev) => prev + 1)}
+                      className="w-11 h-11 rounded-2xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-sm text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
                       title="+1"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setRestockAmount((prev) => prev + 10)}
-                      className="w-10 h-10 rounded-xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs"
+                      onClick={() => setRestockQty((prev) => prev + 10)}
+                      className="w-11 h-11 rounded-2xl bg-white dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-700 border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition active:scale-95 shadow-xs flex items-center justify-center"
                       title="+10"
                     >
                       +10
                     </button>
                   </div>
+
+                  {/* Mode-Specific Quick Preset Chips */}
+                  <div className="pt-1">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        {isKhmer ? 'ជ្រើសរើសបរិមាណរហ័ស (Quick Presets)' : 'Quick Presets'}:
+                      </span>
+                    </div>
+
+                    {restockMode === 'add' && (
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[5, 10, 25, 50, 100].map((qty) => (
+                          <button
+                            key={qty}
+                            type="button"
+                            onClick={() => setRestockQty((prev) => prev + qty)}
+                            className="py-1.5 px-1 rounded-xl bg-white dark:bg-surface-800 hover:bg-primary-50 dark:hover:bg-primary-950/40 text-slate-700 hover:text-primary-600 dark:text-slate-300 text-xs font-bold font-mono transition border border-slate-200 dark:border-slate-700 hover:border-primary-400 active:scale-95 shadow-2xs"
+                          >
+                            +{qty}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {restockMode === 'set' && (
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[0, 10, 25, 50, 100].map((qty) => (
+                          <button
+                            key={qty}
+                            type="button"
+                            onClick={() => setRestockQty(qty)}
+                            className={`py-1.5 px-1 rounded-xl text-xs font-bold font-mono transition border active:scale-95 shadow-2xs ${
+                              qty === 0
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                                : 'bg-white dark:bg-surface-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 hover:text-indigo-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            {qty === 0 ? (isKhmer ? 'អស់ (0)' : 'Out (0)') : qty}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {restockMode === 'deduct' && (
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[1, 2, 5, 10, 20].map((qty) => (
+                          <button
+                            key={qty}
+                            type="button"
+                            onClick={() => setRestockQty((prev) => prev + qty)}
+                            className="py-1.5 px-1 rounded-xl bg-white dark:bg-surface-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 hover:text-rose-600 dark:text-slate-300 text-xs font-bold font-mono transition border border-slate-200 dark:border-slate-700 hover:border-rose-400 active:scale-95 shadow-2xs"
+                          >
+                            -{qty}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Quick Add Presets */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    {isKhmer ? 'ជ្រើសរើសបន្ថែមរហ័ស (Quick Add)' : 'Quick Add Presets'}:
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[5, 10, 25, 50].map((qty) => (
-                      <button
-                        key={qty}
-                        type="button"
-                        onClick={() => setRestockAmount((prev) => prev + qty)}
-                        className="py-2 px-2 bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 dark:hover:bg-primary-950/40 text-slate-700 hover:text-primary-600 dark:text-slate-200 rounded-xl text-xs font-bold font-mono transition border border-slate-200/80 dark:border-slate-700 hover:border-primary-400 shadow-xs active:scale-95"
+                {/* Live Real-time Stock Transformation Card */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 dark:from-surface-850 dark:via-surface-800/40 dark:to-surface-850 border border-slate-200/90 dark:border-surface-800 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
+                      <span>{isKhmer ? 'លទ្ធផលស្តុកជាក់ស្តែង' : 'Live Stock Impact Preview'}</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {isKhmer ? 'គណនាស្វ័យប្រវត្តិ' : 'Auto calculated'}
+                    </span>
+                  </div>
+
+                  {/* 3 Columns: Current -> Change -> New */}
+                  <div className="grid grid-cols-3 gap-2 text-center items-center">
+                    {/* Current */}
+                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase">
+                        {isKhmer ? 'ស្តុកដើម' : 'Original'}
+                      </div>
+                      <div className="text-lg font-black text-slate-700 dark:text-slate-200 tabular-nums">
+                        {restockingProduct.stock}
+                      </div>
+                    </div>
+
+                    {/* Change Diff */}
+                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
+                      <div className="text-[10px] font-semibold text-slate-400 uppercase">
+                        {isKhmer ? 'បំលាស់ប្តូរ' : 'Change'}
+                      </div>
+                      <div
+                        className={`text-lg font-black tabular-nums flex items-center justify-center gap-0.5 ${
+                          calculatedStock.diff > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : calculatedStock.diff < 0
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : 'text-slate-400'
+                        }`}
                       >
-                        +{qty}
+                        {calculatedStock.diff > 0 ? (
+                          <>
+                            <span>+{calculatedStock.diff}</span>
+                          </>
+                        ) : calculatedStock.diff < 0 ? (
+                          <>
+                            <span>{calculatedStock.diff}</span>
+                          </>
+                        ) : (
+                          <span>0</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* New Total */}
+                    <div className="p-2.5 rounded-xl bg-gradient-to-tr from-primary-500/10 via-indigo-500/10 to-violet-500/10 border border-primary-500/30 dark:border-primary-500/30">
+                      <div className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase">
+                        {isKhmer ? 'ស្តុកថ្មីសរុប' : 'New Stock'}
+                      </div>
+                      <div className="text-xl font-black text-primary-600 dark:text-primary-400 tabular-nums">
+                        {calculatedStock.finalStock}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stock Valuation & Status Line */}
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 flex items-center justify-between text-xs flex-wrap gap-2">
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                      <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{isKhmer ? 'តម្លៃស្តុកថ្មីសរុប:' : 'Total Value:'}</span>
+                      <strong className="text-slate-900 dark:text-white tabular-nums font-bold">
+                        {formatPrice(
+                          (restockingProduct.price || 0) * calculatedStock.finalStock,
+                          language
+                        )}
+                      </strong>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400">{isKhmer ? 'ស្ថានភាពថ្មី:' : 'Status:'}</span>
+                      {calculatedStock.finalStock === 0 ? (
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                          {isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}
+                        </span>
+                      ) : calculatedStock.finalStock <= 5 ? (
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                          {isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          {isKhmer ? 'ស្តុកគ្រប់គ្រាន់' : 'Healthy Stock'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Restock Reason Audit Tags */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">
+                    {isKhmer ? 'មូលហេតុ ឬចំណាំកែសម្រួល' : 'Reason / Note'}:
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'shipment', km: '📦 នាំចូលថ្មី', en: '📦 Inbound Shipment' },
+                      { id: 'audit', km: '🔍 រាប់ស្តុកឡើងវិញ', en: '🔍 Stock Audit' },
+                      { id: 'damaged', km: '⚠️ ខូចខាត/បាត់បង់', en: '⚠️ Damaged/Lost' },
+                      { id: 'return', km: '🔄 អតិថិជនប្តូរ', en: '🔄 Customer Return' },
+                    ].map((reason) => (
+                      <button
+                        key={reason.id}
+                        type="button"
+                        onClick={() => setRestockReason(reason.id)}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition border ${
+                          restockReason === reason.id
+                            ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-700 font-bold shadow-2xs'
+                            : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        {isKhmer ? reason.km : reason.en}
                       </button>
                     ))}
-                  </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setRestockAmount((prev) => prev + 100)}
-                      className="flex-1 py-1.5 px-2 bg-slate-100 hover:bg-primary-50 dark:bg-surface-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold font-mono transition border border-slate-200/80 dark:border-slate-700"
-                    >
-                      +100 គ្រឿង
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRestockAmount(0)}
-                      className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 rounded-xl text-xs font-bold transition border border-rose-200 dark:border-rose-900/60"
-                    >
-                      {isKhmer ? 'កំណត់ ០ (អស់ស្តុក)' : 'Set 0 (Out)'}
-                    </button>
                   </div>
                 </div>
 
                 {/* Modal Footer Actions */}
-                <div className="flex gap-2.5 pt-2">
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setRestockingProduct(null)}
@@ -982,7 +1331,7 @@ export default function AdminProductsPage() {
                   <button
                     type="submit"
                     disabled={isRestocking}
-                    className="flex-1 h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition active:scale-98 flex items-center justify-center gap-2"
+                    className="flex-[1.5] h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition active:scale-98 flex items-center justify-center gap-2"
                   >
                     {isRestocking ? (
                       <>
@@ -992,7 +1341,11 @@ export default function AdminProductsPage() {
                     ) : (
                       <>
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>{isKhmer ? 'រក្សាទុកស្តុកថ្មី' : 'Save Stock'}</span>
+                        <span>
+                          {isKhmer
+                            ? `រក្សាទុកស្តុក (${calculatedStock.finalStock} គ្រឿង)`
+                            : `Save Stock (${calculatedStock.finalStock} pcs)`}
+                        </span>
                       </>
                     )}
                   </button>
