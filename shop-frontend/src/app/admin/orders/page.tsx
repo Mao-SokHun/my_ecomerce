@@ -128,19 +128,31 @@ export default function AdminOrdersPage() {
         } catch {}
       }
 
-      // Keep selectedOrder in sync if open
-      if (selectedOrder) {
-        const updated = incomingOrders.find((o) => o.id === selectedOrder.id);
-        if (updated) setSelectedOrder(updated);
-      }
+      // Keep selectedOrder in sync ONLY if currently open without causing race conditions
+      setSelectedOrder((prev) => {
+        if (!prev) return null;
+        const updated = incomingOrders.find((o) => o.id === prev.id);
+        return updated || prev;
+      });
     } finally {
       if (!isBackgroundPoll) setLoading(false);
     }
-  }, [search, statusFilter, soundAlertEnabled, autoPrintEnabled, paperWidth, isKhmer, selectedOrder]);
+  }, [search, statusFilter, soundAlertEnabled, autoPrintEnabled, paperWidth, isKhmer]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedOrder(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Live Auto-Polling every 6 seconds for new orders
   useEffect(() => {
@@ -410,8 +422,14 @@ export default function AdminOrdersPage() {
       {/* ORDER DETAILS POPUP MODAL */}
       {/* ========================================================================= */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-          <div className="w-full max-w-3xl bg-white dark:bg-surface-900 rounded-[24px] shadow-2xl border border-gray-200/80 dark:border-surface-750 max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div
+          onClick={() => setSelectedOrder(null)}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl bg-white dark:bg-surface-900 rounded-[24px] shadow-2xl border border-gray-200/80 dark:border-surface-750 max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 cursor-default"
+          >
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-800 flex items-center justify-between bg-gray-50/70 dark:bg-surface-850/50">
               <div className="flex items-center gap-3">
