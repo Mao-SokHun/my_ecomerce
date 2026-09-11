@@ -191,19 +191,20 @@ export function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.96 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute right-0 mt-2.5 w-[340px] sm:w-[380px] rounded-3xl bg-white/95 dark:bg-[#151922]/98 backdrop-blur-2xl border border-slate-200/90 dark:border-white/[0.08] shadow-2xl shadow-black/20 z-50 overflow-hidden"
+            style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
+            className="absolute right-0 mt-2.5 w-[350px] sm:w-[390px] rounded-2xl bg-white dark:bg-[#12161f] border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-900/25 dark:shadow-black/80 z-50 overflow-hidden"
           >
             {/* Popover Header */}
-            <div className="p-4 bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 dark:from-[#181d28] dark:via-[#151922] dark:to-primary-950/20 border-b border-slate-150 dark:border-white/[0.06] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-950/60 dark:text-primary-400 flex items-center justify-center shadow-xs">
+            <div className="p-4 bg-slate-50 dark:bg-[#181d28] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary-100 text-primary-600 dark:bg-primary-950 dark:text-primary-400 flex items-center justify-center shadow-xs">
                   <Bell className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
                     {isKhmer ? 'ការជូនដំណឹងពីហាង' : 'Store Notifications'}
                   </h3>
-                  <p className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     {unreadCount > 0
                       ? isKhmer
                         ? `អ្នកមានសារមិនទាន់អាន ${unreadCount}`
@@ -219,7 +220,7 @@ export function NotificationBell() {
                 <button
                   type="button"
                   onClick={handleMarkAllAsRead}
-                  className="text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/40 transition"
+                  className="text-xs font-bold text-primary-600 dark:text-primary-400 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-50 dark:bg-primary-950/60 border border-primary-200/60 dark:border-primary-800/60 hover:bg-primary-100 dark:hover:bg-primary-900/60 transition shadow-2xs"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
                   <span>{isKhmer ? 'អានទាំងអស់' : 'Mark all read'}</span>
@@ -228,14 +229,14 @@ export function NotificationBell() {
             </div>
 
             {/* Filter Pills */}
-            <div className="px-4 py-2 border-b border-slate-150 dark:border-white/[0.04] bg-slate-50/50 dark:bg-black/20 flex gap-2">
+            <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-[#0e1118] flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setActiveFilter('ALL')}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeFilter === 'ALL'
-                    ? 'bg-white dark:bg-surface-800 text-slate-900 dark:text-white shadow-2xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                    ? 'bg-primary-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
                 }`}
               >
                 {isKhmer ? 'ទាំងអស់' : 'All'} ({notifications.length})
@@ -243,10 +244,10 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={() => setActiveFilter('UNREAD')}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                   activeFilter === 'UNREAD'
-                    ? 'bg-white dark:bg-surface-800 text-slate-900 dark:text-white shadow-2xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                    ? 'bg-primary-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
                 }`}
               >
                 {isKhmer ? 'មិនទាន់អាន' : 'Unread'} ({unreadCount})
@@ -254,20 +255,20 @@ export function NotificationBell() {
             </div>
 
             {/* Notification List Body */}
-            <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-white/[0.04] overscroll-contain">
+            <div className="max-h-[380px] overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800/70 overscroll-contain">
               {isLoading && notifications.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs font-medium text-slate-400">
                   {isKhmer ? 'កំពុងផ្ទុក...' : 'Loading notifications...'}
                 </div>
               ) : filteredNotifications.length === 0 ? (
-                <div className="p-8 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
-                    <Sparkles className="w-5 h-5" />
+                <div className="p-8 text-center space-y-2.5">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center mx-auto text-slate-400">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
                   </div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                     {isKhmer ? 'មិនទាន់មានសេចក្តីជូនដំណឹងថ្មីទេ' : 'No notifications found'}
                   </p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {isKhmer
                       ? 'ដំណឹងប្រូម៉ូសិន និងការប្រកាសពីហាងនឹងបង្ហាញនៅទីនេះ'
                       : 'Store announcements and offers will appear here'}
@@ -282,20 +283,20 @@ export function NotificationBell() {
                       onClick={() => handleMarkAsRead(item.id)}
                       className={`p-4 transition-colors relative cursor-pointer group ${
                         !item.isRead
-                          ? 'bg-primary-50/40 dark:bg-primary-950/20 hover:bg-primary-50/70 dark:hover:bg-primary-950/30'
-                          : 'bg-white hover:bg-slate-50 dark:bg-[#151922] dark:hover:bg-[#181d28]'
+                          ? 'bg-primary-50/50 dark:bg-primary-950/25 hover:bg-primary-50/80 dark:hover:bg-primary-950/40 border-l-4 border-l-primary-500'
+                          : 'bg-white dark:bg-[#12161f] hover:bg-slate-50 dark:hover:bg-[#181d28] border-l-4 border-l-transparent'
                       }`}
                     >
                       {/* Unread dot indicator */}
                       {!item.isRead && (
-                        <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-primary-600 dark:bg-primary-400" />
+                        <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-primary-600 dark:bg-primary-400 ring-4 ring-primary-500/20" />
                       )}
 
-                      <div className="flex items-center gap-2 mb-1.5 pr-4">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.classes}`}>
+                      <div className="flex items-center gap-2 mb-1.5 pr-6">
+                        <span className={`px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold border ${badge.classes}`}>
                           {badge.label}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
+                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
                           {new Date(item.createdAt).toLocaleDateString([], {
                             month: 'short',
                             day: 'numeric',
@@ -303,30 +304,30 @@ export function NotificationBell() {
                         </span>
                       </div>
 
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
                         {item.title}
                       </h4>
 
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-relaxed whitespace-pre-line">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed whitespace-pre-line break-words">
                         {item.message}
                       </p>
 
                       {item.link && (
-                        <div className="pt-2 mt-2 border-t border-slate-150/70 dark:border-white/[0.04] flex items-center justify-between">
+                        <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                           <Link
                             href={item.link}
                             onClick={() => setIsOpen(false)}
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
                           >
                             <span>{isKhmer ? 'ចូលមើលឥឡូវនេះ' : 'View Details'}</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
 
                           {!item.isRead && (
                             <button
                               type="button"
                               onClick={(e) => handleMarkAsRead(item.id, e)}
-                              className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                              className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                             >
                               {isKhmer ? 'គូសជាអានរួច' : 'Mark read'}
                             </button>
