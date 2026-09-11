@@ -82,6 +82,7 @@ export default function AdminProductsPage() {
   const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
   const [restockMode, setRestockMode] = useState<'add' | 'set' | 'deduct'>('add');
   const [restockQty, setRestockQty] = useState<number>(10);
+  const [restockCostPrice, setRestockCostPrice] = useState<string>('');
   const [restockReason, setRestockReason] = useState<string>('shipment');
   const [isRestocking, setIsRestocking] = useState(false);
 
@@ -91,6 +92,7 @@ export default function AdminProductsPage() {
     description: '',
     price: '',
     comparePrice: '',
+    costPrice: '',
     stock: '',
     categoryId: '',
     brand: '',
@@ -205,6 +207,7 @@ export default function AdminProductsPage() {
     setRestockMode('add');
     setRestockQty(10);
     setRestockReason('shipment');
+    setRestockCostPrice(product.costPrice != null ? String(product.costPrice) : '');
   };
 
   const handleQuickRestockSubmit = async (e: React.FormEvent) => {
@@ -213,9 +216,13 @@ export default function AdminProductsPage() {
     setIsRestocking(true);
     const { finalStock, diff } = calculatedStock;
     try {
-      await productApi.update(restockingProduct.id, {
+      const updatePayload: Record<string, unknown> = {
         stock: Math.max(0, finalStock),
-      });
+      };
+      if (restockCostPrice.trim() !== '') {
+        updatePayload.costPrice = Number(restockCostPrice);
+      }
+      await productApi.update(restockingProduct.id, updatePayload);
 
       const reasonLabels: Record<string, { km: string; en: string }> = {
         shipment: { km: '📦 នាំចូលថ្មី', en: '📦 New Shipment' },
@@ -235,7 +242,15 @@ export default function AdminProductsPage() {
           : `Stock for "${restockingProduct.name}" updated to ${finalStock} ${diffText}${reasonText} ✅`
       );
       setProducts((prev) =>
-        prev.map((p) => (p.id === restockingProduct.id ? { ...p, stock: Math.max(0, finalStock) } : p))
+        prev.map((p) =>
+          p.id === restockingProduct.id
+            ? {
+                ...p,
+                stock: Math.max(0, finalStock),
+                costPrice: restockCostPrice.trim() !== '' ? Number(restockCostPrice) : p.costPrice,
+              }
+            : p
+        )
       );
       setRestockingProduct(null);
     } catch {
@@ -345,6 +360,7 @@ export default function AdminProductsPage() {
       description: '',
       price: '',
       comparePrice: '',
+      costPrice: '',
       stock: '',
       categoryId: '',
       brand: '',
@@ -367,6 +383,7 @@ export default function AdminProductsPage() {
       description: product.description,
       price: String(product.price),
       comparePrice: String(product.comparePrice || ''),
+      costPrice: String(product.costPrice != null ? product.costPrice : ''),
       stock: String(product.stock),
       categoryId: product.categoryId,
       brand: product.brand || '',
@@ -398,6 +415,7 @@ export default function AdminProductsPage() {
         shortDesc: form.shortDesc || undefined,
         price: Number(form.price),
         comparePrice: form.comparePrice ? Number(form.comparePrice) : undefined,
+        costPrice: form.costPrice !== '' ? Number(form.costPrice) : undefined,
         stock: Number(form.stock),
         categoryId: form.categoryId,
         brand: form.brand || undefined,
@@ -458,6 +476,17 @@ export default function AdminProductsPage() {
   const lowStockCount = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
   const outOfStockCount = products.filter((p) => p.stock <= 0).length;
   const featuredCount = products.filter((p) => p.isFeatured).length;
+
+  const totalStockUnits = useMemo(() => products.reduce((acc, p) => acc + (p.stock || 0), 0), [products]);
+  const totalCostValue = useMemo(
+    () => products.reduce((acc, p) => acc + (p.stock || 0) * (p.costPrice || 0), 0),
+    [products]
+  );
+  const totalRetailValue = useMemo(
+    () => products.reduce((acc, p) => acc + (p.stock || 0) * (p.price || 0), 0),
+    [products]
+  );
+  const totalEstimatedProfit = useMemo(() => Math.max(0, totalRetailValue - totalCostValue), [totalRetailValue, totalCostValue]);
 
   // Category Dropdown options
   const categoryOptions: DropdownOption[] = useMemo(() => [
@@ -626,6 +655,52 @@ export default function AdminProductsPage() {
             </span>
           </div>
         </button>
+      </div>
+
+      {/* Financial & Inventory Valuation Accounting Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-indigo-950/95 text-white shadow-sm border border-slate-700/60">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+            <DollarSign className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[11px] text-slate-400 font-medium">
+              {isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (Inventory Cost)' : 'Total Inventory Cost'}
+            </p>
+            <p className="text-base sm:text-lg font-black font-mono text-amber-300">
+              {formatPrice(totalCostValue, language)}
+              <span className="text-xs font-normal text-slate-400 ml-1.5">({totalStockUnits} {isKhmer ? 'គ្រឿង' : 'units'})</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
+          <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center shrink-0 text-sky-400">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[11px] text-slate-400 font-medium">
+              {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន (Retail Valuation)' : 'Estimated Retail Value'}
+            </p>
+            <p className="text-base sm:text-lg font-black font-mono text-sky-300">
+              {formatPrice(totalRetailValue, language)}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+            <CheckCircle2 className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-[11px] text-slate-400 font-medium">
+              {isKhmer ? 'ប្រាក់ចំណេញប៉ាន់ស្មាន (Est. Gross Profit)' : 'Estimated Gross Profit'}
+            </p>
+            <p className="text-base sm:text-lg font-black font-mono text-emerald-400">
+              +{formatPrice(totalEstimatedProfit, language)}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -835,12 +910,26 @@ export default function AdminProductsPage() {
                         )}
                       </td>
 
-                      {/* Price */}
+                      {/* Price & Cost Accounting */}
                       <td className="py-2.5 px-3">
                         <div className="flex flex-col">
                           <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
                             {formatPrice(product.price, language)}
                           </span>
+                          {product.costPrice != null && product.costPrice > 0 ? (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-[10px] text-slate-400 tabular-nums">
+                                {isKhmer ? 'ដើម:' : 'Cost:'} {formatPrice(product.costPrice, language)}
+                              </span>
+                              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1 rounded">
+                                +{Math.round(((product.price - product.costPrice) / (product.price || 1)) * 100)}%
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-slate-400/80 italic">
+                              {isKhmer ? 'គ្មានថ្លៃដើម' : 'No cost'}
+                            </span>
+                          )}
                           {hasDiscount && (
                             <span className="text-[10px] text-slate-400 line-through tabular-nums">
                               {formatPrice(product.comparePrice || 0, language)}
@@ -1265,12 +1354,44 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* Live Real-time Stock Transformation Card */}
+                {/* Import Cost Price per Unit Field */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                      {isKhmer ? 'ថ្លៃដើមនាំចូលក្នុង ១ គ្រឿង ($ Cost / Unit)' : 'Import Cost Price ($ / Unit)'}
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      {isKhmer ? 'សម្រាប់គណនាចំណេញស្វ័យប្រវត្តិ' : 'For auto profit calculation'}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={restockCostPrice}
+                      onChange={(e) => setRestockCostPrice(e.target.value)}
+                      placeholder={restockingProduct.costPrice ? String(restockingProduct.costPrice) : '0.00'}
+                      className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                    />
+                  </div>
+                  {restockCostPrice !== '' && Number(restockCostPrice) > 0 && (
+                    <div className="flex items-center justify-between text-xs pt-1 text-slate-600 dark:text-slate-400">
+                      <span>{isKhmer ? 'ចំណេញក្នុង ១ គ្រឿង:' : 'Unit Gross Profit:'}</span>
+                      <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        +{formatPrice(Math.max(0, (restockingProduct.price || 0) - Number(restockCostPrice)), language)}
+                        {' '}({Math.round((((restockingProduct.price || 0) - Number(restockCostPrice)) / (restockingProduct.price || 1)) * 100)}%)
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Real-time Stock & Financial Accounting Preview */}
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 dark:from-surface-850 dark:via-surface-800/40 dark:to-surface-850 border border-slate-200/90 dark:border-surface-800 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
                     <span className="flex items-center gap-1.5">
                       <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
-                      <span>{isKhmer ? 'លទ្ធផលស្តុកជាក់ស្តែង' : 'Live Stock Impact Preview'}</span>
+                      <span>{isKhmer ? 'លទ្ធផលស្តុក & គណនេយ្យជាក់ស្តែង' : 'Live Stock & Financial Impact'}</span>
                     </span>
                     <span className="text-[11px] text-slate-400">
                       {isKhmer ? 'គណនាស្វ័យប្រវត្តិ' : 'Auto calculated'}
@@ -1328,34 +1449,44 @@ export default function AdminProductsPage() {
                     </div>
                   </div>
 
-                  {/* Stock Valuation & Status Line */}
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 flex items-center justify-between text-xs flex-wrap gap-2">
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{isKhmer ? 'តម្លៃស្តុកថ្មីសរុប:' : 'Total Value:'}</span>
-                      <strong className="text-slate-900 dark:text-white tabular-nums font-bold">
+                  {/* Financial Breakdown Grid */}
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
+                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
+                        {isKhmer ? 'ដើមទុនស្តុកសរុប' : 'Total Cost Value'}
+                      </span>
+                      <strong className="font-mono font-bold text-sm">
                         {formatPrice(
-                          (restockingProduct.price || 0) * calculatedStock.finalStock,
+                          (Number(restockCostPrice) || restockingProduct.costPrice || 0) * calculatedStock.finalStock,
                           language
                         )}
                       </strong>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400">{isKhmer ? 'ស្ថានភាពថ្មី:' : 'Status:'}</span>
-                      {calculatedStock.finalStock === 0 ? (
-                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                          {isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}
-                        </span>
-                      ) : calculatedStock.finalStock <= 5 ? (
-                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                          {isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                          {isKhmer ? 'ស្តុកគ្រប់គ្រាន់' : 'Healthy Stock'}
-                        </span>
-                      )}
+                    <div className="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-900 dark:text-sky-200">
+                      <span className="text-[10px] text-sky-700 dark:text-sky-400 font-semibold block">
+                        {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន' : 'Est. Retail Revenue'}
+                      </span>
+                      <strong className="font-mono font-bold text-sm">
+                        {formatPrice((restockingProduct.price || 0) * calculatedStock.finalStock, language)}
+                      </strong>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
+                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold block">
+                        {isKhmer ? 'ចំណេញប៉ាន់ស្មាន' : 'Est. Total Profit'}
+                      </span>
+                      <strong className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                        +{formatPrice(
+                          Math.max(
+                            0,
+                            ((restockingProduct.price || 0) -
+                              (Number(restockCostPrice) || restockingProduct.costPrice || 0)) *
+                              calculatedStock.finalStock
+                          ),
+                          language
+                        )}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -1479,7 +1610,9 @@ export default function AdminProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Price ($) *</label>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'តម្លៃលក់ចេញ ($ Price) *' : 'Selling Price ($) *'}
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -1491,7 +1624,22 @@ export default function AdminProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Compare At Price ($)</label>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'ថ្លៃដើមនាំចូល ($ Cost Price)' : 'Import Cost Price ($)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.costPrice}
+                      onChange={(e) => setForm((p) => ({ ...p, costPrice: e.target.value }))}
+                      className={modalInputCls}
+                      placeholder="650.00"
+                    />
+                  </div>
+                  <div>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'តម្លៃដើមមុនបញ្ចុះ ($ Compare Price)' : 'Compare At Price ($)'}
+                    </label>
                     <input
                       type="number"
                       step="0.01"
@@ -1502,7 +1650,9 @@ export default function AdminProductsPage() {
                     />
                   </div>
                   <div>
-                    <label className={modalLabelCls}>Stock Quantity *</label>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'ចំនួនស្តុក (Stock) *' : 'Stock Quantity *'}
+                    </label>
                     <input
                       type="number"
                       value={form.stock}
@@ -1512,6 +1662,39 @@ export default function AdminProductsPage() {
                       placeholder="50"
                     />
                   </div>
+
+                  {/* Dynamic Profit & Margin Calculation Helper Card */}
+                  {form.price && form.costPrice && Number(form.price) > 0 && Number(form.costPrice) > 0 && (
+                    <div className="sm:col-span-2 p-3 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-500/20 flex items-center justify-between flex-wrap gap-2 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                          {isKhmer ? '📊 គណនាប្រាក់ចំណេញក្នុង ១ គ្រឿង:' : '📊 Gross Profit per Unit:'}
+                        </span>
+                        <strong className="text-emerald-600 dark:text-emerald-400 text-sm font-black font-mono">
+                          +{formatPrice(Math.max(0, Number(form.price) - Number(form.costPrice)), language)}
+                        </strong>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono">
+                          Margin: {Math.round(((Number(form.price) - Number(form.costPrice)) / Number(form.price)) * 100)}%
+                        </span>
+                      </div>
+                      {form.stock && Number(form.stock) > 0 && (
+                        <div className="text-slate-500 dark:text-slate-400 font-mono">
+                          {isKhmer ? 'ដើមទុនស្តុក:' : 'Capital:'}{' '}
+                          <strong className="text-slate-900 dark:text-white font-bold">
+                            {formatPrice(Number(form.stock) * Number(form.costPrice), language)}
+                          </strong>
+                          {' · '}
+                          {isKhmer ? 'ចំណេញប៉ាន់ស្មាន:' : 'Est. Profit:'}{' '}
+                          <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            +{formatPrice(
+                              Math.max(0, Number(form.stock) * (Number(form.price) - Number(form.costPrice))),
+                              language
+                            )}
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <label className={modalLabelCls}>Category *</label>
                     <select

@@ -383,7 +383,10 @@ export const updateProduct = async (
     }
 
     if (updates.price !== undefined) updates.price = Number(updates.price);
-    if (updates.comparePrice !== undefined) updates.comparePrice = Number(updates.comparePrice);
+    if (updates.comparePrice !== undefined)
+      updates.comparePrice = updates.comparePrice != null && updates.comparePrice !== '' ? Number(updates.comparePrice) : null;
+    if (updates.costPrice !== undefined)
+      updates.costPrice = updates.costPrice != null && updates.costPrice !== '' ? Number(updates.costPrice) : null;
     if (updates.stock !== undefined) updates.stock = Number(updates.stock);
     if (updates.isFeatured !== undefined) updates.isFeatured = Boolean(updates.isFeatured);
     if (updates.isActive !== undefined) updates.isActive = Boolean(updates.isActive);

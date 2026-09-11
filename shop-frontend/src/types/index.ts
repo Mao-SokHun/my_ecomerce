@@ -45,6 +45,7 @@ export interface Product {
   shortDesc?: string;
   price: number;
   comparePrice?: number;
+  costPrice?: number;
   sku?: string;
   stock: number;
   images: string[];
