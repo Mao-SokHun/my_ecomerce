@@ -54,6 +54,20 @@ enum AuthProvider {
   TELEGRAM
 }
 
+enum NotificationType {
+  ANNOUNCEMENT
+  PROMOTION
+  ORDER_UPDATE
+  SYSTEM
+  URGENT
+}
+
+enum NotificationTarget {
+  ALL
+  USER
+  SUBSCRIBERS
+}
+
 // ==================== MODELS ====================
 
 model User {
@@ -78,6 +92,7 @@ model User {
   wishlist         Wishlist[]
   sellerProfile    SellerProfile?
   auditLogs        AuditLog[]
+  notifications    Notification[]
   lastSeenOrdersAt  DateTime?
   lastSeenUsersAt   DateTime?
   lastSeenLeadsAt   DateTime?
@@ -515,4 +530,25 @@ model SiteSettings {
   updatedAt      DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String?
+  title     String
+  message   String             @db.Text
+  type      NotificationType   @default(ANNOUNCEMENT)
+  target    NotificationTarget @default(ALL)
+  link      String?
+  isRead    Boolean            @default(false)
+  sentBy    String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([target])
+  @@index([createdAt])
+  @@map("notifications")
 }

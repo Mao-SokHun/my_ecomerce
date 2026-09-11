@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, Tag,
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
-  Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2,
+  Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2, BellRing,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -25,6 +25,7 @@ const navItems = [
   { href: '/admin/users', icon: Users, key: 'navUsers' },
   { href: '/admin/leads', icon: Mail, key: 'navLeads' },
   { href: '/admin/support-inbox', icon: MessageSquare, key: 'navSupportInbox' },
+  { href: '/admin/notifications', icon: BellRing, key: 'navNotifications' },
   { href: '/admin/coupons', icon: Tag, key: 'navCoupons' },
   { href: '/admin/settings', icon: Settings, key: 'navSettings' },
 ];

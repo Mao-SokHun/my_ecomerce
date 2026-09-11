@@ -23,6 +23,8 @@ import {
   type ShopNavCategory,
 } from '@/lib/shopCategoryNav';
 import { NavbarSearchProvider, NavbarSearchDesktop, NavbarSearchMobile } from './NavbarSearch';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { StoreAnnouncementBanner } from '@/components/notifications/StoreAnnouncementBanner';
 
 export function Navbar() {
   const router = useRouter();
@@ -168,6 +170,7 @@ export function Navbar() {
           : 'bg-white/90 dark:bg-surface-950/90 backdrop-blur-lg border-b border-gray-100/60 dark:border-surface-800/60'
       }`}
     >
+      <StoreAnnouncementBanner />
       <nav className="page-container">
         <NavbarSearchProvider
           language={language}
@@ -292,6 +295,9 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-0.5 sm:gap-1 ml-auto shrink-0">
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}

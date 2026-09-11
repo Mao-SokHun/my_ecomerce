@@ -343,3 +343,26 @@ export const leadApi = {
   subscribe: (data: { email: string; phone?: string }) => api.post('/leads/subscribe', data),
   getAll: () => api.get('/leads'),
 };
+
+export const notificationApi = {
+  // Admin Endpoints
+  sendBroadcast: (data: {
+    title: string;
+    message: string;
+    type?: 'ANNOUNCEMENT' | 'PROMOTION' | 'ORDER_UPDATE' | 'SYSTEM' | 'URGENT';
+    target?: 'ALL' | 'USER' | 'SUBSCRIBERS';
+    targetUserIdentifier?: string;
+    link?: string;
+    sendTelegram?: boolean;
+  }) => api.post('/notifications/admin/broadcast', data),
+  getAdminBroadcasts: (params?: { page?: number; limit?: number; type?: string; search?: string }) =>
+    api.get('/notifications/admin/list', { params }),
+  deleteBroadcast: (id: string) => api.delete(`/notifications/admin/${id}`),
+
+  // Customer Endpoints
+  getCustomerNotifications: (params?: { limit?: number }) => api.get('/notifications', { params }),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
+  markAsRead: (id: string) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  getLatestAnnouncement: () => api.get('/notifications/store-announcement'),
+};

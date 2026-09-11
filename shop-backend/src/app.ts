@@ -22,6 +22,7 @@ import locationRoutes from './routes/location.routes';
 import settingRoutes from './routes/setting.routes';
 import supportRoutes from './routes/support.routes';
 import leadRoutes from './routes/lead.routes';
+import notificationRoutes from './routes/notification.routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 import { checkDatabaseHealth } from './lib/prisma';
 import { handleStripeWebhook } from './controllers/stripeWebhook.controller';
@@ -246,6 +247,7 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/leads', leadRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Error handling
 app.use(notFound);
