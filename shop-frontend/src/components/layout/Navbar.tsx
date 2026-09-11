@@ -116,15 +116,37 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    const applyHeaderSettings = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') return;
+      const d = raw as { siteName?: string; footerInfo?: { header?: unknown } };
+      const info = (d.footerInfo || {}) as { header?: unknown };
+      if (info.header && typeof info.header === 'object') {
+        const h = info.header as { siteName?: string; logoLetter?: string; navLinks?: Array<{ label?: string; href?: string }> };
+        setHeaderInfo({
+          ...h,
+          siteName: h.siteName || d.siteName,
+        });
+      } else if (d.siteName) {
+        setHeaderInfo((prev) => ({ ...prev, siteName: d.siteName }));
+      }
+    };
+
     settingApi
       .get()
       .then(({ data }) => {
-        const info = (data.data?.footerInfo || {}) as { header?: unknown };
-        if (info.header && typeof info.header === 'object') {
-          setHeaderInfo(info.header as { siteName?: string; logoLetter?: string; navLinks?: Array<{ label?: string; href?: string }> });
-        }
+        applyHeaderSettings(data?.data);
       })
       .catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        applyHeaderSettings(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
   }, []);
 
   const submitProductSearch = (q: string) => {
@@ -520,6 +542,21 @@ export function Navbar() {
                       {t(language, 'navDeals')}
                     </Link>
                   </div>
+
+                  {extraNavLinks.length > 0 && (
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      {extraNavLinks.map((item) => (
+                        <Link
+                          key={`mobile-extra-${item.href}-${item.label}`}
+                          href={String(item.href)}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="px-3.5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-xl transition-colors"
+                        >
+                          {String(item.label)}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
 
                   <div>
                     <div className="flex items-center justify-between mb-3">

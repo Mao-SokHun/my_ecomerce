@@ -22,14 +22,30 @@ export function PromoSection() {
     gradientToColor?: string;
   }>>([]);
   useEffect(() => {
+    const applyPromo = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') return;
+      const d = raw as { footerInfo?: { homepage?: unknown } };
+      const info = (d.footerInfo || {}) as { homepage?: unknown };
+      const rows = (info.homepage as { promoCards?: unknown } | undefined)?.promoCards;
+      if (Array.isArray(rows)) setAdminPromoCards(rows as Array<Record<string, string>>);
+    };
+
     settingApi
       .get()
       .then(({ data }) => {
-        const info = (data.data?.footerInfo || {}) as { homepage?: unknown };
-        const rows = (info.homepage as { promoCards?: unknown } | undefined)?.promoCards;
-        if (Array.isArray(rows)) setAdminPromoCards(rows as Array<Record<string, string>>);
+        applyPromo(data?.data);
       })
       .catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        applyPromo(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
   }, []);
   const cards = useMemo(
     () =>

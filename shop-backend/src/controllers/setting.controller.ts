@@ -87,7 +87,7 @@ export const getSettings = async (req: Request, res: Response) => {
     const cached = apiCache.get(cacheKey);
 
     if (cached) {
-      res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.json({ success: true, data: cached });
       return;
     }
@@ -108,8 +108,8 @@ export const getSettings = async (req: Request, res: Response) => {
       });
     }
 
-    apiCache.set(cacheKey, settings, 300);
-    res.set('Cache-Control', 'public, max-age=120, s-maxage=300, stale-while-revalidate=600');
+    apiCache.set(cacheKey, settings, 60);
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({ success: true, data: settings });
   } catch (error) {
     console.error('getSettings error:', error);
@@ -152,6 +152,7 @@ export const updateSettings = async (req: Request, res: Response) => {
     });
 
     apiCache.invalidatePrefix('settings:');
+    apiCache.delete('settings:global');
     res.json({ success: true, message: 'Settings updated successfully', data: settings });
   } catch (error) {
     console.error('updateSettings error:', error);

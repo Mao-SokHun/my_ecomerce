@@ -62,14 +62,30 @@ export function HeroBanner() {
     },
   ];
   useEffect(() => {
+    const applySlides = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') return;
+      const d = raw as { footerInfo?: { homepage?: unknown } };
+      const info = (d.footerInfo || {}) as { homepage?: unknown };
+      const rows = (info.homepage as { heroSlides?: unknown } | undefined)?.heroSlides;
+      if (Array.isArray(rows)) setAdminSlides(rows as Array<Record<string, string>>);
+    };
+
     settingApi
       .get()
       .then(({ data }) => {
-        const info = (data.data?.footerInfo || {}) as { homepage?: unknown };
-        const rows = (info.homepage as { heroSlides?: unknown } | undefined)?.heroSlides;
-        if (Array.isArray(rows)) setAdminSlides(rows as Array<Record<string, string>>);
+        applySlides(data?.data);
       })
       .catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        applySlides(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
   }, []);
   const renderedSlides =
     adminSlides.length > 0

@@ -297,25 +297,27 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const brandName = form.header.siteName.trim() || form.siteName.trim() || 'SH-Shop';
       const contactEmail = form.footer.email.trim();
       const contactPhones = form.footer.phones.map((p) => p.trim()).filter(Boolean);
       const contactPhoneLine = contactPhones.join(' / ');
+      const shopAddress = form.footer.address.trim() || form.invoice.shopAddress.trim() || 'Phnom Penh, Cambodia';
       await settingApi.update({
-        siteName: form.siteName,
+        siteName: brandName,
         // Keep legacy fee in sync for backward compatibility.
         shippingFee: form.shippingFeeVet,
         shippingFeeVet: form.shippingFeeVet,
         shippingFeeJnt: form.shippingFeeJnt,
         footerInfo: {
-          header: { ...form.header, tagline: form.siteTagline },
-          footer: { ...form.footer, email: contactEmail, phones: contactPhones },
+          header: { ...form.header, siteName: brandName, tagline: form.siteTagline },
+          footer: { ...form.footer, brandName, email: contactEmail, phones: contactPhones, address: shopAddress },
           homepage: form.homepage,
-          invoice: { ...form.invoice, supportEmail: contactEmail, supportPhone: contactPhoneLine },
+          invoice: { ...form.invoice, shopName: brandName, supportEmail: contactEmail, supportPhone: contactPhoneLine, shopAddress },
         },
       });
-      toast.success('Settings updated successfully');
+      toast.success(isKhmer ? 'បានរក្សាទុកការកំណត់ដោយជោគជ័យ' : 'Settings updated successfully');
     } catch {
-      toast.error('Failed to update settings');
+      toast.error(isKhmer ? 'បរាជ័យក្នុងការរក្សាទុកការកំណត់' : 'Failed to update settings');
     } finally {
       setIsSaving(false);
     }

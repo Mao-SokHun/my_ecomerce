@@ -294,7 +294,16 @@ export const settingApi = {
       }
       return res;
     }),
-  update: (data: unknown) => api.put('/settings', data),
+  update: async (data: unknown) => {
+    const res = await api.put('/settings', data);
+    if (res.data?.data) {
+      setLocalCache('site_settings', res.data.data);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('settings:updated', { detail: res.data.data }));
+      }
+    }
+    return res;
+  },
 };
 
 /** Admin image upload (multipart). Saves to Cloudinary if configured, else server disk at /uploads/… */

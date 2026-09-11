@@ -19,18 +19,37 @@ export function TrustBadges() {
   const [cards, setCards] = useState<TrustBadgeCard[] | null>(null);
 
   useEffect(() => {
+    const applyBadges = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') {
+        setCards(DEFAULT_TRUST_BADGES);
+        return;
+      }
+      const d = raw as { footerInfo?: { homepage?: { trustBadges?: TrustBadgeCard[] } } };
+      const layout = (d.footerInfo || {}) as { homepage?: { trustBadges?: TrustBadgeCard[] } };
+      const rawBadges = layout.homepage?.trustBadges;
+      if (Array.isArray(rawBadges) && rawBadges.length > 0) {
+        setCards(rawBadges);
+      } else {
+        setCards(DEFAULT_TRUST_BADGES);
+      }
+    };
+
     settingApi
       .get()
       .then(({ data }) => {
-        const layout = (data?.data?.footerInfo || {}) as { homepage?: { trustBadges?: TrustBadgeCard[] } };
-        const raw = layout.homepage?.trustBadges;
-        if (Array.isArray(raw)) {
-          setCards(raw);
-        } else {
-          setCards(DEFAULT_TRUST_BADGES);
-        }
+        applyBadges(data?.data);
       })
       .catch(() => setCards(DEFAULT_TRUST_BADGES));
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        applyBadges(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
   }, []);
 
   if (!cards || cards.length === 0) return null;

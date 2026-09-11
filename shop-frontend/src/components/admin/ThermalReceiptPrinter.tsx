@@ -38,11 +38,20 @@ export function playNewOrderChime() {
   }
 }
 
-export function generateThermalReceiptHtml(order: Order, paperWidth: '80mm' | '58mm' = '80mm'): string {
+export function generateThermalReceiptHtml(
+  order: Order,
+  paperWidth: '80mm' | '58mm' = '80mm',
+  shopInfo?: { shopName?: string; supportPhone?: string; shopAddress?: string; footerNote?: string }
+): string {
   const is80 = paperWidth === '80mm';
   const widthPx = is80 ? '72mm' : '48mm';
   const fontSize = is80 ? '12px' : '10px';
   const titleSize = is80 ? '16px' : '14px';
+
+  const shopName = shopInfo?.shopName || 'SH-Shop';
+  const shopPhone = shopInfo?.supportPhone || '097 494 4390 / 088 545 9115';
+  const shopAddress = shopInfo?.shopAddress || 'Phnom Penh, Cambodia';
+  const footerNote = shopInfo?.footerNote || '';
 
   const dateStr = new Date(order.createdAt).toLocaleString('en-GB', {
     timeZone: 'Asia/Phnom_Penh',
@@ -127,9 +136,9 @@ export function generateThermalReceiptHtml(order: Order, paperWidth: '80mm' | '5
       </head>
       <body>
         <div class="text-center">
-          <div class="title">SH-SHOP</div>
-          <div>ទូរស័ព្ទ: 097 494 4390 / 088 545 9115</div>
-          <div>អាសយដ្ឋាន: ទួលគោក, ភ្នំពេញ</div>
+          <div class="title">${shopName.toUpperCase()}</div>
+          <div>ទូរស័ព្ទ: ${shopPhone}</div>
+          <div>អាសយដ្ឋាន: ${shopAddress}</div>
           <div>*** វិក្កយបត្រ / RECEIPT ***</div>
         </div>
 
@@ -187,17 +196,21 @@ export function generateThermalReceiptHtml(order: Order, paperWidth: '80mm' | '5
         <div class="double-divider"></div>
 
         <div class="text-center" style="margin-top: 8px;">
-          <div>សូមអរគុណសម្រាប់ការទិញទំនិញ!</div>
+          <div>${footerNote || 'សូមអរគុណសម្រាប់ការទិញទំនិញ!'}</div>
           <div>Thank you for shopping with us!</div>
-          <div style="font-size: 9px; margin-top: 5px; color: #555;">Power by SH-Shop Cloud POS</div>
+          <div style="font-size: 9px; margin-top: 5px; color: #555;">Power by ${shopName} Cloud POS</div>
         </div>
       </body>
     </html>
   `;
 }
 
-export function printThermalReceipt(order: Order, paperWidth: '80mm' | '58mm' = '80mm') {
-  const html = generateThermalReceiptHtml(order, paperWidth);
+export function printThermalReceipt(
+  order: Order,
+  paperWidth: '80mm' | '58mm' = '80mm',
+  shopInfo?: { shopName?: string; supportPhone?: string; shopAddress?: string; footerNote?: string }
+) {
+  const html = generateThermalReceiptHtml(order, paperWidth, shopInfo);
 
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';

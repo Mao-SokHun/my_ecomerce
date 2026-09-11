@@ -62,27 +62,49 @@ export function Footer() {
   }>({});
 
   useEffect(() => {
+    const applyFooterSettings = (raw: unknown) => {
+      if (!raw || typeof raw !== 'object') return;
+      const d = raw as { siteName?: string; footerInfo?: { footer?: unknown } };
+      const info = (d.footerInfo || {}) as { footer?: unknown };
+      if (info.footer && typeof info.footer === 'object') {
+        const f = info.footer as {
+          brandName?: string;
+          brandDescription?: string;
+          address?: string;
+          phones?: string[];
+          email?: string;
+          socialLinks?: Array<{ name?: string; url?: string }>;
+          shopLinks?: Array<{ label?: string; href?: string }>;
+          accountLinks?: Array<{ label?: string; href?: string }>;
+          legalLinks?: Array<{ label?: string; href?: string }>;
+          paymentBadges?: string[];
+          copyright?: string;
+        };
+        setFooterInfo({
+          ...f,
+          brandName: f.brandName || d.siteName,
+        });
+      } else if (d.siteName) {
+        setFooterInfo((prev) => ({ ...prev, brandName: d.siteName }));
+      }
+    };
+
     settingApi
       .get()
       .then(({ data }) => {
-        const info = (data.data?.footerInfo || {}) as { footer?: unknown };
-        if (info.footer && typeof info.footer === 'object') {
-          setFooterInfo(info.footer as {
-            brandName?: string;
-            brandDescription?: string;
-            address?: string;
-            phones?: string[];
-            email?: string;
-            socialLinks?: Array<{ name?: string; url?: string }>;
-            shopLinks?: Array<{ label?: string; href?: string }>;
-            accountLinks?: Array<{ label?: string; href?: string }>;
-            legalLinks?: Array<{ label?: string; href?: string }>;
-            paymentBadges?: string[];
-            copyright?: string;
-          });
-        }
+        applyFooterSettings(data?.data);
       })
       .catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        applyFooterSettings(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
   }, []);
 
   const handleNewsletter = async (e: React.FormEvent) => {
