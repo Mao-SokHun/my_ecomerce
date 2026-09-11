@@ -710,13 +710,13 @@ export default function AdminProductsPage() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
           {/* Left: Search input */}
           <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand, Category...' : 'Search products by name, brand, category...'}
-              className="w-full h-9 pl-9 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+              className="w-full h-10 pl-9.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
             />
             {search && (
               <button
@@ -737,17 +737,17 @@ export default function AdminProductsPage() {
                 value={selectedCategory}
                 onChange={setSelectedCategory}
                 options={categoryOptions}
-                icon={<Layers className="w-3.5 h-3.5 text-slate-400" />}
-                className="min-w-[160px] sm:min-w-[200px]"
+                icon={<Layers className="w-4 h-4 text-slate-400" />}
+                className="min-w-[170px] sm:min-w-[210px]"
               />
             )}
 
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-1.5 px-4 h-10 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-4 h-4" />
               <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add Product'}</span>
             </button>
           </div>

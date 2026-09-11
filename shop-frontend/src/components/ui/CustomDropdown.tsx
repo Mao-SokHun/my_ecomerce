@@ -61,9 +61,9 @@ export function CustomDropdown({
 
   // Size styling classes
   const sizeClasses = {
-    xs: 'h-7 text-[11px] px-2.5 rounded-lg gap-1.5',
-    sm: 'h-8.5 text-xs px-3 rounded-xl gap-2',
-    md: 'h-10 text-sm px-3.5 rounded-xl gap-2.5',
+    xs: 'h-8.5 text-xs px-3 rounded-xl gap-1.5',
+    sm: 'h-10 text-xs sm:text-sm px-3.5 rounded-xl gap-2',
+    md: 'h-11 text-sm px-4 rounded-xl gap-2.5',
   }[size];
 
   return (
@@ -86,15 +86,15 @@ export function CustomDropdown({
           {icon && <span className="shrink-0 text-slate-400">{icon}</span>}
           {selectedOption?.dotColor && (
             <span
-              className="w-2 h-2 rounded-full shrink-0 shadow-xs"
+              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
               style={{ backgroundColor: selectedOption.dotColor }}
             />
           )}
           {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
-          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
+          <span className="truncate leading-relaxed">{selectedOption ? selectedOption.label : placeholder}</span>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-200 ${
+          className={`w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-200 ml-1.5 ${
             isOpen ? 'rotate-180 text-primary-600 dark:text-primary-400' : ''
           }`}
         />
@@ -107,7 +107,7 @@ export function CustomDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.96 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute z-50 mt-1.5 min-w-[170px] max-h-72 overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-750 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/60 p-1.5 ring-1 ring-black/5 focus:outline-none ${
+            className={`absolute z-50 mt-1.5 min-w-[190px] max-h-72 overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-750 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/60 p-1.5 ring-1 ring-black/5 focus:outline-none ${
               align === 'right' ? 'right-0' : 'left-0'
             } ${menuClassName}`}
             role="listbox"
@@ -123,7 +123,7 @@ export function CustomDropdown({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 text-xs rounded-xl font-medium transition-all duration-150 text-left ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all duration-150 text-left ${
                       isSelected
                         ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 font-bold shadow-2xs'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
@@ -134,16 +134,16 @@ export function CustomDropdown({
                     <div className="flex items-center gap-2 truncate">
                       {option.dotColor && (
                         <span
-                          className="w-2 h-2 rounded-full shrink-0 shadow-xs"
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
                           style={{ backgroundColor: option.dotColor }}
                         />
                       )}
                       {option.icon && <span className="shrink-0">{option.icon}</span>}
-                      <span className="truncate">{option.label}</span>
+                      <span className="truncate leading-relaxed">{option.label}</span>
                     </div>
 
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0 ml-2" />
+                      <Check className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 ml-2" />
                     )}
                   </button>
                 );

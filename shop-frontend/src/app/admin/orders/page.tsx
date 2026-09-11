@@ -286,15 +286,15 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={adminT(language, 'searchOrderPlaceholder')}
-            className="input pl-9 text-sm"
+            className="w-full h-10 pl-9.5 pr-4 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
           />
         </div>
         <CustomDropdown
@@ -302,7 +302,7 @@ export default function AdminOrdersPage() {
           value={statusFilter}
           onChange={(val) => setStatusFilter(val)}
           options={orderFilterOptions}
-          className="w-44 shrink-0"
+          className="w-48 sm:w-56 shrink-0"
         />
       </div>
 
