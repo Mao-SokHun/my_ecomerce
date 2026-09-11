@@ -27,7 +27,7 @@ import { checkDatabaseHealth } from './lib/prisma';
 import { handleStripeWebhook } from './controllers/stripeWebhook.controller';
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
   .split(',')
@@ -132,18 +132,44 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Rate limiting
+// Rate limiting: Smart & robust for online production and local dev
 const isProduction = process.env.NODE_ENV === 'production';
+
+const extractClientIp = (req: express.Request): string => {
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (typeof cfIp === 'string' && cfIp.trim()) return cfIp.trim();
+  const realIp = req.headers['x-real-ip'];
+  if (typeof realIp === 'string' && realIp.trim()) return realIp.trim();
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || 'unknown';
+};
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 1000 : 50000,
-  skip: (req) =>
-    !isProduction ||
-    req.ip === '127.0.0.1' ||
-    req.ip === '::1' ||
-    req.ip === '::ffff:127.0.0.1' ||
-    req.path === '/health' ||
-    req.path === '/',
+  max: isProduction ? 5000 : 50000,
+  keyGenerator: extractClientIp,
+  skip: (req) => {
+    // Never throttle local development
+    if (!isProduction) return true;
+    const ip = extractClientIp(req);
+    if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return true;
+    // Exempt health checks, root, and public catalog browsing (GET /products, /categories, /settings)
+    if (req.path === '/health' || req.path === '/') return true;
+    if (
+      req.method === 'GET' &&
+      (req.path.startsWith('/products') ||
+        req.path.startsWith('/categories') ||
+        req.path.startsWith('/settings') ||
+        req.path.startsWith('/location') ||
+        req.path.startsWith('/reviews'))
+    ) {
+      return true;
+    }
+    return false;
+  },
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
@@ -151,8 +177,13 @@ const limiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 50 : 1000,
-  skip: (req) => !isProduction || req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1',
+  max: isProduction ? 60 : 1000,
+  keyGenerator: extractClientIp,
+  skip: (req) => {
+    if (!isProduction) return true;
+    const ip = extractClientIp(req);
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+  },
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many auth attempts, please try again later.' },
