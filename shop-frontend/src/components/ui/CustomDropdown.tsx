@@ -135,7 +135,7 @@ export function CustomDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -3, scale: 0.98 }}
             transition={{ duration: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute z-50 mt-1 ${menuMinW} max-h-60 overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-750 rounded-xl shadow-lg shadow-slate-900/10 dark:shadow-black/60 p-1 ring-1 ring-black/5 focus:outline-none ${
+            className={`absolute z-50 mt-1.5 ${menuMinW} max-h-60 overflow-y-auto bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl shadow-black/60 p-1 ring-1 ring-black/10 focus:outline-none ${
               align === 'right' ? 'right-0' : 'left-0'
             } ${menuClassName}`}
             role="listbox"
