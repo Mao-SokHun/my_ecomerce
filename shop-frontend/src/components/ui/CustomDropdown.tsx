@@ -61,26 +61,32 @@ export function CustomDropdown({
 
   // Size styling classes with generous left padding for rounded corners & dots
   const sizeClasses = {
-    xs: 'h-8 text-[11px] sm:text-xs pl-3.5 pr-2.5 rounded-lg gap-2 font-medium',
-    sm: 'h-9 text-xs sm:text-sm pl-4 pr-3 rounded-xl gap-2 font-medium',
+    xs: 'h-7 text-[11px] pl-2.5 pr-2 rounded-lg gap-1.5 font-medium',
+    sm: 'h-9 text-xs sm:text-sm pl-3.5 pr-3 rounded-xl gap-2 font-medium',
     md: 'h-10 text-sm pl-4 pr-3.5 rounded-xl gap-2.5 font-medium',
   }[size];
 
   const dotSize = {
     xs: 'w-2 h-2',
-    sm: 'w-2.5 h-2.5',
+    sm: 'w-2 h-2',
     md: 'w-2.5 h-2.5',
   }[size];
 
+  const chevronSize = {
+    xs: 'w-3 h-3 ml-1',
+    sm: 'w-3.5 h-3.5 ml-1.5',
+    md: 'w-3.5 h-3.5 ml-2',
+  }[size];
+
   const menuMinW = {
-    xs: 'min-w-[150px]',
-    sm: 'min-w-[170px]',
+    xs: 'min-w-[135px]',
+    sm: 'min-w-[165px]',
     md: 'min-w-[190px]',
   }[size];
 
   const itemPadding = {
-    xs: 'px-3 py-1.5 text-xs rounded-lg gap-2',
-    sm: 'px-3.5 py-2 text-xs sm:text-sm rounded-lg gap-2.5',
+    xs: 'px-2.5 py-1 text-[11px] rounded-md gap-1.5',
+    sm: 'px-3.5 py-1.5 text-xs sm:text-sm rounded-lg gap-2',
     md: 'px-4 py-2 text-sm rounded-xl gap-2.5',
   }[size];
 
@@ -100,14 +106,14 @@ export function CustomDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-2.5 truncate min-w-0">
+        <div className="flex items-center gap-2 truncate min-w-0">
           {selectedOption?.icon ? (
             <span className="shrink-0">{selectedOption.icon}</span>
           ) : icon ? (
             <span className="shrink-0 text-slate-400 dark:text-slate-500">{icon}</span>
           ) : selectedOption?.dotColor ? (
             <span
-              className={`${dotSize} rounded-full shrink-0 shadow-xs ring-2 ring-black/5 dark:ring-white/10`}
+              className={`${dotSize} rounded-full shrink-0 shadow-xs ring-1 ring-black/5 dark:ring-white/10`}
               style={{ backgroundColor: selectedOption.dotColor }}
             />
           ) : null}
@@ -116,7 +122,7 @@ export function CustomDropdown({
           </span>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-200 ml-2 ${
+          className={`${chevronSize} text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-200 ${
             isOpen ? 'rotate-180 text-primary-600 dark:text-primary-400' : ''
           }`}
         />
