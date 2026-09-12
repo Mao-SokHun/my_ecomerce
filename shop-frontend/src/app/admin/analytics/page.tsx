@@ -29,6 +29,9 @@ import {
   CheckCircle2,
   HelpCircle,
   X,
+  Copy,
+  Delete,
+  ArrowRight,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import { CustomDropdown } from '@/components/ui/CustomDropdown';
@@ -63,10 +66,137 @@ export default function FinancialAccountingPage() {
     ];
   }, [isKhmer]);
 
+  // Tab state between Profit Simulator & Standard Calculator
+  const [calcTab, setCalcTab] = useState<'profit' | 'standard'>('profit');
+
   // Interactive Profit Simulator state
   const [simCost, setSimCost] = useState<string>('20.00');
   const [simPrice, setSimPrice] = useState<string>('45.00');
   const [simQty, setSimQty] = useState<string>('50');
+
+  // Standard Digital Math Calculator state
+  const [calcDisplay, setCalcDisplay] = useState<string>('0');
+  const [calcPrev, setCalcPrev] = useState<string | null>(null);
+  const [calcOp, setCalcOp] = useState<string | null>(null);
+  const [calcResetNext, setCalcResetNext] = useState<boolean>(false);
+
+  const handleCalcDigit = (digit: string) => {
+    if (calcResetNext || calcDisplay === '0' || calcDisplay === 'Error') {
+      setCalcDisplay(digit);
+      setCalcResetNext(false);
+    } else {
+      if (calcDisplay.length < 14) {
+        setCalcDisplay(calcDisplay + digit);
+      }
+    }
+  };
+
+  const handleCalcDecimal = () => {
+    if (calcResetNext || calcDisplay === 'Error') {
+      setCalcDisplay('0.');
+      setCalcResetNext(false);
+    } else if (!calcDisplay.includes('.')) {
+      setCalcDisplay(calcDisplay + '.');
+    }
+  };
+
+  const handleCalcClear = () => {
+    setCalcDisplay('0');
+    setCalcPrev(null);
+    setCalcOp(null);
+    setCalcResetNext(false);
+  };
+
+  const handleCalcBackspace = () => {
+    if (calcResetNext || calcDisplay === 'Error' || calcDisplay.length <= 1) {
+      setCalcDisplay('0');
+    } else {
+      setCalcDisplay(calcDisplay.slice(0, -1));
+    }
+  };
+
+  const computeMath = (a: number, b: number, op: string): number => {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '×': return a * b;
+      case '÷': return b !== 0 ? a / b : NaN;
+      default: return b;
+    }
+  };
+
+  const handleCalcOp = (op: string) => {
+    const current = parseFloat(calcDisplay);
+    if (isNaN(current)) return;
+
+    if (calcOp && calcPrev !== null && !calcResetNext) {
+      const prevNum = parseFloat(calcPrev);
+      const res = computeMath(prevNum, current, calcOp);
+      if (isNaN(res) || !isFinite(res)) {
+        setCalcDisplay('Error');
+        setCalcPrev(null);
+        setCalcOp(null);
+        setCalcResetNext(true);
+        return;
+      }
+      const formatted = Number(res.toFixed(6)).toString();
+      setCalcDisplay(formatted);
+      setCalcPrev(formatted);
+    } else {
+      setCalcPrev(calcDisplay);
+    }
+    setCalcOp(op);
+    setCalcResetNext(true);
+  };
+
+  const handleCalcEqual = () => {
+    if (!calcOp || calcPrev === null) return;
+    const current = parseFloat(calcDisplay);
+    const prevNum = parseFloat(calcPrev);
+    if (isNaN(current) || isNaN(prevNum)) return;
+
+    const res = computeMath(prevNum, current, calcOp);
+    if (isNaN(res) || !isFinite(res)) {
+      setCalcDisplay('Error');
+    } else {
+      const formatted = Number(res.toFixed(6)).toString();
+      setCalcDisplay(formatted);
+    }
+    setCalcPrev(null);
+    setCalcOp(null);
+    setCalcResetNext(true);
+  };
+
+  const handleCalcPercent = () => {
+    const current = parseFloat(calcDisplay);
+    if (!isNaN(current)) {
+      setCalcDisplay((current / 100).toString());
+    }
+  };
+
+  const handleCalcToggleSign = () => {
+    const current = parseFloat(calcDisplay);
+    if (!isNaN(current)) {
+      setCalcDisplay((current * -1).toString());
+    }
+  };
+
+  const copyCalcResult = () => {
+    navigator.clipboard.writeText(calcDisplay);
+    toast.success(isKhmer ? `បានចម្លង: ${calcDisplay}` : `Copied: ${calcDisplay}`);
+  };
+
+  const applyCalcToCost = () => {
+    setSimCost(calcDisplay);
+    setCalcTab('profit');
+    toast.success(isKhmer ? 'បានផ្ទេរទៅតម្លៃដើមទុន ($)' : 'Applied to Cost Price');
+  };
+
+  const applyCalcToPrice = () => {
+    setSimPrice(calcDisplay);
+    setCalcTab('profit');
+    toast.success(isKhmer ? 'បានផ្ទេរទៅតម្លៃលក់ ($)' : 'Applied to Selling Price');
+  };
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -468,94 +598,334 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Compact, Ultra-Sleek Profit Simulator (1 Col - Fits Content, Never Stretches) */}
+        {/* Interactive Multi-Function Calculator (Profit Simulator + Standard Digital Calculator) */}
         <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+          {/* Header with Segmented Tab Switcher */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Calculator className="w-4 h-4" />
-              </div>
-              <h2 className="font-bold text-sm text-slate-900 dark:text-white">
-                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញរហ័ស' : 'Quick Profit Simulator'}
-              </h2>
+            <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-slate-100 dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => setCalcTab('profit')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  calcTab === 'profit'
+                    ? 'bg-white dark:bg-surface-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>{isKhmer ? 'គណនាចំណេញ' : 'Profit'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalcTab('standard')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  calcTab === 'standard'
+                    ? 'bg-white dark:bg-surface-900 text-primary-600 dark:text-primary-400 shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>{isKhmer ? 'ម៉ាស៊ីនគិតលេខ' : 'Calculator'}</span>
+              </button>
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-              Live
+
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              calcTab === 'profit'
+                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/40'
+                : 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 border-primary-200/60 dark:border-primary-800/40'
+            }`}>
+              {calcTab === 'profit' ? 'Simulator' : 'Digital'}
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {/* Input Cost */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={simCost}
-                onChange={(e) => setSimCost(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
+          {/* TAB 1: Quick Profit Simulator */}
+          {calcTab === 'profit' ? (
+            <div className="space-y-3 animate-in fade-in duration-200">
+              <div className="grid grid-cols-3 gap-2">
+                {/* Input Cost */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                    {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={simCost}
+                    onChange={(e) => setSimCost(e.target.value)}
+                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
 
-            {/* Input Selling Price */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={simPrice}
-                onChange={(e) => setSimPrice(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
+                {/* Input Selling Price */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                    {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={simPrice}
+                    onChange={(e) => setSimPrice(e.target.value)}
+                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
 
-            {/* Input Quantity */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                {isKhmer ? 'ចំនួន' : 'Qty'}
-              </label>
-              <input
-                type="number"
-                value={simQty}
-                onChange={(e) => setSimQty(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
+                {/* Input Quantity */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                    {isKhmer ? 'ចំនួន' : 'Qty'}
+                  </label>
+                  <input
+                    type="number"
+                    value={simQty}
+                    onChange={(e) => setSimQty(e.target.value)}
+                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
 
-          {/* Compact Clean Output Box */}
-          <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-600 dark:text-slate-300 font-medium">
-                {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
-              </span>
-              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
-              </strong>
-            </div>
+              {/* Compact Clean Output Box */}
+              <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">
+                    {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
+                  </span>
+                  <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
+                  </strong>
+                </div>
 
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500 dark:text-slate-400">
-                {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
-              </span>
-              <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
-                ${simResult.totalCost.toFixed(2)}
-              </span>
-            </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">
+                    {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
+                  </span>
+                  <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
+                    ${simResult.totalCost.toFixed(2)}
+                  </span>
+                </div>
 
-            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
-              <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
-                {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
-              </span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
-                +${simResult.totalProfit.toFixed(2)}
-              </span>
+                <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
+                  <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
+                    {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
+                  </span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
+                    +${simResult.totalProfit.toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* TAB 2: Full Interactive Standard Digital Calculator */
+            <div className="space-y-2.5 animate-in fade-in duration-200">
+              {/* Digital Screen Display */}
+              <div className="p-2.5 rounded-xl bg-slate-900 text-white shadow-inner flex flex-col justify-between border border-slate-800">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono h-4">
+                  <span>{calcPrev ? `${calcPrev} ${calcOp || ''}` : ''}</span>
+                  <button
+                    type="button"
+                    onClick={copyCalcResult}
+                    className="p-1 hover:text-white rounded hover:bg-slate-800 transition text-slate-400 flex items-center gap-1"
+                    title="Copy Result"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="text-right text-xl sm:text-2xl font-black font-mono tracking-tight overflow-x-auto whitespace-nowrap text-emerald-400 py-0.5">
+                  {calcDisplay}
+                </div>
+              </div>
+
+              {/* Quick Actions to inject into simulator */}
+              <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={applyCalcToCost}
+                  className="py-1 px-2 rounded-lg bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 font-bold transition flex items-center justify-center gap-1"
+                >
+                  <ArrowRight className="w-3 h-3 text-amber-500" />
+                  <span>{isKhmer ? 'ដាក់ជាដើមទុន ($)' : 'Set as Cost'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={applyCalcToPrice}
+                  className="py-1 px-2 rounded-lg bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 font-bold transition flex items-center justify-center gap-1"
+                >
+                  <ArrowRight className="w-3 h-3 text-sky-500" />
+                  <span>{isKhmer ? 'ដាក់ជាតម្លៃលក់ ($)' : 'Set as Price'}</span>
+                </button>
+              </div>
+
+              {/* Keypad Buttons (Grid 4x5) */}
+              <div className="grid grid-cols-4 gap-1.5 font-mono font-bold text-xs">
+                {/* Row 1 */}
+                <button
+                  type="button"
+                  onClick={handleCalcClear}
+                  className="h-8.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 transition active:scale-95"
+                >
+                  AC
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcToggleSign}
+                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition active:scale-95"
+                >
+                  ±
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcPercent}
+                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition active:scale-95"
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcOp('÷')}
+                  className={`h-8.5 rounded-xl transition active:scale-95 ${
+                    calcOp === '÷'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
+                  }`}
+                >
+                  ÷
+                </button>
+
+                {/* Row 2 */}
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('7')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  7
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('8')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  8
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('9')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  9
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcOp('×')}
+                  className={`h-8.5 rounded-xl transition active:scale-95 ${
+                    calcOp === '×'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
+                  }`}
+                >
+                  ×
+                </button>
+
+                {/* Row 3 */}
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('4')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  4
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('5')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  5
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('6')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  6
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcOp('-')}
+                  className={`h-8.5 rounded-xl transition active:scale-95 ${
+                    calcOp === '-'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
+                  }`}
+                >
+                  -
+                </button>
+
+                {/* Row 4 */}
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('1')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('2')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  2
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('3')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  3
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCalcOp('+')}
+                  className={`h-8.5 rounded-xl transition active:scale-95 ${
+                    calcOp === '+'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
+                  }`}
+                >
+                  +
+                </button>
+
+                {/* Row 5 */}
+                <button
+                  type="button"
+                  onClick={() => handleCalcDigit('0')}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcDecimal}
+                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
+                >
+                  .
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcBackspace}
+                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-600 dark:text-slate-400 transition active:scale-95 flex items-center justify-center"
+                  title="Backspace"
+                >
+                  ⌫
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcEqual}
+                  className="h-8.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-sm shadow-emerald-500/30 transition active:scale-95"
+                >
+                  =
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
