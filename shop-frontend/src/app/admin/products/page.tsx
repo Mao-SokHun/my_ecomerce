@@ -488,13 +488,12 @@ export default function AdminProductsPage() {
   );
   const totalEstimatedProfit = useMemo(() => Math.max(0, totalRetailValue - totalCostValue), [totalRetailValue, totalCostValue]);
 
-  // Category Dropdown options
+  // Category Dropdown options (clean & compact)
   const categoryOptions: DropdownOption[] = useMemo(() => [
-    { value: 'all', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories', dotColor: '#6366f1' },
+    { value: 'all', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories' },
     ...categories.map((c) => ({
       value: c.id,
       label: c.parent ? `${c.parent.name} › ${c.name}` : c.name,
-      dotColor: '#3b82f6',
     })),
   ], [categories, isKhmer]);
 
@@ -738,8 +737,8 @@ export default function AdminProductsPage() {
                 value={selectedCategory}
                 onChange={setSelectedCategory}
                 options={categoryOptions}
-                icon={<Layers className="w-4 h-4 text-primary-500 shrink-0" />}
-                className="w-auto min-w-[160px] sm:min-w-[190px]"
+                icon={<Layers className="w-3.5 h-3.5 text-primary-500 shrink-0" />}
+                className="w-auto min-w-[140px] sm:min-w-[170px]"
               />
             )}
 
