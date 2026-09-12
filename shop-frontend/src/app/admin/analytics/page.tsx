@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { adminApi, orderApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
 import {
   TrendingUp,
   DollarSign,
@@ -48,6 +49,15 @@ export default function FinancialAccountingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'profit_desc' | 'margin_desc' | 'stock_desc' | 'cost_desc' | 'name_asc'>('profit_desc');
 
+  // Dropdown options for sort
+  const sortOptions = useMemo(() => [
+    { value: 'profit_desc', label: isKhmer ? 'ចំណេញសរុបខ្ពស់បំផុត' : 'Highest Total Profit', icon: <span>💰</span> },
+    { value: 'margin_desc', label: isKhmer ? 'Margin % ខ្ពស់បំផុត' : 'Highest Margin %', icon: <span>📈</span> },
+    { value: 'stock_desc', label: isKhmer ? 'ចំនួនស្តុកច្រើនបំផុត' : 'Highest Stock', icon: <span>📦</span> },
+    { value: 'cost_desc', label: isKhmer ? 'ដើមទុនខ្ពស់បំផុត' : 'Highest Inventory Cost', icon: <span>🏷️</span> },
+    { value: 'name_asc', label: isKhmer ? 'តាមឈ្មោះ A-Z' : 'Name A-Z', icon: <span>🔤</span> },
+  ], [isKhmer]);
+
   // Interactive Profit Simulator state
   const [simCost, setSimCost] = useState<string>('20.00');
   const [simPrice, setSimPrice] = useState<string>('45.00');
@@ -65,6 +75,95 @@ export default function FinancialAccountingPage() {
     const next = val.slice(0, -1);
     setter(next === '' || next === '-' ? '0' : next);
   };
+
+  // ─── General Purpose Calculator ───────────────────────────────────────────
+  const [calcDisplay, setCalcDisplay] = useState<string>('0');
+  const [calcPrev, setCalcPrev]       = useState<number | null>(null);
+  const [calcOp, setCalcOp]           = useState<string | null>(null);
+  const [calcWait, setCalcWait]       = useState<boolean>(false);
+  const [calcExpr, setCalcExpr]       = useState<string>('');   // expression shown above display
+
+  const calcCompute = (a: number, op: string, b: number): number => {
+    if (op === '+') return a + b;
+    if (op === '-') return a - b;
+    if (op === '×') return a * b;
+    if (op === '÷') return b === 0 ? 0 : a / b;
+    return b;
+  };
+
+  const handleCalc = (key: string) => {
+    const cur = parseFloat(calcDisplay) || 0;
+
+    if (key === 'AC') {
+      setCalcDisplay('0'); setCalcPrev(null);
+      setCalcOp(null); setCalcWait(false); setCalcExpr('');
+      return;
+    }
+
+    if (key === '⌫') {
+      if (calcDisplay.length > 1) setCalcDisplay(calcDisplay.slice(0, -1));
+      else setCalcDisplay('0');
+      return;
+    }
+
+    if (key === '±') {
+      setCalcDisplay(String(cur * -1));
+      return;
+    }
+
+    if (key === '%') {
+      const result = calcPrev !== null && calcOp ? calcPrev * (cur / 100) : cur / 100;
+      setCalcDisplay(String(parseFloat(result.toPrecision(12))));
+      setCalcWait(true);
+      return;
+    }
+
+    if (['+', '-', '×', '÷'].includes(key)) {
+      if (calcOp && !calcWait) {
+        // Chain: compute running result first
+        const result = calcCompute(calcPrev ?? cur, calcOp, cur);
+        const pretty = parseFloat(result.toPrecision(12));
+        setCalcDisplay(String(pretty));
+        setCalcPrev(pretty);
+        setCalcExpr(`${pretty} ${key}`);
+      } else {
+        setCalcPrev(cur);
+        setCalcExpr(`${cur} ${key}`);
+      }
+      setCalcOp(key);
+      setCalcWait(true);
+      return;
+    }
+
+    if (key === '=') {
+      if (calcOp && calcPrev !== null) {
+        const result = calcCompute(calcPrev, calcOp, cur);
+        const pretty = parseFloat(result.toPrecision(12));
+        setCalcExpr(`${calcPrev} ${calcOp} ${cur} =`);
+        setCalcDisplay(String(pretty));
+        setCalcPrev(null); setCalcOp(null); setCalcWait(false);
+      }
+      return;
+    }
+
+    if (key === '.') {
+      const base = calcWait ? '0' : calcDisplay;
+      if (!base.includes('.')) {
+        setCalcDisplay(base + '.');
+        setCalcWait(false);
+      }
+      return;
+    }
+
+    // Digit
+    if (calcWait) {
+      setCalcDisplay(key);
+      setCalcWait(false);
+    } else {
+      setCalcDisplay(calcDisplay === '0' ? key : calcDisplay + key);
+    }
+  };
+  // ──────────────────────────────────────────────────────────────────────────
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -637,6 +736,91 @@ export default function FinancialAccountingPage() {
         </div>
       </div>
 
+      {/* ═══ General Purpose Calculator ═════════════════════════════════════ */}
+      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs p-4 sm:p-5">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+            <Calculator className="w-4 h-4" />
+          </div>
+          <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+            {isKhmer ? 'ម៉ាស៊ីនគណនាទូទៅ' : 'General Calculator'}
+          </h2>
+        </div>
+
+        <div className="max-w-xs mx-auto space-y-3">
+          {/* Display */}
+          <div className="rounded-2xl bg-slate-900 dark:bg-black p-4 text-right space-y-1 min-h-[80px] flex flex-col justify-end">
+            <div className="text-slate-400 text-xs font-mono truncate min-h-[16px]">{calcExpr || '\u00a0'}</div>
+            <div className="text-white text-3xl font-black font-mono tracking-tight truncate">
+              {calcDisplay}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          {(() => {
+            const btn = (
+              label: string,
+              variant: 'gray' | 'dark' | 'orange' | 'blue' | 'red' = 'gray'
+            ) => {
+              const colors: Record<string, string> = {
+                gray:   'bg-slate-100 hover:bg-slate-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-slate-800 dark:text-white',
+                dark:   'bg-slate-700 hover:bg-slate-600 dark:bg-surface-600 dark:hover:bg-surface-500 text-white',
+                orange: 'bg-amber-400 hover:bg-amber-500 text-white shadow-sm shadow-amber-400/30',
+                blue:   'bg-primary-500 hover:bg-primary-600 text-white shadow-sm shadow-primary-500/30',
+                red:    'bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/40 dark:hover:bg-rose-800/50 text-rose-600 dark:text-rose-400',
+              };
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => handleCalc(label)}
+                  className={`h-14 rounded-2xl text-lg font-bold transition-all duration-100 active:scale-95 select-none ${colors[variant]}`}
+                >
+                  {label}
+                </button>
+              );
+            };
+
+            return (
+              <div className="grid grid-cols-4 gap-2">
+                {btn('AC', 'dark')}
+                {btn('±', 'dark')}
+                {btn('%', 'dark')}
+                {btn('⌫', 'red')}
+
+                {btn('7')}  {btn('8')}  {btn('9')}
+                {btn('÷', 'orange')}
+
+                {btn('4')}  {btn('5')}  {btn('6')}
+                {btn('×', 'orange')}
+
+                {btn('1')}  {btn('2')}  {btn('3')}
+                {btn('-', 'orange')}
+
+                {/* 0 spans 2 columns */}
+                <button
+                  type="button"
+                  onClick={() => handleCalc('0')}
+                  className="col-span-2 h-14 rounded-2xl text-lg font-bold bg-slate-100 hover:bg-slate-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-slate-800 dark:text-white transition-all active:scale-95 select-none text-left pl-6"
+                >
+                  0
+                </button>
+                {btn('.', 'gray')}
+                {btn('+', 'orange')}
+
+                <button
+                  type="button"
+                  onClick={() => handleCalc('=')}
+                  className="col-span-4 h-14 rounded-2xl text-lg font-black bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/30 transition-all active:scale-95 select-none"
+                >
+                  =
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
       {/* Bottom Section: Full Product Valuation & Profit Table */}
       <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
         {/* Table Toolbar */}
@@ -673,36 +857,31 @@ export default function FinancialAccountingPage() {
               )}
             </div>
 
-            {/* Category Filter Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
-              >
-                <option value="ALL">{isKhmer ? '📁 គ្រប់ប្រភេទទាំងអស់' : '📁 All Categories'}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
+            {/* Category Filter — Luxury CustomDropdown */}
+            {(() => {
+              const catOptions = [
+                { value: 'ALL', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories', icon: <span>📁</span> },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ];
+              return (
+                <CustomDropdown
+                  size="md"
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  options={catOptions}
+                  className="min-w-[200px]"
+                />
+              );
+            })()}
 
-            {/* Sort Filter Dropdown */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
-              >
-                <option value="profit_desc">{isKhmer ? '💰 ចំណេញសរុបខ្ពស់បំផុត' : '💰 Highest Total Profit'}</option>
-                <option value="margin_desc">{isKhmer ? '📈 Margin % ខ្ពស់បំផុត' : '📈 Highest Margin %'}</option>
-                <option value="stock_desc">{isKhmer ? '📦 ចំនួនស្តុកច្រើនបំផុត' : '📦 Highest Stock'}</option>
-                <option value="cost_desc">{isKhmer ? '🏷️ ដើមទុនខ្ពស់បំផុត' : '🏷️ Highest Inventory Cost'}</option>
-                <option value="name_asc">{isKhmer ? '🔤 តាមឈ្មោះ A-Z' : '🔤 Name A-Z'}</option>
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
+            {/* Sort Filter — Luxury CustomDropdown */}
+            <CustomDropdown
+              size="md"
+              value={sortBy}
+              onChange={(v) => setSortBy(v as any)}
+              options={sortOptions}
+              className="min-w-[220px]"
+            />
           </div>
         </div>
 
