@@ -25,6 +25,10 @@ import {
   History,
   ShieldCheck,
   SendHorizontal,
+  Tag,
+  ShoppingBag,
+  Check,
+  X,
 } from 'lucide-react';
 import { notificationApi, adminApi } from '@/lib/api';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
@@ -69,6 +73,22 @@ export default function AdminNotificationsPage() {
   const [link, setLink] = useState('');
   const [sendTelegram, setSendTelegram] = useState(true);
   const [isSending, setIsSending] = useState(false);
+
+  // Quick Link Picker States
+  const [availableProducts, setAvailableProducts] = useState<{ id: string; name: string; slug: string; price: number; thumbnail?: string }[]>([]);
+  const [availableCoupons, setAvailableCoupons] = useState<{ id: string; code: string; discount: number; discountType: string; description?: string | null }[]>([]);
+  const [linkPickerMode, setLinkPickerMode] = useState<'NONE' | 'PRODUCT' | 'COUPON'>('NONE');
+  const [productSearch, setProductSearch] = useState('');
+
+  // Fetch available Products & Coupons for Quick Action Linking
+  useEffect(() => {
+    adminApi.getProducts({ limit: 100 })
+      .then(({ data }) => setAvailableProducts(data?.data || []))
+      .catch(() => {});
+    adminApi.getCoupons()
+      .then(({ data }) => setAvailableCoupons(data?.data || []))
+      .catch(() => {});
+  }, []);
 
   // User Autocomplete Search States
   const [userQuery, setUserQuery] = useState('');
@@ -531,33 +551,231 @@ export default function AdminNotificationsPage() {
               />
             </div>
 
-            {/* 5. Optional Action URL */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                {isKhmer ? '៥. តំណភ្ជាប់សកម្មភាព (Action URL - មិនបង្ខំ)' : '5. Action Link (Optional)'}:
-              </label>
-              <div className="flex items-center gap-2">
+            {/* 5. Optional Action URL with Quick Product & Coupon Pickers */}
+            <div className="space-y-2.5 p-3.5 rounded-2xl bg-slate-50/80 dark:bg-surface-800/40 border border-slate-200/70 dark:border-white/[0.06]">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isKhmer ? '៥. តំណភ្ជាប់សកម្មភាព (Action Link - មិនបង្ខំ)' : '5. Action Link (Optional)'}:
+                </label>
+
+                {/* Mode Selector Tabs */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLinkPickerMode((prev) => (prev === 'PRODUCT' ? 'NONE' : 'PRODUCT'))}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 ${
+                      linkPickerMode === 'PRODUCT'
+                        ? 'bg-primary-600 text-white shadow-2xs'
+                        : 'bg-white dark:bg-surface-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-surface-700 hover:border-primary-400'
+                    }`}
+                  >
+                    <ShoppingBag className="w-3 h-3" />
+                    <span>{isKhmer ? '📦 ជ្រើសទំនិញ' : 'Pick Product'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLinkPickerMode((prev) => (prev === 'COUPON' ? 'NONE' : 'COUPON'))}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 ${
+                      linkPickerMode === 'COUPON'
+                        ? 'bg-amber-600 text-white shadow-2xs'
+                        : 'bg-white dark:bg-surface-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-surface-700 hover:border-amber-400'
+                    }`}
+                  >
+                    <Tag className="w-3 h-3" />
+                    <span>{isKhmer ? '🎟️ ជ្រើសគូប៉ុង' : 'Pick Coupon'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Preset Badges */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <span className="text-[10.5px] font-bold text-slate-400">{isKhmer ? 'គំរូទូទៅ៖' : 'Presets:'}</span>
+                <button
+                  type="button"
+                  onClick={() => { setLink('/products'); setLinkPickerMode('NONE'); }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
+                    link === '/products'
+                      ? 'bg-primary-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-surface-700 hover:bg-slate-100'
+                  }`}
+                >
+                  🛍️ {isKhmer ? 'គ្រប់ទំនិញ' : 'All Products'} (/products)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLink('/products?deals=true'); setLinkPickerMode('NONE'); }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
+                    link === '/products?deals=true'
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-surface-700 hover:bg-slate-100'
+                  }`}
+                >
+                  🔥 {isKhmer ? 'បញ្ចុះតម្លៃ' : 'Deals'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLink('/products?featured=true'); setLinkPickerMode('NONE'); }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
+                    link === '/products?featured=true'
+                      ? 'bg-purple-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-surface-700 hover:bg-slate-100'
+                  }`}
+                >
+                  ⭐ {isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLink('/coupons'); setLinkPickerMode('NONE'); }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition ${
+                    link === '/coupons'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-surface-700 hover:bg-slate-100'
+                  }`}
+                >
+                  🎟️ {isKhmer ? 'ទំព័រគូប៉ុង' : 'Coupons'}
+                </button>
+                {link && (
+                  <button
+                    type="button"
+                    onClick={() => { setLink(''); setLinkPickerMode('NONE'); }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition ml-auto"
+                  >
+                    ✕ {isKhmer ? 'លុប Link' : 'Clear Link'}
+                  </button>
+                )}
+              </div>
+
+              {/* Product Picker Drawer */}
+              {linkPickerMode === 'PRODUCT' && (
+                <div className="p-3 rounded-xl bg-white dark:bg-surface-900 border border-primary-200 dark:border-primary-800/60 shadow-md space-y-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-primary-600 dark:text-primary-400 flex items-center gap-1.5">
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      <span>{isKhmer ? 'ចុចលើទំនិញដើម្បីដាក់ Link ស្វ័យប្រវត្តិ៖' : 'Select a product to link:'}</span>
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={isKhmer ? 'ស្វែងរកឈ្មោះទំនិញ...' : 'Filter products...'}
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="h-7 px-2.5 text-[11px] rounded-lg bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 w-48 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div className="max-h-52 overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {availableProducts.length === 0 ? (
+                      <p className="col-span-2 text-center py-4 text-xs text-slate-400">
+                        {isKhmer ? 'មិនមានទំនិញ' : 'No products found'}
+                      </p>
+                    ) : (
+                      availableProducts
+                        .filter((p) => !productSearch || p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                        .slice(0, 30)
+                        .map((p) => {
+                          const targetUrl = `/products/${p.slug || p.id}`;
+                          const isSelected = link === targetUrl;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setLink(targetUrl);
+                                setLinkPickerMode('NONE');
+                                toast.success(isKhmer ? `បានភ្ជាប់តំណទំនិញ: ${p.name}` : `Linked product: ${p.name}`);
+                              }}
+                              className={`flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
+                                isSelected
+                                  ? 'bg-primary-50 dark:bg-primary-950/60 border-primary-500 ring-1 ring-primary-500 text-primary-700 dark:text-primary-300'
+                                  : 'bg-slate-50/60 dark:bg-surface-800/60 border-slate-200/60 dark:border-surface-700/60 hover:bg-slate-100 dark:hover:bg-surface-750'
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-surface-700 overflow-hidden shrink-0 flex items-center justify-center text-xs font-bold text-slate-400">
+                                {p.thumbnail ? (
+                                  <img src={p.thumbnail} alt={p.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  '📦'
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.name}</p>
+                                <p className="text-[10px] font-mono text-slate-400 truncate">{targetUrl}</p>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-primary-600 shrink-0" />}
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Coupon Picker Drawer */}
+              {linkPickerMode === 'COUPON' && (
+                <div className="p-3 rounded-xl bg-white dark:bg-surface-900 border border-amber-200 dark:border-amber-800/60 shadow-md space-y-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>{isKhmer ? 'ចុចលើគូប៉ុងដើម្បីភ្ជាប់ Link ទៅកាន់ការបញ្ចុះតម្លៃ៖' : 'Select a coupon to link:'}</span>
+                  </span>
+                  <div className="max-h-52 overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {availableCoupons.length === 0 ? (
+                      <p className="col-span-2 text-center py-4 text-xs text-slate-400">
+                        {isKhmer ? 'មិនទាន់មានគូប៉ុងសកម្មទេ' : 'No active coupons found'}
+                      </p>
+                    ) : (
+                      availableCoupons.map((c) => {
+                        const targetUrl = `/products?coupon=${c.code}`;
+                        const isSelected = link === targetUrl;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              setLink(targetUrl);
+                              setLinkPickerMode('NONE');
+                              toast.success(isKhmer ? `បានភ្ជាប់គូប៉ុង: ${c.code}` : `Linked coupon: ${c.code}`);
+                            }}
+                            className={`flex items-center justify-between p-2.5 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 ring-1 ring-amber-500 text-amber-800 dark:text-amber-200'
+                                : 'bg-slate-50/60 dark:bg-surface-800/60 border-slate-200/60 dark:border-surface-700/60 hover:bg-slate-100 dark:hover:bg-surface-750'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-black text-xs text-amber-600 dark:text-amber-400">{c.code}</span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
+                                  {c.discountType === 'PERCENT' ? `${c.discount}% OFF` : `$${c.discount} OFF`}
+                                </span>
+                              </div>
+                              <p className="text-[10px] font-mono text-slate-400 truncate mt-0.5">{targetUrl}</p>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4 text-amber-600 shrink-0" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* URL Input Box */}
+              <div className="relative flex items-center">
                 <input
                   type="text"
-                  className="input h-9 text-xs font-mono flex-1"
-                  placeholder="e.g. /products?deals=true or /coupons"
+                  className="input h-9.5 text-xs font-mono pr-8 w-full font-medium"
+                  placeholder="e.g. /products/slug-name or /products?deals=true"
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => setLink('/products')}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-surface-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-primary-600 transition"
-                >
-                  /products
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLink('/coupons')}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-surface-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-primary-600 transition"
-                >
-                  /coupons
-                </button>
+                {link && (
+                  <button
+                    type="button"
+                    onClick={() => setLink('')}
+                    className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 
