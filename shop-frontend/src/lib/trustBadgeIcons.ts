@@ -10,7 +10,6 @@ import {
   Clock,
   Mail,
   Phone,
-  Sparkles,
   Zap,
   ShoppingBag,
   Heart,
@@ -54,5 +53,5 @@ export const TRUST_BADGE_ICON_OPTIONS: Array<{ value: string; label: string }> =
 
 export function resolveTrustBadgeIcon(iconKey: string): LucideIcon {
   const Icon = TRUST_BADGE_ICON_MAP[iconKey];
-  return Icon ?? Sparkles;
+  return Icon ?? ShieldCheck;
 }

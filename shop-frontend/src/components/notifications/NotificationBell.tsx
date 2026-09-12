@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
   Bell,
-  Sparkles,
   ExternalLink,
   Check,
   CheckCheck,
@@ -302,7 +301,7 @@ export function NotificationBell() {
               ) : filteredNotifications.length === 0 ? (
                 <div className="p-8 text-center space-y-2.5">
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center mx-auto text-slate-400">
-                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <Bell className="w-5 h-5 text-slate-400" />
                   </div>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
                     {isKhmer ? 'មិនទាន់មានសេចក្តីជូនដំណឹងថ្មីទេ' : 'No notifications found'}

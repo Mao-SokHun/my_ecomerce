@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Sparkles, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Truck } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { settingApi } from '@/lib/api';
@@ -149,7 +149,6 @@ export function HeroBanner() {
               className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-4 sm:mb-6"
               style={{ backgroundColor: `${slide.accent}33`, color: slide.accent, border: `1px solid ${slide.accent}55` }}
             >
-              <Sparkles className="w-4 h-4" />
               {slide.tag}
             </motion.div>
 

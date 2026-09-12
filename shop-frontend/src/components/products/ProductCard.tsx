@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Heart, ShoppingCart, Star, Eye, Sparkles, Plus, Check } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Eye, Plus, Check } from 'lucide-react';
 import { Product } from '@/types';
 import { formatPrice, getDiscountPercent } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
@@ -143,7 +143,6 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           )}
           {product.isFeatured && (
             <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:py-0.5 rounded-full shadow-md shadow-amber-500/20 tracking-wide">
-              <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-100 fill-amber-100" />
               <span>{t(language, 'badgeFeatured')}</span>
             </span>
           )}

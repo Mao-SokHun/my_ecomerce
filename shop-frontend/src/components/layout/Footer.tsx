@@ -14,7 +14,6 @@ import {
   Phone,
   MapPin,
   Send,
-  Sparkles,
   ShieldCheck,
   CreditCard,
   Clock,
@@ -197,7 +196,6 @@ export function Footer() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             <div className="lg:col-span-6 space-y-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-950/80 border border-primary-800/60 text-primary-400 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-primary-400" />
                 <span>{isKhmer ? 'ការផ្តល់ជូនពិសេស & កាដូស្វាគមន៍' : 'Special Offers & News'}</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">

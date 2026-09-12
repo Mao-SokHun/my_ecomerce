@@ -12,7 +12,6 @@ import {
   Trash2,
   ArrowRight,
   Truck,
-  Sparkles,
   ShieldCheck,
   Zap,
   ArrowUpRight,
@@ -176,9 +175,6 @@ export function CartDrawer() {
                   <div className="relative mb-5">
                     <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-primary-50 to-indigo-100 dark:from-surface-800 dark:to-surface-750 flex items-center justify-center shadow-inner">
                       <ShoppingBag className="w-11 h-11 text-primary-400 dark:text-primary-500" />
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-950/60 border-2 border-white dark:border-surface-900 flex items-center justify-center text-amber-500 shadow-sm">
-                      <Sparkles className="w-4 h-4" />
                     </div>
                   </div>
 

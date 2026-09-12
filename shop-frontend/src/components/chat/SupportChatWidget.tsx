@@ -14,7 +14,6 @@ import {
   RefreshCw,
   User,
   ShieldCheck,
-  Sparkles,
   Minus,
   Bell,
   Headphones,
@@ -454,7 +453,7 @@ export default function SupportChatWidget() {
               <div className="absolute inset-0 bg-white/10 backdrop-blur-md pointer-events-none" />
               <div className="flex items-center gap-2.5 min-w-0 relative z-10">
                 <div className="relative w-8 h-8 rounded-xl bg-white/20 backdrop-blur-lg flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <MessageCircle className="w-3.5 h-3.5 text-white" />
                   <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-indigo-700 animate-pulse" />
                 </div>
                 <div className="min-w-0">
@@ -512,7 +511,7 @@ export default function SupportChatWidget() {
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
-                          <Sparkles className="w-2.5 h-2.5 text-amber-500" />
+                          <MessageSquare className="w-2.5 h-2.5 text-primary-500" />
                           SH-Shop Assistant
                         </span>
                       )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Sparkles, Megaphone, Gift, AlertTriangle, X, ArrowRight } from 'lucide-react';
+import { Megaphone, Gift, AlertTriangle, X, ArrowRight } from 'lucide-react';
 import { notificationApi } from '@/lib/api';
 import { useLanguageStore } from '@/store/languageStore';
 
@@ -88,7 +88,7 @@ export function StoreAnnouncementBanner() {
             ) : isUrgent ? (
               <AlertTriangle className="w-3.5 h-3.5 text-white" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <Megaphone className="w-3.5 h-3.5 text-amber-300" />
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap min-w-0">

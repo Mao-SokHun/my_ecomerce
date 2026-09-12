@@ -17,7 +17,6 @@ import {
   Trash2,
   ExternalLink,
   Search,
-  Sparkles,
   CheckCircle2,
   RefreshCw,
   Phone,
@@ -891,7 +890,7 @@ export default function AdminNotificationsPage() {
 
                 <div className="p-3 rounded-2xl bg-gradient-to-r from-primary-700 via-indigo-700 to-violet-800 text-white flex items-center justify-between gap-2 shadow-sm text-xs">
                   <div className="flex items-center gap-2 truncate">
-                    <Sparkles className="w-4 h-4 text-amber-300 shrink-0 animate-bounce" />
+                    <Megaphone className="w-4 h-4 text-amber-300 shrink-0" />
                     <span className="font-bold truncate">
                       {title.trim() || (isKhmer ? 'ប្រកាសដំណឹងពិសេសពីហាង' : 'Special Store Notice')}
                     </span>

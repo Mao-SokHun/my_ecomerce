@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orderApi } from '@/lib/api';
 import { Order } from '@/types';
 import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
-import { Search, RefreshCw, Printer, Volume2, VolumeX, Sparkles, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter } from 'lucide-react';
+import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -20,7 +20,7 @@ export default function AdminOrdersPage() {
       try {
         const cached = sessionStorage.getItem('admin_cached_orders');
         if (cached) return JSON.parse(cached);
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -29,7 +29,7 @@ export default function AdminOrdersPage() {
       try {
         const cached = sessionStorage.getItem('admin_cached_orders');
         if (cached && JSON.parse(cached).length > 0) return false;
-      } catch {}
+      } catch { }
     }
     return true;
   });
@@ -125,7 +125,7 @@ export default function AdminOrdersPage() {
       if (!search && !statusFilter) {
         try {
           sessionStorage.setItem('admin_cached_orders', JSON.stringify(incomingOrders));
-        } catch {}
+        } catch { }
       }
 
       // Keep selectedOrder in sync ONLY if currently open without causing race conditions
@@ -250,11 +250,10 @@ export default function AdminOrdersPage() {
           <button
             type="button"
             onClick={() => handleToggleSound(!soundAlertEnabled)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              soundAlertEnabled
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${soundAlertEnabled
                 ? 'bg-amber-50 text-amber-700 border border-amber-300/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-surface-700 dark:text-gray-400'
-            }`}
+              }`}
           >
             {soundAlertEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             <span>{isKhmer ? 'សំឡេងរោទ៍' : 'Sound Alert'}</span>
@@ -264,11 +263,10 @@ export default function AdminOrdersPage() {
           <button
             type="button"
             onClick={() => handleToggleAutoPrint(!autoPrintEnabled)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              autoPrintEnabled
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${autoPrintEnabled
                 ? 'bg-primary-50 text-primary-700 border border-primary-300/80 dark:bg-primary-950/40 dark:text-primary-300 dark:border-primary-800 shadow-sm'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-surface-700 dark:text-gray-400'
-            }`}
+              }`}
           >
             <Printer className="w-4 h-4" />
             <span>{isKhmer ? 'ព្រីនស្វ័យប្រវត្តិ (Auto-Print)' : 'Auto-Print'}</span>
@@ -289,7 +287,7 @@ export default function AdminOrdersPage() {
             title="Test Sound Alert"
             className="p-1.5 text-gray-500 hover:text-amber-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-lg transition"
           >
-            <Sparkles className="w-4 h-4" />
+            <Volume2 className="w-4 h-4 text-amber-500" />
           </button>
 
           {/* Refresh Button */}
@@ -366,19 +364,17 @@ export default function AdminOrdersPage() {
                   key={`order-tab-${tab.key}`}
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
-                  className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-150 flex items-center gap-1.5 ${
-                    isActive
+                  className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-150 flex items-center gap-1.5 ${isActive
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs ring-1 ring-slate-900/10'
                       : 'bg-slate-100/90 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-surface-700'
-                  }`}
+                    }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />
                   <span>{tab.label}</span>
-                  <span className={`text-[10.5px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                    isActive
+                  <span className={`text-[10.5px] px-1.5 py-0.2 rounded-full font-mono font-bold ${isActive
                       ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
                       : 'bg-slate-200/80 dark:bg-surface-700 text-slate-500 dark:text-slate-400'
-                  }`}>
+                    }`}>
                     {tab.count}
                   </span>
                 </button>
@@ -448,14 +444,7 @@ export default function AdminOrdersPage() {
                     <td className="py-3 px-4 text-gray-500">{order.items.length} {isKhmer ? 'មុខ' : 'items'}</td>
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{formatPrice(order.total)}</td>
                     <td className="py-3 px-4">
-                      <CustomDropdown
-                        size="xs"
-                        value={order.status}
-                        onChange={(newStatus) => handleStatusUpdate(order.id, newStatus)}
-                        disabled={updatingId === order.id}
-                        options={orderStatusOptions}
-                        buttonClassName="w-[125px] shadow-2xs font-semibold"
-                      />
+                      <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
                     </td>
                     <td className="py-3 px-4">
                       <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
@@ -485,6 +474,17 @@ export default function AdminOrdersPage() {
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* Luxury Status Dropdown */}
+                        <CustomDropdown
+                          size="xs"
+                          align="right"
+                          value={order.status}
+                          onChange={(newStatus) => handleStatusUpdate(order.id, newStatus)}
+                          disabled={updatingId === order.id}
+                          options={orderStatusOptions}
+                          buttonClassName="min-w-[105px] font-semibold text-xs shadow-2xs"
+                        />
                       </div>
                     </td>
                   </tr>

@@ -14,7 +14,6 @@ import {
   X,
   Package,
   Star,
-  Sparkles,
   CheckCircle2,
   ArrowRight,
   Minus,
@@ -642,7 +641,7 @@ export default function AdminProductsPage() {
               {isKhmer ? 'ទំនិញលេចធ្លោ' : 'Featured'}
             </span>
             <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-100 dark:border-purple-900/40">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Star className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
           <div className="flex items-baseline justify-between mt-1.5">
@@ -1821,7 +1820,7 @@ export default function AdminProductsPage() {
                         className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
                       />
                       <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                         Featured (បង្ហាញលើទំព័រដើម / Home Listings)
                       </span>
                     </label>

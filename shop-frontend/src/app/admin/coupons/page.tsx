@@ -11,7 +11,6 @@ import {
   Percent,
   DollarSign,
   Info,
-  Sparkles,
   Calculator,
   ShieldCheck,
   ShoppingBag,
@@ -321,7 +320,6 @@ export default function AdminCouponsPage() {
           {/* Quick Presets */}
           <div className="hidden sm:flex items-center gap-1.5 text-xs">
             <span className="text-gray-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               {isKhmer ? 'គំរូរហ័ស:' : isZh ? '快速模板:' : 'Presets:'}
             </span>
             <button
