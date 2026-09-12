@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orderApi } from '@/lib/api';
 import { Order } from '@/types';
 import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
-import { Search, RefreshCw, Printer, Volume2, VolumeX, Sparkles, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock } from 'lucide-react';
+import { Search, RefreshCw, Printer, Volume2, VolumeX, Sparkles, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -209,6 +209,24 @@ export default function AdminOrdersPage() {
     { value: '58mm', label: '58mm (Small)' },
   ];
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: orders.length,
+      PENDING: 0,
+      CONFIRMED: 0,
+      PROCESSING: 0,
+      SHIPPED: 0,
+      DELIVERED: 0,
+      CANCELLED: 0,
+    };
+    orders.forEach((o) => {
+      if (counts[o.status] !== undefined) {
+        counts[o.status]++;
+      }
+    });
+    return counts;
+  }, [orders]);
+
   return (
     <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
       {/* Top Header */}
@@ -285,25 +303,92 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={adminT(language, 'searchOrderPlaceholder')}
-            className="w-full h-11 pl-10 pr-4 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
-          />
+      {/* ========================================================================= */}
+      {/* MAIN SEARCH & FILTERS TOOLBAR (PREMIUM & SPACIOUS) */}
+      {/* ========================================================================= */}
+      <div className="rounded-2xl border border-slate-200/80 dark:border-surface-750 bg-white dark:bg-surface-900 shadow-2xs p-3.5 sm:p-4 mb-6 space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Left: Search input */}
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={adminT(language, 'searchOrderPlaceholder')}
+              className="w-full h-11 pl-10 pr-9 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Right: Status Dropdown Filter */}
+          <div className="flex items-center gap-2 shrink-0">
+            <CustomDropdown
+              size="md"
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val)}
+              options={orderFilterOptions}
+              icon={<Filter className="w-4 h-4 text-slate-400" />}
+              className="min-w-[190px] sm:min-w-[230px] w-full md:w-auto"
+            />
+          </div>
         </div>
-        <CustomDropdown
-          size="md"
-          value={statusFilter}
-          onChange={(val) => setStatusFilter(val)}
-          options={orderFilterOptions}
-          className="w-56 sm:w-64 shrink-0"
-        />
+
+        {/* Quick Filter Status Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-surface-800">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1">
+              <Tag className="w-3.5 h-3.5" />
+              <span>{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
+            </span>
+
+            {[
+              { key: '', label: isKhmer ? 'ទាំងអស់' : 'All', count: statusCounts.all, dot: 'bg-slate-400' },
+              { key: 'PENDING', label: isKhmer ? 'រង់ចាំទូទាត់' : 'Pending', count: statusCounts.PENDING, dot: 'bg-amber-500' },
+              { key: 'CONFIRMED', label: isKhmer ? 'បានបញ្ជាក់' : 'Confirmed', count: statusCounts.CONFIRMED, dot: 'bg-sky-500' },
+              { key: 'PROCESSING', label: isKhmer ? 'កំពុងដំណើរការ' : 'Processing', count: statusCounts.PROCESSING, dot: 'bg-violet-500' },
+              { key: 'SHIPPED', label: isKhmer ? 'បានផ្ញើ' : 'Shipped', count: statusCounts.SHIPPED, dot: 'bg-indigo-500' },
+              { key: 'DELIVERED', label: isKhmer ? 'បានដឹកជញ្ជូន' : 'Delivered', count: statusCounts.DELIVERED, dot: 'bg-emerald-500' },
+              { key: 'CANCELLED', label: isKhmer ? 'បានបោះបង់' : 'Cancelled', count: statusCounts.CANCELLED, dot: 'bg-rose-500' },
+            ].map((tab) => {
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={`order-tab-${tab.key}`}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-150 flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs ring-1 ring-slate-900/10'
+                      : 'bg-slate-100/90 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-surface-700'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />
+                  <span>{tab.label}</span>
+                  <span className={`text-[10.5px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                    isActive
+                      ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
+                      : 'bg-slate-200/80 dark:bg-surface-700 text-slate-500 dark:text-slate-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-xs text-slate-400 font-medium self-end sm:self-auto">
+            {isKhmer ? `បង្ហាញ ${orders.length} ការកុម្ម៉ង់` : `Showing ${orders.length} orders`}
+          </div>
+        </div>
       </div>
 
       {/* Orders Table */}

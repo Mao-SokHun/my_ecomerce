@@ -61,9 +61,9 @@ export function CustomDropdown({
 
   // Size styling classes
   const sizeClasses = {
-    xs: 'h-9 text-xs px-3 rounded-xl gap-1.5',
-    sm: 'h-10.5 text-xs sm:text-sm px-4 rounded-xl gap-2 font-medium',
-    md: 'h-11 text-sm px-4.5 rounded-xl gap-2.5 font-semibold',
+    xs: 'h-8.5 text-xs px-3 rounded-xl gap-1.5',
+    sm: 'h-10 text-xs sm:text-sm px-3.5 rounded-xl gap-2',
+    md: 'h-11 text-sm px-4 rounded-xl gap-2.5',
   }[size];
 
   return (
@@ -107,7 +107,7 @@ export function CustomDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.96 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute z-50 mt-1.5 min-w-[200px] max-h-72 overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-750 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/60 p-1.5 ring-1 ring-black/5 focus:outline-none ${
+            className={`absolute z-50 mt-1.5 min-w-[190px] max-h-72 overflow-y-auto bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-750 rounded-2xl shadow-xl shadow-slate-900/10 dark:shadow-black/60 p-1.5 ring-1 ring-black/5 focus:outline-none ${
               align === 'right' ? 'right-0' : 'left-0'
             } ${menuClassName}`}
             role="listbox"
@@ -123,7 +123,7 @@ export function CustomDropdown({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all duration-150 text-left ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 text-xs sm:text-sm rounded-xl font-medium transition-all duration-150 text-left ${
                       isSelected
                         ? 'bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 font-bold shadow-2xs'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
