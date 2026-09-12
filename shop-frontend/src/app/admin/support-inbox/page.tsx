@@ -51,8 +51,8 @@ export default function AdminSupportInboxPage() {
   // Localization labels
   const t = {
     title: language === 'km' ? 'ប្រអប់សារគាំទ្រ Live Chat' : language === 'zh' ? '客服实时聊天' : 'Live Support Inbox',
-    allPriorities: language === 'km' ? 'អាទិភាពទាំងអស់' : language === 'zh' ? '所有优先级' : 'All priorities',
-    allStatuses: language === 'km' ? 'ស្ថានភាពទាំងអស់' : language === 'zh' ? '所有状态' : 'All statuses',
+    allPriorities: language === 'km' ? 'គ្រប់អាទិភាព' : language === 'zh' ? '所有优先级' : 'All Priority',
+    allStatuses: language === 'km' ? 'គ្រប់ស្ថានភាព' : language === 'zh' ? '所有状态' : 'All Status',
     selectChat: language === 'km' ? 'សូមជ្រើសរើសការជជែកពីបញ្ជីដើម្បីចាប់ផ្តើមឆ្លើយតប' : language === 'zh' ? '请从列表中选择聊天以开始回复' : 'Select a conversation from the list to start chatting',
     typeReply: language === 'km' ? 'សរសេរសារឆ្លើយតប...' : language === 'zh' ? '输入回复内容...' : 'Type a reply...',
     send: language === 'km' ? 'ផ្ញើ' : language === 'zh' ? '发送' : 'Send',
