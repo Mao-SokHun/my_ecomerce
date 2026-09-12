@@ -16,6 +16,8 @@ export interface KhqrCreateResult {
 
 const provider = (process.env.KHQR_PROVIDER || 'mock').toLowerCase();
 
+import { BakongKHQR, IndividualInfo, khqrData } from 'bakong-khqr';
+
 export const crc16Ccitt = (str: string): string => {
   let crc = 0xffff;
   for (let i = 0; i < str.length; i++) {
@@ -38,7 +40,7 @@ const formatTlv = (tag: string, val: string | number): string => {
 };
 
 export const buildEmvcoKhqr = ({
-  bakongAccount = 'abaakhppxxx@abaa',
+  bakongAccount = '005282269@abaa',
   accountNumber = '005282269',
   merchantName = 'MAO SOKHUN',
   merchantCity = 'Phnom Penh',
@@ -56,32 +58,59 @@ export const buildEmvcoKhqr = ({
   billNumber?: string;
   storeLabel?: string;
 }): string => {
-  let payload = '';
-  payload += formatTlv('00', '01'); // Format Indicator
-  payload += formatTlv('01', '12'); // 12 = Dynamic QR Code with Amount
+  const cleanBakong = bakongAccount.includes('@')
+    ? bakongAccount
+    : `${bakongAccount.replace(/\s+/g, '')}@abaa`;
 
-  // Tag 29: Merchant Account Information
+  try {
+    const khqrInstance = new BakongKHQR();
+    const info = new IndividualInfo(cleanBakong, merchantName, merchantCity, {
+      currency: currency === 'KHR' ? khqrData.currency.khr : khqrData.currency.usd,
+      amount: currency === 'KHR' ? Math.round(amount) : Number(Number(amount).toFixed(2)),
+      billNumber: billNumber || undefined,
+      storeLabel: storeLabel || 'SH-Shop',
+      accountInformation: accountNumber?.replace(/\s+/g, '') || undefined,
+      expirationTimestamp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours valid
+    });
+
+    const response = khqrInstance.generateIndividual(info);
+    if (response?.data?.qr) {
+      return response.data.qr;
+    }
+  } catch (err) {
+    console.warn('BakongKHQR SDK generation failed, using manual EMVCo builder:', err);
+  }
+
+  // Fallback manual EMVCo with timestamp Tag 99
+  let payload = '';
+  payload += formatTlv('00', '01');
+  payload += formatTlv('01', '12');
+
   let tag29 = '';
-  const cleanBakong = bakongAccount.includes('@') ? bakongAccount : `${bakongAccount.replace(/\s+/g, '')}@aba`;
   tag29 += formatTlv('00', cleanBakong);
   if (accountNumber) tag29 += formatTlv('01', accountNumber.replace(/\s+/g, ''));
-  tag29 += formatTlv('02', 'ABA Bank');
   payload += formatTlv('29', tag29);
 
-  payload += formatTlv('52', '5999'); // Merchant category code
-  payload += formatTlv('53', currency === 'KHR' ? '116' : '840'); // Currency (840 = USD, 116 = KHR)
-  payload += formatTlv('54', currency === 'KHR' ? String(Math.round(amount)) : Number(amount).toFixed(2)); // Amount
-  payload += formatTlv('58', 'KH'); // Country Code
-  payload += formatTlv('59', merchantName); // Merchant Name
-  payload += formatTlv('60', merchantCity); // Merchant City
+  payload += formatTlv('52', '5999');
+  payload += formatTlv('53', currency === 'KHR' ? '116' : '840');
+  payload += formatTlv('54', currency === 'KHR' ? String(Math.round(amount)) : Number(amount).toFixed(2));
+  payload += formatTlv('58', 'KH');
+  payload += formatTlv('59', merchantName);
+  payload += formatTlv('60', merchantCity);
 
-  // Tag 62: Additional Data
   let tag62 = '';
   if (billNumber) tag62 += formatTlv('01', billNumber);
-  if (storeLabel) tag62 += formatTlv('07', storeLabel);
+  if (storeLabel) tag62 += formatTlv('03', storeLabel);
   if (tag62) payload += formatTlv('62', tag62);
 
-  // Tag 63: CRC16 Checksum
+  // Tag 99: Timestamp (Creation & Expiration)
+  const now = Date.now();
+  const expire = now + 24 * 60 * 60 * 1000;
+  let tag99 = '';
+  tag99 += formatTlv('00', String(now));
+  tag99 += formatTlv('01', String(expire));
+  payload += formatTlv('99', tag99);
+
   const toSign = payload + '6304';
   const checksum = crc16Ccitt(toSign);
   return toSign + checksum;
@@ -99,18 +128,20 @@ const toUtcReqTime = (date = new Date()): string => {
 
 const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   const reference = `KHQR-${order.orderNumber}`;
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const merchantName = process.env.KHQR_MERCHANT_NAME || 'MAO SOKHUN';
   const merchantCity = process.env.KHQR_MERCHANT_CITY || 'Phnom Penh';
   const accountUsd = (process.env.KHQR_ACCOUNT_USD || '005282269').replace(/\s+/g, '');
   const accountKhr = (process.env.KHQR_ACCOUNT_KHR || '005282293').replace(/\s+/g, '');
-  const bakongId = (process.env.KHQR_BAKONG_ID || 'abaakhppxxx@abaa').trim();
+  const bakongIdUsd = (process.env.KHQR_BAKONG_ID || `${accountUsd}@abaa`).trim();
+  const bakongIdKhr = (process.env.KHQR_BAKONG_ID_KHR || `${accountKhr}@abaa`).trim();
   const amountUsd = Number(order.total.toFixed(2));
   const amountKhr = Math.round(order.total * 4100);
 
-  // 1. Build EMVCo Dynamic USD QR
+  // 1. Build EMVCo Dynamic USD QR with exact order total amount
   const qrPayloadUsd = buildEmvcoKhqr({
-    bakongAccount: bakongId,
+    bakongAccount: bakongIdUsd,
+    accountNumber: accountUsd,
     merchantName,
     merchantCity,
     currency: 'USD',
@@ -119,9 +150,10 @@ const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
     storeLabel: 'SH-Shop',
   });
 
-  // 2. Build EMVCo Dynamic KHR QR
+  // 2. Build EMVCo Dynamic KHR QR with exact order KHR amount
   const qrPayloadKhr = buildEmvcoKhqr({
-    bakongAccount: bakongId,
+    bakongAccount: bakongIdKhr,
+    accountNumber: accountKhr,
     merchantName,
     merchantCity,
     currency: 'KHR',
@@ -132,7 +164,7 @@ const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
 
   // 3. Generate High-Res Dynamic QR Base64 Data URLs
   const qrUrlUsd = await QRCode.toDataURL(qrPayloadUsd, {
-    width: 320,
+    width: 360,
     margin: 1,
     errorCorrectionLevel: 'M',
     color: {
@@ -142,7 +174,7 @@ const buildMockKhqr = async (order: Order): Promise<KhqrCreateResult> => {
   });
 
   const qrUrlKhr = await QRCode.toDataURL(qrPayloadKhr, {
-    width: 320,
+    width: 360,
     margin: 1,
     errorCorrectionLevel: 'M',
     color: {
