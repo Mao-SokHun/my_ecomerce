@@ -30,6 +30,7 @@ type ChatMessage = {
 
 export default function AdminSupportInboxPage() {
   const { language } = useAdminLanguageStore();
+  const isKhmer = language === 'km';
   const [rows, setRows] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'ORDER' | 'PAYMENT' | 'PRODUCT' | 'GENERAL'>('ALL');
@@ -186,13 +187,18 @@ export default function AdminSupportInboxPage() {
   };
 
   const handleStatusChange = (id: string, newStatus: string) => {
+    // Optimistic UI update so status changes immediately
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+    );
     supportApi.updateStatus(id, newStatus)
       .then(() => {
-        toast.success('Status updated');
+        toast.success(isKhmer ? 'បានផ្លាស់ប្តូរស្ថានភាពជោគជ័យ ✅' : 'Status updated successfully');
         loadInquiries(true);
       })
       .catch(() => {
-        toast.error('Failed to update status');
+        toast.error(isKhmer ? 'បរាជ័យក្នុងការកែប្រែស្ថានភាព' : 'Failed to update status');
+        loadInquiries(true);
       });
   };
 
