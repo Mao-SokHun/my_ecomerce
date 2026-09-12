@@ -490,7 +490,7 @@ export default function AdminProductsPage() {
 
   // Category Dropdown options
   const categoryOptions: DropdownOption[] = useMemo(() => [
-    { value: 'all', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់ (All Categories)' : 'All Categories', dotColor: '#6366f1' },
+    { value: 'all', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories', dotColor: '#6366f1' },
     ...categories.map((c) => ({
       value: c.id,
       label: c.parent ? `${c.parent.name} › ${c.name}` : c.name,
@@ -730,24 +730,24 @@ export default function AdminProductsPage() {
           </div>
 
           {/* Right: Category Dropdown & Add Product Button */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2.5 shrink-0">
             {categories.length > 0 && (
               <CustomDropdown
                 size="sm"
                 value={selectedCategory}
                 onChange={setSelectedCategory}
                 options={categoryOptions}
-                icon={<Layers className="w-4 h-4 text-slate-400" />}
-                className="min-w-[170px] sm:min-w-[210px]"
+                icon={<Layers className="w-4 h-4 text-primary-500 shrink-0" />}
+                className="w-auto min-w-[160px] sm:min-w-[190px]"
               />
             )}
 
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex items-center justify-center gap-1.5 px-4 h-10 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 h-10 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 whitespace-nowrap shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add Product'}</span>
             </button>
           </div>
