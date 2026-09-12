@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orderApi } from '@/lib/api';
 import { Order } from '@/types';
 import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
-import { Search, RefreshCw, Printer, Volume2, VolumeX, Sparkles, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock } from 'lucide-react';
+import { Search, RefreshCw, Printer, Volume2, VolumeX, Sparkles, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -16,6 +16,15 @@ export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
   const [orders, setOrders] = useState<Order[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_orders');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [allOrdersCache, setAllOrdersCache] = useState<Order[]>(() => {
     if (typeof window !== 'undefined') {
       try {
         const cached = sessionStorage.getItem('admin_cached_orders');
@@ -105,7 +114,7 @@ export default function AdminOrdersPage() {
           newOrders.forEach((newOrder) => {
             toast.success(
               isKhmer
-                ? `🔔 មានការកម្មង់ថ្មី: ${newOrder.orderNumber} (${formatPrice(newOrder.total)})`
+                ? `🔔 មានការកុម្ម៉ង់ថ្មី: ${newOrder.orderNumber} (${formatPrice(newOrder.total)})`
                 : `🔔 New Order: ${newOrder.orderNumber} (${formatPrice(newOrder.total)})`,
               { duration: 6000 }
             );
@@ -123,6 +132,7 @@ export default function AdminOrdersPage() {
       setOrders(incomingOrders);
 
       if (!search && !statusFilter) {
+        setAllOrdersCache(incomingOrders);
         try {
           sessionStorage.setItem('admin_cached_orders', JSON.stringify(incomingOrders));
         } catch {}
@@ -167,6 +177,7 @@ export default function AdminOrdersPage() {
     try {
       await orderApi.adminUpdateStatus(orderId, { status });
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: status as Order['status'] } : o)));
+      setAllOrdersCache((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: status as Order['status'] } : o)));
       if (selectedOrder?.id === orderId) {
         setSelectedOrder((prev) => prev ? { ...prev, status: status as Order['status'] } : null);
       }
@@ -188,7 +199,29 @@ export default function AdminOrdersPage() {
     toast.success(isKhmer ? '🔔 បានសាកល្បងសំឡេងរោទ៍ Order' : '🔔 Tested Order Chime');
   };
 
-  const statuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+  // Compute status counts
+  const orderCounts = useMemo(() => {
+    const source = allOrdersCache.length > 0 ? allOrdersCache : orders;
+    return {
+      all: source.length,
+      pending: source.filter((o) => o.status === 'PENDING').length,
+      confirmed: source.filter((o) => o.status === 'CONFIRMED').length,
+      processing: source.filter((o) => o.status === 'PROCESSING').length,
+      shipped: source.filter((o) => o.status === 'SHIPPED').length,
+      delivered: source.filter((o) => o.status === 'DELIVERED').length,
+      cancelled: source.filter((o) => o.status === 'CANCELLED').length,
+    };
+  }, [allOrdersCache, orders]);
+
+  const filterTabs = [
+    { key: '', labelKh: 'ទាំងអស់', labelEn: 'All', count: orderCounts.all, dotColor: '#94a3b8' },
+    { key: 'PENDING', labelKh: 'ការកុម្ម៉ង់ថ្មី (New)', labelEn: 'New / Pending', count: orderCounts.pending, dotColor: '#eab308', highlight: true },
+    { key: 'CONFIRMED', labelKh: 'បានបញ្ជាក់', labelEn: 'Confirmed', count: orderCounts.confirmed, dotColor: '#3b82f6' },
+    { key: 'PROCESSING', labelKh: 'កំពុងរៀបចំ', labelEn: 'Processing', count: orderCounts.processing, dotColor: '#8b5cf6' },
+    { key: 'SHIPPED', labelKh: 'កំពុងដឹកជញ្ជូន', labelEn: 'Shipped', count: orderCounts.shipped, dotColor: '#6366f1' },
+    { key: 'DELIVERED', labelKh: 'បានដឹកដល់ (ប្រវត្តិ)', labelEn: 'Delivered', count: orderCounts.delivered, dotColor: '#10b981' },
+    { key: 'CANCELLED', labelKh: 'បានបោះបង់', labelEn: 'Cancelled', count: orderCounts.cancelled, dotColor: '#ef4444' },
+  ];
 
   const orderStatusOptions: DropdownOption[] = [
     { value: 'PENDING', label: 'PENDING', dotColor: '#eab308' },
@@ -285,24 +318,65 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Category Filter Tabs Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+        {filterTabs.map((tab) => {
+          const isActive = statusFilter === tab.key;
+          const isPendingHighlight = tab.highlight && tab.count > 0;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 border ${
+                isActive
+                  ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-500/20'
+                  : isPendingHighlight
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 shadow-xs'
+                  : 'bg-white dark:bg-surface-850 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-surface-700 hover:bg-slate-50 dark:hover:bg-surface-800'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{
+                  backgroundColor: isActive ? '#ffffff' : tab.dotColor,
+                }}
+              />
+              <span>{isKhmer ? tab.labelKh : tab.labelEn}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  isActive
+                    ? 'bg-white/20 text-white'
+                    : isPendingHighlight
+                    ? 'bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 animate-pulse'
+                    : 'bg-slate-100 dark:bg-surface-750 text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search & Secondary Filter */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={adminT(language, 'searchOrderPlaceholder')}
-            className="w-full h-10 pl-9.5 pr-4 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+            className="w-full h-11 pl-10 pr-4 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
           />
         </div>
         <CustomDropdown
-          size="sm"
+          size="md"
           value={statusFilter}
           onChange={(val) => setStatusFilter(val)}
           options={orderFilterOptions}
-          className="w-48 sm:w-56 shrink-0"
+          className="w-56 sm:w-64 shrink-0"
         />
       </div>
 
@@ -340,72 +414,88 @@ export default function AdminOrdersPage() {
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedOrder(order)}
-                        className="font-mono font-bold text-primary-600 dark:text-primary-400 text-xs hover:underline flex items-center gap-1 text-left"
-                        title={isKhmer ? 'ចុចដើម្បីមើលលម្អិត' : 'Click to view details'}
-                      >
-                        <span>{order.orderNumber}</span>
-                      </button>
-                    </td>
-                    <td className="py-3 px-4">
-                      <p className="font-medium text-gray-900 dark:text-white">{order.user?.name || 'Customer'}</p>
-                      <p className="text-xs text-gray-400">{order.address?.phone || order.user?.phone || order.user?.email}</p>
-                    </td>
-                    <td className="py-3 px-4 text-gray-500">{order.items.length} {isKhmer ? 'មុខ' : 'items'}</td>
-                    <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{formatPrice(order.total)}</td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-500 text-xs">{formatDate(order.createdAt)}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        {/* View Order Detail Modal Button */}
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOrder(order)}
-                          title={isKhmer ? 'មើលព័ត៌មានលម្អិតអំពីការកម្មង់' : 'View Order Details'}
-                          className="p-1.5 rounded-lg border border-primary-200 dark:border-primary-900/50 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-950/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition flex items-center gap-1 text-xs font-semibold shadow-xs"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="hidden xl:inline">{isKhmer ? 'មើល' : 'View'}</span>
-                        </button>
+                orders.map((order) => {
+                  const isNewPending = order.status === 'PENDING';
+                  return (
+                    <tr
+                      key={order.id}
+                      className={`border-b border-gray-50 dark:border-gray-800/50 transition-colors ${
+                        isNewPending
+                          ? 'bg-amber-50/30 dark:bg-amber-950/10 hover:bg-amber-50/60 dark:hover:bg-amber-950/20'
+                          : 'hover:bg-gray-50/80 dark:hover:bg-surface-800/50'
+                      }`}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrder(order)}
+                            className="font-mono font-bold text-primary-600 dark:text-primary-400 text-xs hover:underline flex items-center gap-1 text-left"
+                            title={isKhmer ? 'ចុចដើម្បីមើលលម្អិត' : 'Click to view details'}
+                          >
+                            <span>{order.orderNumber}</span>
+                          </button>
+                          {isNewPending && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-xs animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              NEW
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <p className="font-medium text-gray-900 dark:text-white">{order.user?.name || 'Customer'}</p>
+                        <p className="text-xs text-gray-400">{order.address?.phone || order.user?.phone || order.user?.email}</p>
+                      </td>
+                      <td className="py-3 px-4 text-gray-500">{order.items.length} {isKhmer ? 'មុខ' : 'items'}</td>
+                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{formatPrice(order.total)}</td>
+                      <td className="py-3 px-4">
+                        <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
+                          {order.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 text-xs">{formatDate(order.createdAt)}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          {/* View Order Detail Modal Button (Icon-only) */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOrder(order)}
+                            title={isKhmer ? 'មើលព័ត៌មានលម្អិត' : 'View Order Details'}
+                            aria-label={isKhmer ? 'មើលព័ត៌មានលម្អិត' : 'View Order Details'}
+                            className="p-2 rounded-xl border border-primary-200 dark:border-primary-900/50 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-950/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition flex items-center justify-center text-xs font-semibold shadow-xs hover:scale-105"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
 
-                        {/* Thermal Receipt Print Button */}
-                        <button
-                          type="button"
-                          onClick={() => handlePrintClick(order)}
-                          title={isKhmer ? 'ព្រីនវិក្កយបត្រ POS' : 'Print Thermal POS Receipt'}
-                          className="p-1.5 rounded-lg border border-gray-200 dark:border-surface-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700 transition"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                        </button>
+                          {/* Thermal Receipt Print Button (Icon-only) */}
+                          <button
+                            type="button"
+                            onClick={() => handlePrintClick(order)}
+                            title={isKhmer ? 'ព្រីនវិក្កយបត្រ POS' : 'Print Thermal POS Receipt'}
+                            aria-label={isKhmer ? 'ព្រីនវិក្កយបត្រ POS' : 'Print Thermal POS Receipt'}
+                            className="p-2 rounded-xl border border-gray-200 dark:border-surface-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700 transition flex items-center justify-center hover:scale-105"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
 
-                        {/* Order Status Select */}
-                        <CustomDropdown
-                          size="xs"
-                          align="right"
-                          value={order.status}
-                          onChange={(val) => handleStatusUpdate(order.id, val)}
-                          disabled={updatingId === order.id}
-                          options={orderStatusOptions}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {/* Order Status Select */}
+                          <CustomDropdown
+                            size="xs"
+                            align="right"
+                            value={order.status}
+                            onChange={(val) => handleStatusUpdate(order.id, val)}
+                            disabled={updatingId === order.id}
+                            options={orderStatusOptions}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

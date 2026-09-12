@@ -73,18 +73,82 @@ export const notifyAdminOrderEvent = async (orderId: string, event: AdminEvent):
     },
   });
   if (!order) return;
+
+  const title = event === 'NEW_ORDER' ? 'មានការកម្មង់ថ្មី (New Order)' : 'បង់ប្រាក់បានជោគជ័យ (Payment Paid)';
+  const customerName = order.user?.name || 'មិនមាន';
+  const customerPhone = order.address?.phone || order.user?.phone || 'មិនមាន';
+
+  // 1. Create in-app notification records in Database
+  try {
+    if (event === 'NEW_ORDER') {
+      // Notification for admin
+      await prisma.notification.create({
+        data: {
+          title: `🔔 ការកុម្ម៉ង់ថ្មី #${order.orderNumber}`,
+          message: `អតិថិជន ${customerName} (${customerPhone}) បានធ្វើការកុម្ម៉ង់ចំនួន ${order.items.length} មុខ សរុប ${formatMoney(order.total)}`,
+          type: 'ORDER_UPDATE',
+          target: 'ALL',
+          link: '/admin/orders',
+          sentBy: 'ប្រព័ន្ធស្វ័យប្រវត្តិ (System)',
+        },
+      });
+
+      // Notification for customer (if registered)
+      if (order.userId) {
+        await prisma.notification.create({
+          data: {
+            userId: order.userId,
+            title: `📦 ការកុម្ម៉ង់ #${order.orderNumber} ត្រូវបានទទួល`,
+            message: `ការកុម្ម៉ង់របស់អ្នកត្រូវបានទទួលជោគជ័យ។ យើងខ្ញុំនឹងរៀបចំផ្ញើជូនបន្ទាប់ពីបានទូទាត់ប្រាក់រួចរាល់!`,
+            type: 'ORDER_UPDATE',
+            target: 'USER',
+            link: '/orders',
+            sentBy: 'SH Shop',
+          },
+        });
+      }
+    } else if (event === 'PAYMENT_PAID') {
+      // Admin notification for payment
+      await prisma.notification.create({
+        data: {
+          title: `🟢 បានទទួលការទូទាត់ប្រាក់ #${order.orderNumber}`,
+          message: `ការកុម្ម៉ង់ #${order.orderNumber} របស់ ${customerName} បានទូទាត់ប្រាក់ជោគជ័យចំនួន ${formatMoney(order.total)} តាម ${khPaymentType(order.paymentMethod)}`,
+          type: 'ORDER_UPDATE',
+          target: 'ALL',
+          link: '/admin/orders',
+          sentBy: 'ប្រព័ន្ធស្វ័យប្រវត្តិ (System)',
+        },
+      });
+
+      // Customer notification for payment
+      if (order.userId) {
+        await prisma.notification.create({
+          data: {
+            userId: order.userId,
+            title: `✅ ការទូទាត់ប្រាក់ជោគជ័យ #${order.orderNumber}`,
+            message: `យើងខ្ញុំបានទទួលការទូទាត់ប្រាក់ចំនួន ${formatMoney(order.total)} រួចរាល់ហើយ។ ទំនិញរបស់អ្នកកំពុងត្រូវបានវេចខ្ចប់ និងរៀបចំផ្ញើជូន!`,
+            type: 'ORDER_UPDATE',
+            target: 'USER',
+            link: '/orders',
+            sentBy: 'SH Shop',
+          },
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[Notification DB Record Error]', err);
+  }
+
+  // 2. Telegram Notifications
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
-  const title = event === 'NEW_ORDER' ? 'មានការកម្មង់ថ្មី (New Order)' : 'បង់ប្រាក់បានជោគជ័យ (Payment Paid)';
   const eventTime = event === 'PAYMENT_PAID' ? order.updatedAt : order.createdAt;
   const shippingAddress = order.address
     ? [order.address.province, order.address.district, order.address.commune, order.address.village].filter(Boolean).join(', ')
     : 'មិនមាន';
   const roadNumber = order.address?.roadNumber || order.address?.street || 'មិនមាន';
-  const customerName = order.user?.name || 'មិនមាន';
   const customerEmail = order.user?.email || 'មិនមាន';
-  const customerPhone = order.address?.phone || order.user?.phone || 'មិនមាន';
   const couponLabel = order.couponCode
     ? `${order.couponCode} (${
         String(order.couponDiscountType || '').toUpperCase() === 'PERCENTAGE'
@@ -210,6 +274,27 @@ export const notifyAdminOrderStatusChanged = async (
     },
   });
   if (!order) return;
+
+  // 1. In-app notification for customer
+  try {
+    if (order.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: order.userId,
+          title: `🚚 បច្ចុប្បន្នភាពកុម្ម៉ង់ #${order.orderNumber}`,
+          message: `ការកុម្ម៉ង់ #${order.orderNumber} របស់អ្នកត្រូវបានផ្លាស់ប្តូរទៅជា: ${khOrderStatus(newStatus)}`,
+          type: 'ORDER_UPDATE',
+          target: 'USER',
+          link: '/orders',
+          sentBy: 'SH Shop',
+        },
+      });
+    }
+  } catch (err) {
+    console.error('[Notification Status Change Error]', err);
+  }
+
+  // 2. Telegram message
   const targets = resolveTargets();
   if (targets.length === 0) return;
 
