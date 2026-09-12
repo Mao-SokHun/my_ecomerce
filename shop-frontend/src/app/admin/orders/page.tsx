@@ -190,19 +190,19 @@ export default function AdminOrdersPage() {
 
   const statuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
-  const orderStatusOptions: DropdownOption[] = [
-    { value: 'PENDING', label: 'PENDING', dotColor: '#eab308' },
-    { value: 'CONFIRMED', label: 'CONFIRMED', dotColor: '#3b82f6' },
-    { value: 'PROCESSING', label: 'PROCESSING', dotColor: '#8b5cf6' },
-    { value: 'SHIPPED', label: 'SHIPPED', dotColor: '#6366f1' },
-    { value: 'DELIVERED', label: 'DELIVERED', dotColor: '#10b981' },
-    { value: 'CANCELLED', label: 'CANCELLED', dotColor: '#ef4444' },
-  ];
+  const orderStatusOptions: DropdownOption[] = useMemo(() => [
+    { value: 'PENDING', label: isKhmer ? 'PENDING (រង់ចាំ)' : 'PENDING', dotColor: '#eab308' },
+    { value: 'CONFIRMED', label: isKhmer ? 'CONFIRMED (បានបញ្ជាក់)' : 'CONFIRMED', dotColor: '#3b82f6' },
+    { value: 'PROCESSING', label: isKhmer ? 'PROCESSING (កំពុងរៀបចំ)' : 'PROCESSING', dotColor: '#8b5cf6' },
+    { value: 'SHIPPED', label: isKhmer ? 'SHIPPED (បានផ្ញើចេញ)' : 'SHIPPED', dotColor: '#6366f1' },
+    { value: 'DELIVERED', label: isKhmer ? 'DELIVERED (បានដឹកដល់)' : 'DELIVERED', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: isKhmer ? 'CANCELLED (បានបោះបង់)' : 'CANCELLED', dotColor: '#ef4444' },
+  ], [isKhmer]);
 
-  const orderFilterOptions: DropdownOption[] = [
+  const orderFilterOptions: DropdownOption[] = useMemo(() => [
     { value: '', label: adminT(language, 'allStatuses'), dotColor: '#94a3b8' },
     ...orderStatusOptions,
-  ];
+  ], [language, orderStatusOptions]);
 
   const paperWidthOptions: DropdownOption[] = [
     { value: '80mm', label: '80mm (Standard)' },
@@ -448,7 +448,14 @@ export default function AdminOrdersPage() {
                     <td className="py-3 px-4 text-gray-500">{order.items.length} {isKhmer ? 'មុខ' : 'items'}</td>
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{formatPrice(order.total)}</td>
                     <td className="py-3 px-4">
-                      <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
+                      <CustomDropdown
+                        size="xs"
+                        value={order.status}
+                        onChange={(newStatus) => handleStatusUpdate(order.id, newStatus)}
+                        disabled={updatingId === order.id}
+                        options={orderStatusOptions}
+                        buttonClassName="w-[125px] shadow-2xs font-semibold"
+                      />
                     </td>
                     <td className="py-3 px-4">
                       <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
@@ -478,20 +485,6 @@ export default function AdminOrdersPage() {
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
-
-                        {/* Order Status Select */}
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                          disabled={updatingId === order.id}
-                          className="text-xs font-semibold border border-gray-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer shadow-2xs"
-                        >
-                          {statuses.map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
                       </div>
                     </td>
                   </tr>

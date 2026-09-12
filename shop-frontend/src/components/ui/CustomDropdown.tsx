@@ -133,29 +133,29 @@ export function CustomDropdown({
     };
   }, [isOpen, updateCoords]);
 
-  // Size styling classes - compact, modern & refined
+  // Size styling classes - luxury, modern & refined
   const sizeClasses = {
-    xs: 'h-7 text-[11px] pl-2.5 pr-2 rounded-lg gap-1.5 font-medium',
-    sm: 'h-8 text-xs pl-2.5 pr-2 rounded-lg gap-1.5 font-medium',
-    md: 'h-9 text-xs sm:text-sm pl-3 pr-2.5 rounded-lg gap-2 font-medium',
+    xs: 'h-7 text-[11px] pl-2.5 pr-2 rounded-lg gap-1.5 font-medium tracking-tight',
+    sm: 'h-8.5 text-xs pl-3 pr-2.5 rounded-xl gap-2 font-medium',
+    md: 'h-10 text-xs sm:text-sm pl-3.5 pr-3 rounded-xl gap-2.5 font-medium',
   }[size];
 
   const dotSize = {
-    xs: 'w-1.5 h-1.5',
-    sm: 'w-1.5 h-1.5',
-    md: 'w-2 h-2',
+    xs: 'w-2 h-2',
+    sm: 'w-2 h-2',
+    md: 'w-2.5 h-2.5',
   }[size];
 
   const chevronSize = {
     xs: 'w-3 h-3 ml-1',
-    sm: 'w-3 h-3 ml-1',
-    md: 'w-3.5 h-3.5 ml-1.5',
+    sm: 'w-3.5 h-3.5 ml-1',
+    md: 'w-4 h-4 ml-1.5',
   }[size];
 
   const itemPadding = {
-    xs: 'px-2 py-1 text-[11px] rounded-md gap-1.5',
-    sm: 'px-2.5 py-1.2 text-xs rounded-md gap-1.5',
-    md: 'px-2.5 py-1.5 text-xs sm:text-sm rounded-lg gap-2',
+    xs: 'px-2.5 py-1.5 text-[11px] rounded-lg gap-1.5',
+    sm: 'px-3 py-2 text-xs rounded-xl gap-2',
+    md: 'px-3.5 py-2.5 text-xs sm:text-sm rounded-xl gap-2.5',
   }[size];
 
   return (
@@ -165,12 +165,12 @@ export function CustomDropdown({
         type="button"
         disabled={disabled}
         onClick={handleToggle}
-        className={`w-full flex items-center justify-between transition-all duration-200 select-none border cursor-pointer ${sizeClasses} ${
+        className={`w-full flex items-center justify-between transition-all duration-200 select-none border cursor-pointer backdrop-blur-sm ${sizeClasses} ${
           disabled
-            ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+            ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-400'
             : isOpen
-            ? 'bg-white dark:bg-slate-900 border-primary-500 ring-2 ring-primary-500/20 text-slate-900 dark:text-white shadow-2xs'
-            : 'bg-white dark:bg-slate-900/90 border-slate-200/90 dark:border-slate-750 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 shadow-2xs'
+            ? 'bg-white dark:bg-[#161c28] border-primary-500/80 ring-2 ring-primary-500/25 text-slate-900 dark:text-white shadow-md shadow-primary-500/10'
+            : 'bg-white/90 dark:bg-[#131822]/90 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18202d] shadow-2xs hover:shadow-sm'
         } ${buttonClassName}`}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -181,10 +181,12 @@ export function CustomDropdown({
           ) : icon ? (
             <span className="shrink-0 text-slate-400 dark:text-slate-500">{icon}</span>
           ) : selectedOption?.dotColor ? (
-            <span
-              className={`${dotSize} rounded-full shrink-0 shadow-2xs ring-1 ring-black/5 dark:ring-white/10`}
-              style={{ backgroundColor: selectedOption.dotColor }}
-            />
+            <span className="relative flex items-center justify-center shrink-0">
+              <span
+                className={`${dotSize} rounded-full shrink-0 shadow-xs ring-2 ring-black/5 dark:ring-white/10`}
+                style={{ backgroundColor: selectedOption.dotColor }}
+              />
+            </span>
           ) : null}
           <span className="truncate leading-normal font-semibold text-slate-800 dark:text-slate-100">
             {selectedOption ? selectedOption.label : placeholder}
@@ -206,16 +208,16 @@ export function CustomDropdown({
                 ref={menuRef}
                 initial={{
                   opacity: 0,
-                  y: coords.isUpward ? 4 : -4,
-                  scale: 0.98,
+                  y: coords.isUpward ? 6 : -6,
+                  scale: 0.96,
                 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{
                   opacity: 0,
-                  y: coords.isUpward ? 4 : -4,
-                  scale: 0.98,
+                  y: coords.isUpward ? 6 : -6,
+                  scale: 0.96,
                 }}
-                transition={{ duration: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                 style={{
                   position: 'fixed',
                   left: `${coords.left}px`,
@@ -225,10 +227,10 @@ export function CustomDropdown({
                   width: `${coords.width}px`,
                   zIndex: 99999,
                 }}
-                className={`max-h-60 overflow-y-auto bg-white dark:bg-[#161B26] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl shadow-black/60 p-1 ring-1 ring-black/10 focus:outline-none ${menuClassName}`}
+                className={`max-h-64 overflow-y-auto bg-white/98 dark:bg-[#121722]/98 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-2xl shadow-black/60 p-1.5 ring-1 ring-black/5 dark:ring-white/5 focus:outline-none custom-scrollbar ${menuClassName}`}
                 role="listbox"
               >
-                <div className="space-y-0.5">
+                <div className="space-y-1">
                   {options.map((option) => {
                     const isSelected = option.value === value;
                     return (
@@ -241,26 +243,28 @@ export function CustomDropdown({
                         }}
                         className={`w-full flex items-center justify-between ${itemPadding} font-medium transition-all duration-150 text-left ${
                           isSelected
-                            ? 'bg-primary-500/10 dark:bg-primary-500/15 text-primary-600 dark:text-primary-400 font-bold shadow-2xs'
-                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-primary-500/10 dark:bg-primary-500/15 text-primary-600 dark:text-primary-400 font-bold shadow-2xs border border-primary-500/20'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/90 dark:hover:bg-[#1c2433] hover:text-slate-900 dark:hover:text-white border border-transparent'
                         }`}
                         role="option"
                         aria-selected={isSelected}
                       >
-                        <div className="flex items-center gap-1.5 truncate min-w-0">
+                        <div className="flex items-center gap-2 truncate min-w-0">
                           {option.icon ? (
                             <span className="shrink-0">{option.icon}</span>
                           ) : option.dotColor ? (
-                            <span
-                              className={`${dotSize} rounded-full shrink-0 shadow-2xs ring-1 ring-black/5 dark:ring-white/10`}
-                              style={{ backgroundColor: option.dotColor }}
-                            />
+                            <span className="relative flex items-center justify-center shrink-0">
+                              <span
+                                className={`${dotSize} rounded-full shrink-0 shadow-xs ring-2 ring-black/5 dark:ring-white/10`}
+                                style={{ backgroundColor: option.dotColor }}
+                              />
+                            </span>
                           ) : null}
                           <span className="truncate leading-normal">{option.label}</span>
                         </div>
 
                         {isSelected && (
-                          <Check className="w-3 h-3 text-primary-600 dark:text-primary-400 shrink-0 ml-1.5" />
+                          <Check className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400 shrink-0 ml-1.5" />
                         )}
                       </button>
                     );
