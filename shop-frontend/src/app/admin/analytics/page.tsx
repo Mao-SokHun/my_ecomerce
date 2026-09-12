@@ -596,32 +596,32 @@ export default function FinancialAccountingPage() {
       {/* Bottom Section: Full Product Valuation & Profit Table */}
       <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
         {/* Table Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
           <div>
             <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-              {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត (Product Profit & Valuation Matrix)' : 'Product Profit & Valuation Matrix'}
+              {isKhmer ? 'តារាងគណនេយ្យ និងប្រាក់ចំណេញទំនិញ' : 'Product Valuation & Profit Matrix'}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isKhmer ? 'បង្ហាញតម្លៃយកមក តម្លៃលក់ចេញ និងប្រាក់ចំណេញក្នុងទំនិញនីមួយៗ' : 'Full financial overview per individual catalog item'}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {isKhmer ? 'បង្ហាញថ្លៃដើម តម្លៃលក់ និងការគណនាប្រាក់ចំណេញក្នុងទំនិញនីមួយៗ' : 'Full financial overview per individual catalog item'}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
             {/* Search Input with generous padding */}
-            <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="relative flex-1 sm:w-56 sm:flex-initial">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
-                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition"
+                placeholder={isKhmer ? 'ស្វែងរកឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
+                className="w-full h-9 pl-9 pr-7 text-xs rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-xs transition"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-[10px] transition"
                   title="Clear search"
                 >
                   ✕
@@ -634,12 +634,10 @@ export default function FinancialAccountingPage() {
               value={selectedCategory}
               onChange={setSelectedCategory}
               options={categoryDropdownOptions}
-              size="md"
-              variant="luxury"
-              minMenuWidth={230}
+              size="sm"
               searchable={categories.length > 5}
               searchPlaceholder={isKhmer ? 'ស្វែងរកប្រភេទ...' : 'Filter categories...'}
-              className="min-w-[190px] sm:min-w-[210px]"
+              className="w-full sm:w-auto min-w-[160px]"
             />
 
             {/* Sort Filter Dropdown */}
@@ -647,10 +645,8 @@ export default function FinancialAccountingPage() {
               value={sortBy}
               onChange={(val) => setSortBy(val as any)}
               options={sortDropdownOptions}
-              size="md"
-              variant="luxury"
-              minMenuWidth={240}
-              className="min-w-[200px] sm:min-w-[230px]"
+              size="sm"
+              className="w-full sm:w-auto min-w-[175px]"
             />
           </div>
         </div>
@@ -662,10 +658,10 @@ export default function FinancialAccountingPage() {
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-surface-850 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <th className="py-3.5 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
                 <th className="py-3.5 px-3 text-center">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក (Cost)' : 'Cost Price'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ (Price)' : 'Selling Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក' : 'Cost Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ' : 'Selling Price'}</th>
                 <th className="py-3.5 px-3 text-right">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប (Total Cost)' : 'Total Cost'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
                 <th className="py-3.5 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
