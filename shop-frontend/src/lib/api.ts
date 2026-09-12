@@ -274,6 +274,7 @@ export const adminApi = {
   /** Full product catalog (active + inactive) — use for admin UI only */
   getProducts: (params?: Record<string, unknown>) => api.get('/admin/products', { params }),
   getCategories: () => api.get('/admin/categories'),
+  getOrders: (params?: Record<string, unknown>) => api.get('/orders/admin/all', { params }),
   getUsers: (params?: Record<string, unknown>) => api.get('/admin/users', { params }),
   updateUser: (id: string, data: unknown) => api.put(`/admin/users/${id}`, data),
   getCoupons: () => api.get('/admin/coupons'),

@@ -380,6 +380,7 @@ const messages: Record<AppLanguage, Record<string, string>> = {
     navProducts: '商品',
     navCategories: '分类',
     navOrders: '订单',
+    navAnalytics: '利润与财务报表',
     navUsers: '用户',
     navLeads: '订阅用户',
     navSupportInbox: '聊天问题',
