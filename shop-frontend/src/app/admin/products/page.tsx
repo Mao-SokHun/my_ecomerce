@@ -888,7 +888,6 @@ export default function AdminProductsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
                 {filteredProducts.map((product) => {
-                  const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                   const isLow = product.stock > 0 && product.stock <= 5;
                   const isOut = product.stock <= 0;
 
@@ -957,16 +956,9 @@ export default function AdminProductsPage() {
 
                       {/* Price */}
                       <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
-                            {formatPrice(product.price, language)}
-                          </span>
-                          {hasDiscount && (
-                            <span className="text-xs text-slate-400 line-through tabular-nums">
-                              {formatPrice(product.comparePrice || 0, language)}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
+                          {formatPrice(product.price, language)}
+                        </span>
                       </td>
 
                       {/* Stock & Quick Restock Button */}
