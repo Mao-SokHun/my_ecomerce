@@ -18,6 +18,8 @@ import { notificationApi } from '@/lib/api';
 import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
 import { playMessageAlertChime } from '@/lib/soundAlert';
+import { useRealtime } from '@/providers/RealtimeProvider';
+import toast from 'react-hot-toast';
 
 type Notification = {
   id: string;
@@ -92,12 +94,51 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Poll notifications every 30s
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for new notifications
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewNotification = (newNotif: Notification) => {
+      if (!newNotif || !newNotif.id) return;
+      playMessageAlertChime();
+      toast.success(`📢 ${newNotif.title}: ${newNotif.message}`, { duration: 6000 });
+
+      setNotifications((prev) => {
+        const exists = prev.some((n) => n.id === newNotif.id);
+        if (exists) return prev;
+        return [{ ...newNotif, isRead: false }, ...prev];
+      });
+      setUnreadCount((prev) => prev + 1);
+    };
+
+    const handleDeleteNotification = (data: { id: string }) => {
+      if (!data || !data.id) return;
+      setNotifications((prev) => {
+        const target = prev.find((n) => n.id === data.id);
+        if (target && !target.isRead) {
+          setUnreadCount((c) => Math.max(0, c - 1));
+        }
+        return prev.filter((n) => n.id !== data.id);
+      });
+    };
+
+    socket.on('NOTIFICATION_NEW', handleNewNotification);
+    socket.on('NOTIFICATION_DELETED', handleDeleteNotification);
+
+    return () => {
+      socket.off('NOTIFICATION_NEW', handleNewNotification);
+      socket.off('NOTIFICATION_DELETED', handleDeleteNotification);
+    };
+  }, [socket]);
+
+  // Background fallback poll every 45s
   useEffect(() => {
     void fetchNotifications();
     const interval = setInterval(() => {
       void fetchNotifications(true);
-    }, 30000);
+    }, 45000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 

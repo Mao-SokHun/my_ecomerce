@@ -1235,7 +1235,7 @@ export const refreshTokenHandler = async (req: Request, res: Response, next: Nex
       throw new AppError('Invalid or expired refresh token', 401);
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.id, isActive: true } });
+    const user = await prisma.user.findFirst({ where: { id: decoded.id, isActive: true } });
     if (!user) throw new AppError('User not found or inactive', 401);
     if (user.tokenVersion !== decoded.tokenVersion) {
       throw new AppError('Token has been revoked', 401);

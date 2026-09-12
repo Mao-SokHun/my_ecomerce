@@ -58,16 +58,98 @@ export default function FooterSettingsSection({
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium">Social links</p>
-              <button type="button" className={addBtn} onClick={() => onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: [...p.footer.socialLinks, { name: '', url: '' }] } }))}><Plus className="w-3.5 h-3.5" /> Add</button>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+              <div>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  {language === 'km' ? 'បណ្តាញសង្គម (Social Links)' : 'Social Media Links'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {language === 'km'
+                    ? 'កំណត់តំណភ្ជាប់ Facebook, Telegram, TikTok, Instagram... ដែលត្រូវបង្ហាញនៅខាងក្រោម Footer'
+                    : 'Configure social media channels displayed at the bottom of the footer'}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { name: 'Facebook', defaultUrl: 'https://facebook.com/' },
+                  { name: 'Telegram', defaultUrl: 'https://t.me/' },
+                  { name: 'TikTok', defaultUrl: 'https://tiktok.com/@' },
+                  { name: 'Instagram', defaultUrl: 'https://instagram.com/' },
+                  { name: 'YouTube', defaultUrl: 'https://youtube.com/' },
+                ].map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 hover:bg-primary-100 font-semibold border border-primary-200/60 dark:border-primary-800 transition"
+                    onClick={() =>
+                      onChangeForm((p) => ({
+                        ...p,
+                        footer: {
+                          ...p.footer,
+                          socialLinks: [...p.footer.socialLinks, { name: preset.name, url: preset.defaultUrl }],
+                        },
+                      }))
+                    }
+                  >
+                    + {preset.name}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={addBtn}
+                  onClick={() =>
+                    onChangeForm((p) => ({
+                      ...p,
+                      footer: { ...p.footer, socialLinks: [...p.footer.socialLinks, { name: '', url: '' }] },
+                    }))
+                  }
+                >
+                  <Plus className="w-3.5 h-3.5" /> {language === 'km' ? 'ថែមទៀត' : 'Add Custom'}
+                </button>
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {form.footer.socialLinks.map((s, i) => (
-                <div key={`social-${i}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <div><label className={fieldLabelCls}>Social Name</label><input className="input" placeholder="Name" value={s.name} onChange={(e) => { const arr = [...form.footer.socialLinks]; arr[i] = { ...s, name: e.target.value }; onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: arr } })); }} /></div>
-                  <div><label className={fieldLabelCls}>Social URL</label><input className="input" placeholder="URL" value={s.url} onChange={(e) => { const arr = [...form.footer.socialLinks]; arr[i] = { ...s, url: e.target.value }; onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: arr } })); }} /></div>
-                  <button type="button" className="btn-secondary px-2" onClick={() => onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: p.footer.socialLinks.filter((_, idx) => idx !== i) } }))}><Trash2 className="w-4 h-4" /></button>
+                <div key={`social-${i}`} className="grid grid-cols-[1fr_2fr_auto] gap-2 items-center bg-gray-50 dark:bg-surface-800/40 p-2.5 rounded-xl border border-gray-100 dark:border-surface-750">
+                  <div>
+                    <label className={fieldLabelCls}>{language === 'km' ? 'ឈ្មោះបណ្តាញសង្គម' : 'Social Name'}</label>
+                    <input
+                      className="input text-xs"
+                      placeholder="e.g. Facebook, Telegram, TikTok..."
+                      value={s.name}
+                      onChange={(e) => {
+                        const arr = [...form.footer.socialLinks];
+                        arr[i] = { ...s, name: e.target.value };
+                        onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: arr } }));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className={fieldLabelCls}>{language === 'km' ? 'តំណភ្ជាប់ URL' : 'Social URL'}</label>
+                    <input
+                      className="input text-xs"
+                      placeholder="https://t.me/your_channel or https://facebook.com/your_page"
+                      value={s.url}
+                      onChange={(e) => {
+                        const arr = [...form.footer.socialLinks];
+                        arr[i] = { ...s, url: e.target.value };
+                        onChangeForm((p) => ({ ...p, footer: { ...p.footer, socialLinks: arr } }));
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition self-end mb-0.5"
+                    title={language === 'km' ? 'លុប' : 'Delete'}
+                    onClick={() =>
+                      onChangeForm((p) => ({
+                        ...p,
+                        footer: { ...p.footer, socialLinks: p.footer.socialLinks.filter((_, idx) => idx !== i) },
+                      }))
+                    }
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>

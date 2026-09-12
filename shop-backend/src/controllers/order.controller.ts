@@ -7,6 +7,7 @@ import stripeClient from '../lib/stripe';
 import { assertPaymentIntentMatchesOrder, persistOrderPaidFromStripe } from '../lib/stripeOrderPayment';
 import { getInvoiceDetails, sendInvoiceNotification } from '../lib/invoice';
 import { notifyAdminOrderEvent, notifyAdminOrderStatusChanged, notifyAdminUserCancelledOrder, notifyAdminLowStockAlert } from '../lib/adminNotifier';
+import { emitToAdmin, emitToUser, emitToOrder, broadcastRealtime } from '../lib/socket';
 
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -46,7 +47,7 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
     let orderCouponDiscountType: string | null = null;
     let orderCouponDiscountValue: number | null = null;
     if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({
+      const coupon = await prisma.coupon.findFirst({
         where: { code: couponCode.toUpperCase(), isActive: true },
       });
       if (!coupon) throw new AppError('Invalid coupon code', 400);
@@ -204,6 +205,16 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       console.error('[Admin Notify] New order notification failed:', error);
     });
 
+    // Realtime WebSockets dispatch
+    emitToAdmin('ORDER_CREATED', order);
+    if (order.userId) {
+      emitToUser(order.userId, 'ORDER_CREATED', order);
+    }
+    emitToOrder(order.id, 'ORDER_CREATED', order);
+    updatedProducts.forEach((p) => {
+      broadcastRealtime('STOCK_CHANGED', { productId: p.id, stock: p.stock });
+    });
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
@@ -247,7 +258,7 @@ export const previewCoupon = async (req: AuthRequest, res: Response, next: NextF
     let normalizedCouponCode: string | null = null;
     if (couponCode && String(couponCode).trim()) {
       normalizedCouponCode = String(couponCode).trim().toUpperCase();
-      const coupon = await prisma.coupon.findUnique({
+      const coupon = await prisma.coupon.findFirst({
         where: { code: normalizedCouponCode, isActive: true },
       });
       if (!coupon) throw new AppError('Invalid coupon code', 400);
@@ -361,7 +372,7 @@ export const cancelOrder = async (req: AuthRequest, res: Response, next: NextFun
       include: { items: true },
     });
     if (orderWithItems) {
-      await Promise.all(
+      const restored = await Promise.all(
         orderWithItems.items.map((item) =>
           prisma.product.update({
             where: { id: item.productId },
@@ -369,12 +380,26 @@ export const cancelOrder = async (req: AuthRequest, res: Response, next: NextFun
               stock: { increment: item.quantity },
               soldCount: { decrement: item.quantity },
             },
+            select: { id: true, stock: true },
           })
         )
       );
+      restored.forEach((p) => {
+        broadcastRealtime('STOCK_CHANGED', { productId: p.id, stock: p.stock });
+      });
     }
 
-    res.json({ success: true, message: 'Order cancelled successfully' });
+    const updatedOrder = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true, address: true, user: { select: { id: true, name: true, email: true } } },
+    });
+    if (updatedOrder) {
+      emitToAdmin('ORDER_UPDATED', updatedOrder);
+      if (updatedOrder.userId) emitToUser(updatedOrder.userId, 'ORDER_UPDATED', updatedOrder);
+      emitToOrder(updatedOrder.id, 'ORDER_UPDATED', updatedOrder);
+    }
+
+    res.json({ success: true, message: 'Order cancelled successfully', data: updatedOrder });
   } catch (error) {
     next(error);
   }
@@ -605,12 +630,20 @@ export const adminUpdateOrderStatus = async (req: AuthRequest, res: Response, ne
     if (status === 'SHIPPED') data.shippedAt = new Date();
     if (status === 'DELIVERED') data.deliveredAt = new Date();
 
-    const order = await prisma.order.update({ where: { id }, data });
+    const order = await prisma.order.update({
+      where: { id },
+      data,
+      include: { items: true, address: true, user: { select: { id: true, name: true, email: true } } },
+    });
     if (existing.status !== status) {
       notifyAdminOrderStatusChanged(order.id, existing.status, status).catch((error) => {
         console.error('[Admin Notify] Order status update notification failed:', error);
       });
     }
+
+    emitToAdmin('ORDER_UPDATED', order);
+    if (order.userId) emitToUser(order.userId, 'ORDER_UPDATED', order);
+    emitToOrder(order.id, 'ORDER_UPDATED', order);
 
     res.json({ success: true, message: 'Order status updated', data: order });
   } catch (error) {

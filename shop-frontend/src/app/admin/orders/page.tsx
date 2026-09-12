@@ -11,6 +11,7 @@ import { adminT } from '@/lib/admin-i18n';
 import { playNewOrderChime, printThermalReceipt } from '@/components/admin/ThermalReceiptPrinter';
 import Image from 'next/image';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -154,11 +155,58 @@ export default function AdminOrdersPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Live Auto-Polling every 6 seconds for new orders
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for orders
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleOrderCreated = (newOrder: Order) => {
+      if (!newOrder || !newOrder.id) return;
+      knownOrderIdsRef.current.add(newOrder.id);
+
+      // Play chime & notify immediately
+      if (soundAlertEnabled) {
+        playNewOrderChime();
+      }
+      toast.success(
+        isKhmer
+          ? `🔔 មានការកម្មង់ថ្មី: ${newOrder.orderNumber} (${formatPrice(newOrder.total)})`
+          : `🔔 New Order: ${newOrder.orderNumber} (${formatPrice(newOrder.total)})`,
+        { duration: 6000 }
+      );
+
+      if (autoPrintEnabled) {
+        printThermalReceipt(newOrder, paperWidth);
+      }
+
+      setOrders((prev) => {
+        const exists = prev.some((o) => o.id === newOrder.id);
+        if (exists) return prev.map((o) => (o.id === newOrder.id ? { ...o, ...newOrder } : o));
+        return [newOrder, ...prev];
+      });
+    };
+
+    const handleOrderUpdated = (updatedOrder: Order) => {
+      if (!updatedOrder || !updatedOrder.id) return;
+      setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o)));
+      setSelectedOrder((prev) => (prev && prev.id === updatedOrder.id ? { ...prev, ...updatedOrder } : prev));
+    };
+
+    socket.on('ORDER_CREATED', handleOrderCreated);
+    socket.on('ORDER_UPDATED', handleOrderUpdated);
+
+    return () => {
+      socket.off('ORDER_CREATED', handleOrderCreated);
+      socket.off('ORDER_UPDATED', handleOrderUpdated);
+    };
+  }, [socket, soundAlertEnabled, autoPrintEnabled, paperWidth, isKhmer]);
+
+  // Background fallback sync
   useEffect(() => {
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 6000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
 

@@ -16,6 +16,7 @@ import axios from 'axios';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
 import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -327,16 +328,59 @@ export default function OrderDetailsPage() {
 
     loadOrderData(false);
 
-    // Live real-time background sync every 3.5s
+    // Live real-time background fallback sync
     const interval = setInterval(() => {
       loadOrderData(true);
-    }, 3500);
+    }, 10000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
   }, [isAuthChecked, isAuthenticated, params.id, router, language]);
+
+  const { socket, joinOrder, leaveOrder } = useRealtime();
+
+  // Instant Real-time WebSocket listener for this order
+  useEffect(() => {
+    const id = parseOrderIdFromRoute(String(params.id));
+    if (!id) return;
+
+    joinOrder(id);
+
+    if (socket) {
+      const handleOrderUpdated = (updatedOrder: Order) => {
+        if (!updatedOrder || updatedOrder.id !== id) return;
+        setOrder((prev) => {
+          if (prev && prev.paymentStatus !== 'PAID' && updatedOrder.paymentStatus === 'PAID') {
+            toast.success(
+              language === 'km'
+                ? '🎉 ការទូទាត់ប្រាក់ទទួលបានជោគជ័យ!'
+                : '🎉 Payment successfully confirmed!'
+            );
+          } else if (prev && prev.status !== updatedOrder.status) {
+            toast.success(
+              language === 'km'
+                ? `📦 ស្ថានភាព Order ត្រូវបានកែប្រែទៅជា: ${updatedOrder.status}`
+                : `📦 Order status updated to: ${updatedOrder.status}`
+            );
+          }
+          return { ...prev, ...updatedOrder };
+        });
+      };
+
+      socket.on('ORDER_UPDATED', handleOrderUpdated);
+
+      return () => {
+        leaveOrder(id);
+        socket.off('ORDER_UPDATED', handleOrderUpdated);
+      };
+    }
+
+    return () => {
+      leaveOrder(id);
+    };
+  }, [socket, params.id, joinOrder, leaveOrder, language]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !isAuthenticated || !isAuthChecked) return;

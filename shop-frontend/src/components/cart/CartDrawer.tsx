@@ -318,17 +318,24 @@ export function CartDrawer() {
                     );
                   })}
 
-                  {/* Trust & Guarantee Strip */}
-                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 to-indigo-50/40 dark:from-[#151922] dark:to-primary-950/20 border border-slate-200/60 dark:border-white/[0.06] space-y-2 mt-2">
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>{isKhmer ? 'ទំនិញសុទ្ធ ១០០%' : '100% Authentic'}</span>
+                  {/* Trust & Guarantee Strip (High-Contrast & Clear) */}
+                  <div className="grid grid-cols-2 gap-2.5 mt-3 pt-1">
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100/90 dark:bg-surface-800 border border-slate-200/90 dark:border-surface-700 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-3.5 h-3.5" />
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <RotateCcw className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>{isKhmer ? 'ប្តូរវិញក្នុង ៧ថ្ងៃ' : '7-Day Easy Returns'}</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
+                        {isKhmer ? 'ទំនិញសុទ្ធ ១០០%' : '100% Authentic'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-100/90 dark:bg-surface-800 border border-slate-200/90 dark:border-surface-700 shadow-2xs">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        <RotateCcw className="w-3.5 h-3.5" />
                       </div>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-snug">
+                        {isKhmer ? 'ប្តូរវិញក្នុង ៧ថ្ងៃ' : '7-Day Returns'}
+                      </span>
                     </div>
                   </div>
                 </div>

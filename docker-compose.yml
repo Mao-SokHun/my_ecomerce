@@ -5,8 +5,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-hpg_ddzVgWynGNHSrfUjLdNe-cPYjeTY}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: shopdb
+    ports:
+      - "5432:5432"
     volumes:
       - sh_shop_pgdata:/var/lib/postgresql/data
     healthcheck:

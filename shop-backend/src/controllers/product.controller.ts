@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 import { generateSlug, paginate, paginateResponse, str } from '../utils/helpers';
 import { PRODUCT_NAME_TRANSLATIONS } from '../data/productNameTranslations';
 import { apiCache } from '../lib/memoryCache';
+import { emitToAdmin, broadcastRealtime } from '../lib/socket';
 
 type ProductLang = 'km' | 'en' | 'zh';
 
@@ -234,8 +235,10 @@ export const getProduct = async (req: Request, res: Response, next: NextFunction
     const slug = String(req.params.slug);
     const lang = resolveLang(req.query.lang);
 
-    const product = await prisma.product.findUnique({
-      where: { slug, isActive: true },
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ slug }, { id: slug }],
+      },
       include: {
         category: { select: { id: true, name: true, slug: true, parent: { select: { id: true, name: true, slug: true } } } },
         variants: true,
@@ -331,6 +334,9 @@ export const createProduct = async (
     });
 
     apiCache.invalidatePrefix('products:');
+    emitToAdmin('PRODUCT_CREATED', product);
+    broadcastRealtime('PRODUCT_UPDATED', product);
+    broadcastRealtime('STOCK_CHANGED', { productId: product.id, stock: product.stock });
     res.status(201).json({ success: true, message: 'Product created', data: product });
   } catch (error) {
     next(error);
@@ -416,6 +422,9 @@ export const updateProduct = async (
     });
 
     apiCache.invalidatePrefix('products:');
+    emitToAdmin('PRODUCT_UPDATED', product);
+    broadcastRealtime('PRODUCT_UPDATED', product);
+    broadcastRealtime('STOCK_CHANGED', { productId: product.id, stock: product.stock });
     res.json({ success: true, message: 'Product updated', data: product });
   } catch (error) {
     next(error);
@@ -436,6 +445,8 @@ export const deleteProduct = async (
     });
 
     apiCache.invalidatePrefix('products:');
+    emitToAdmin('PRODUCT_DELETED', { id });
+    broadcastRealtime('PRODUCT_DELETED', { id });
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
     next(error);
@@ -484,7 +495,11 @@ export const getRelatedProducts = async (req: Request, res: Response, next: Next
     const slug = String(req.params.slug);
     const lang = resolveLang(req.query.lang);
 
-    const product = await prisma.product.findUnique({ where: { slug } });
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ slug }, { id: slug }],
+      },
+    });
     if (!product) throw new AppError('Product not found', 404);
 
     const related = await prisma.product.findMany({

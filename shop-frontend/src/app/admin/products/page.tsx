@@ -35,6 +35,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 export default function AdminProductsPage() {
   const { language } = useAdminLanguageStore();
@@ -198,6 +199,51 @@ export default function AdminProductsPage() {
         setIsFetching(false);
       });
   }, [search, filterMode]);
+
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for products & stock updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleProductCreated = (newProd: Product) => {
+      if (!newProd || !newProd.id) return;
+      setProducts((prev) => {
+        const exists = prev.some((p) => p.id === newProd.id);
+        if (exists) return prev.map((p) => (p.id === newProd.id ? { ...p, ...newProd } : p));
+        return [newProd, ...prev];
+      });
+    };
+
+    const handleProductUpdated = (updatedProd: Product) => {
+      if (!updatedProd || !updatedProd.id) return;
+      setProducts((prev) => prev.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p)));
+    };
+
+    const handleStockChanged = (data: { productId: string; stock: number }) => {
+      if (!data || !data.productId) return;
+      setProducts((prev) =>
+        prev.map((p) => (p.id === data.productId ? { ...p, stock: data.stock } : p))
+      );
+    };
+
+    const handleProductDeleted = (data: { id: string }) => {
+      if (!data || !data.id) return;
+      setProducts((prev) => prev.filter((p) => p.id !== data.id));
+    };
+
+    socket.on('PRODUCT_CREATED', handleProductCreated);
+    socket.on('PRODUCT_UPDATED', handleProductUpdated);
+    socket.on('STOCK_CHANGED', handleStockChanged);
+    socket.on('PRODUCT_DELETED', handleProductDeleted);
+
+    return () => {
+      socket.off('PRODUCT_CREATED', handleProductCreated);
+      socket.off('PRODUCT_UPDATED', handleProductUpdated);
+      socket.off('STOCK_CHANGED', handleStockChanged);
+      socket.off('PRODUCT_DELETED', handleProductDeleted);
+    };
+  }, [socket]);
 
   // Open Quick Restock Modal
   const openRestock = (product: Product, e?: React.MouseEvent) => {
@@ -732,12 +778,13 @@ export default function AdminProductsPage() {
           <div className="flex items-center gap-2.5 shrink-0">
             {categories.length > 0 && (
               <CustomDropdown
-                size="sm"
+                size="md"
                 value={selectedCategory}
                 onChange={setSelectedCategory}
                 options={categoryOptions}
-                icon={<Layers className="w-3.5 h-3.5 text-primary-500 shrink-0" />}
-                className="w-auto min-w-[140px] sm:min-w-[170px]"
+                icon={<Layers className="w-4 h-4 text-primary-500 shrink-0" />}
+                className="w-auto min-w-[170px] sm:min-w-[210px]"
+                buttonClassName="bg-slate-50 dark:bg-surface-800 border-slate-200 dark:border-surface-700 hover:border-primary-400 font-semibold text-slate-800 dark:text-slate-100 shadow-inner"
               />
             )}
 
@@ -863,7 +910,12 @@ export default function AdminProductsPage() {
                       {/* Product Name & Thumbnail */}
                       <td className="py-2.5 px-3 sm:px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-sm transition-shadow">
+                          <Link
+                            href={`/products/${product.slug || product.id}`}
+                            target="_blank"
+                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-sm transition-shadow block"
+                            title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
+                          >
                             {product.thumbnail ? (
                               <Image
                                 src={product.thumbnail}
@@ -877,11 +929,16 @@ export default function AdminProductsPage() {
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
-                          </div>
+                          </Link>
                           <div className="min-w-0 max-w-xs sm:max-w-sm">
-                            <p className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                            <Link
+                              href={`/products/${product.slug || product.id}`}
+                              target="_blank"
+                              className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors block"
+                              title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
+                            >
                               {product.name}
-                            </p>
+                            </Link>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               {product.brand && (
                                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -1026,7 +1083,7 @@ export default function AdminProductsPage() {
                       <td className="py-2.5 px-3 sm:px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link
-                            href={`/products/${product.slug}`}
+                            href={`/products/${product.slug || product.id}`}
                             target="_blank"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}

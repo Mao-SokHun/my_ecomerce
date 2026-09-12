@@ -33,7 +33,7 @@ export const authenticate = async (
       tokenVersion?: number;
     };
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { id: decoded.id, isActive: true },
       select: { id: true, email: true, role: true, name: true, isActive: true, tokenVersion: true },
     });
@@ -84,7 +84,7 @@ export const optionalAuth = async (
         name: string;
         tokenVersion?: number;
       };
-      const user = await prisma.user.findUnique({
+      const user = await prisma.user.findFirst({
         where: { id: decoded.id, isActive: true },
         select: { id: true, email: true, role: true, name: true, tokenVersion: true },
       });

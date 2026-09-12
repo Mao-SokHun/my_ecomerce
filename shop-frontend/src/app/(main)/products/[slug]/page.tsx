@@ -18,6 +18,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { formatPrice, getDiscountPercent, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -70,6 +71,42 @@ export default function ProductDetailPage() {
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
   }, [slug, isAuthenticated]);
+
+  const { socket, joinProduct, leaveProduct } = useRealtime();
+
+  // Instant Real-time WebSocket listener for this product's stock & details
+  useEffect(() => {
+    if (!product?.id) return;
+    const prodId = product.id;
+    joinProduct(prodId);
+
+    if (socket) {
+      const handleStockChanged = (data: { productId: string; stock: number }) => {
+        if (data.productId === prodId) {
+          setProduct((prev) => (prev ? { ...prev, stock: data.stock } : prev));
+        }
+      };
+
+      const handleProductUpdated = (updatedProd: Product) => {
+        if (updatedProd.id === prodId || updatedProd.slug === slug) {
+          setProduct((prev) => (prev ? { ...prev, ...updatedProd } : updatedProd));
+        }
+      };
+
+      socket.on('STOCK_CHANGED', handleStockChanged);
+      socket.on('PRODUCT_UPDATED', handleProductUpdated);
+
+      return () => {
+        leaveProduct(prodId);
+        socket.off('STOCK_CHANGED', handleStockChanged);
+        socket.off('PRODUCT_UPDATED', handleProductUpdated);
+      };
+    }
+
+    return () => {
+      leaveProduct(prodId);
+    };
+  }, [socket, product?.id, slug, joinProduct, leaveProduct]);
 
   const variantGroups = product?.variants?.reduce((acc, v) => {
     if (!acc[v.name]) acc[v.name] = [];
@@ -197,11 +234,14 @@ export default function ProductDetailPage() {
         <Link href="/" className="hover:text-primary-600">{t(language, 'home')}</Link>
         <ChevronRight className="w-4 h-4" />
         <Link href="/products" className="hover:text-primary-600">{t(language, 'products')}</Link>
-        <ChevronRight className="w-4 h-4" />
-        <Link href={`/products?category=${product.category.slug}`} className="hover:text-primary-600">
-          {product.category.name}
-        </Link>
-        <ChevronRight className="w-4 h-4" />
+        {product.category && (
+          <>
+            <Link href={`/products?category=${product.category.slug}`} className="hover:text-primary-600">
+              {product.category.name}
+            </Link>
+            <ChevronRight className="w-4 h-4" />
+          </>
+        )}
         <span className="text-gray-900 dark:text-white truncate max-w-xs">{product.name}</span>
       </nav>
 

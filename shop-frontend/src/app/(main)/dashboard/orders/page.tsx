@@ -29,6 +29,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { formatPrice, formatDate, getOrderStatusColor, getPaymentStatusColor, cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useRealtime } from '@/providers/RealtimeProvider';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -53,6 +54,35 @@ export default function OrdersPage() {
       .then(({ data }) => setOrders(data.data || []))
       .finally(() => setLoading(false));
   }, [isAuthChecked, isAuthenticated, router]);
+
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket updates for customer's orders
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleOrderCreated = (newOrder: Order) => {
+      if (!newOrder || !newOrder.id) return;
+      setOrders((prev) => {
+        const exists = prev.some((o) => o.id === newOrder.id);
+        if (exists) return prev.map((o) => (o.id === newOrder.id ? { ...o, ...newOrder } : o));
+        return [newOrder, ...prev];
+      });
+    };
+
+    const handleOrderUpdated = (updatedOrder: Order) => {
+      if (!updatedOrder || !updatedOrder.id) return;
+      setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o)));
+    };
+
+    socket.on('ORDER_CREATED', handleOrderCreated);
+    socket.on('ORDER_UPDATED', handleOrderUpdated);
+
+    return () => {
+      socket.off('ORDER_CREATED', handleOrderCreated);
+      socket.off('ORDER_UPDATED', handleOrderUpdated);
+    };
+  }, [socket]);
 
   const handleCopyOrderNumber = (orderNumber: string, e: React.MouseEvent) => {
     e.stopPropagation();

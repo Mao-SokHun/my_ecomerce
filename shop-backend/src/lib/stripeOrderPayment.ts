@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import prisma from './prisma';
 import { sendInvoiceNotification } from './invoice';
 import { notifyAdminOrderEvent } from './adminNotifier';
+import { emitToAdmin, emitToUser, emitToOrder } from './socket';
 
 export function assertPaymentIntentMatchesOrder(order: Order, pi: Stripe.PaymentIntent): void {
   // Stripe metadata values are strings; Prisma `id` is string — compare as strings.
@@ -47,5 +48,18 @@ export async function persistOrderPaidFromStripe(
   notifyAdminOrderEvent(orderId, 'PAYMENT_PAID').catch((error) => {
     console.error('[Stripe] Admin payment notification failed:', error);
   });
+
+  // Realtime notification dispatch
+  prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true, address: true, user: { select: { id: true, name: true, email: true } } },
+  }).then((ord) => {
+    if (ord) {
+      emitToAdmin('ORDER_UPDATED', ord);
+      if (ord.userId) emitToUser(ord.userId, 'ORDER_UPDATED', ord);
+      emitToOrder(ord.id, 'ORDER_UPDATED', ord);
+    }
+  }).catch(() => {});
+
   return true;
 }

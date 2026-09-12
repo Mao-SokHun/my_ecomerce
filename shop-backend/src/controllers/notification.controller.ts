@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { sendTelegramMessage } from '../lib/notifier';
+import { emitToAdmin, emitToUser, broadcastRealtime } from '../lib/socket';
 
 // ─── HELPER: Parse CSV string ───────────────────────────────────────────────
 const parseCsv = (v?: string): string[] =>
@@ -126,6 +127,14 @@ export const broadcastNotification = async (req: AuthRequest, res: Response, nex
       }
     }
 
+    // Realtime notification dispatch
+    if (target === 'USER' && targetUserId) {
+      emitToUser(targetUserId, 'NOTIFICATION_NEW', notification);
+    } else {
+      broadcastRealtime('NOTIFICATION_NEW', notification);
+    }
+    emitToAdmin('NOTIFICATION_CREATED', notification);
+
     res.status(201).json({
       success: true,
       message:
@@ -200,6 +209,8 @@ export const deleteNotification = async (req: AuthRequest, res: Response, next: 
     await prisma.notification.delete({
       where: { id },
     });
+    emitToAdmin('NOTIFICATION_DELETED', { id });
+    broadcastRealtime('NOTIFICATION_DELETED', { id });
     res.json({ success: true, message: 'សេចក្តីជូនដំណឹងត្រូវបានលុបដោយជោគជ័យ' });
   } catch (error) {
     next(error);

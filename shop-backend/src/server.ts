@@ -1,6 +1,8 @@
+import http from 'http';
 import 'dotenv/config';
 import app from './app';
 import prisma from './lib/prisma';
+import { initSocket } from './lib/socket';
 
 const PORT = process.env.PORT || 5000;
 
@@ -24,10 +26,14 @@ const start = async () => {
     await prisma.$connect();
     console.log('✅ Database connected');
 
-    app.listen(PORT, () => {
+    const httpServer = http.createServer(app);
+    initSocket(httpServer);
+
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      console.log(`⚡ WebSocket Server active on port ${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

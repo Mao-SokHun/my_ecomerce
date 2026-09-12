@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { CartDrawer } from './cart/CartDrawer';
 import SupportChatWidget from './chat/SupportChatWidget';
+import { RealtimeProvider } from '@/providers/RealtimeProvider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -88,7 +89,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <>
+    <RealtimeProvider>
       {children}
       <CartDrawer />
       <SupportChatWidget />
@@ -107,6 +108,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </>
+    </RealtimeProvider>
   );
 }

@@ -55,7 +55,7 @@ export const addToCart = async (req: AuthRequest, res: Response, next: NextFunct
     if (!productId) throw new AppError('Product ID is required', 400);
     if (quantity < 1) throw new AppError('Quantity must be at least 1', 400);
 
-    const product = await prisma.product.findUnique({ where: { id: productId, isActive: true } });
+    const product = await prisma.product.findFirst({ where: { id: productId, isActive: true } });
     if (!product) throw new AppError('Product not found', 404);
     if (product.stock < quantity) throw new AppError('Insufficient stock', 400);
 
