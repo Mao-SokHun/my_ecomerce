@@ -479,16 +479,19 @@ export default function AdminOrdersPage() {
                           <Printer className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* Order Status Select with smart auto placement */}
-                        <CustomDropdown
-                          size="xs"
-                          align="right"
-                          placement="auto"
+                        {/* Order Status Select */}
+                        <select
                           value={order.status}
-                          onChange={(val) => handleStatusUpdate(order.id, val)}
+                          onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
                           disabled={updatingId === order.id}
-                          options={orderStatusOptions}
-                        />
+                          className="text-xs font-semibold border border-gray-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer shadow-2xs"
+                        >
+                          {statuses.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </td>
                   </tr>
