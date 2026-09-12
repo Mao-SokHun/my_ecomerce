@@ -20,5 +20,12 @@
     "ios": "npm run ios --prefix shop-mobile",
     "docker:db": "docker compose up -d postgres",
     "docker:db:down": "docker compose down"
+  },
+  "workspaces": [
+    "shop-frontend",
+    "shop-backend"
+  ],
+  "dependencies": {
+    "next": "^15.1.9"
   }
 }

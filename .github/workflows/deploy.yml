@@ -78,7 +78,7 @@ jobs:
     name: Deploy to Local Docker
     needs: validate
     runs-on: self-hosted
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !vars.USE_REMOTE_SERVER && !vars.USE_CLOUD_DEPLOY
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.USE_LOCAL_DOCKER == 'true'
 
     steps:
       - name: Checkout code

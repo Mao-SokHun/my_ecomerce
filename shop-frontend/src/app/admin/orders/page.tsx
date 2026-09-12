@@ -492,7 +492,14 @@ export default function AdminOrdersPage() {
                     <td className="py-3 px-4 text-gray-500">{order.items.length} {isKhmer ? 'មុខ' : 'items'}</td>
                     <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">{formatPrice(order.total)}</td>
                     <td className="py-3 px-4">
-                      <span className={`badge ${getOrderStatusColor(order.status)}`}>{order.status}</span>
+                      <CustomDropdown
+                        size="xs"
+                        value={order.status}
+                        onChange={(newStatus) => handleStatusUpdate(order.id, newStatus)}
+                        disabled={updatingId === order.id}
+                        options={orderStatusOptions}
+                        buttonClassName="w-auto min-w-[125px] font-semibold text-xs shadow-2xs"
+                      />
                     </td>
                     <td className="py-3 px-4">
                       <span className={`badge ${getPaymentStatusColor(order.paymentStatus)}`}>
@@ -522,17 +529,6 @@ export default function AdminOrdersPage() {
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
-
-                        {/* Luxury Status Dropdown */}
-                        <CustomDropdown
-                          size="xs"
-                          align="right"
-                          value={order.status}
-                          onChange={(newStatus) => handleStatusUpdate(order.id, newStatus)}
-                          disabled={updatingId === order.id}
-                          options={orderStatusOptions}
-                          buttonClassName="min-w-[105px] font-semibold text-xs shadow-2xs"
-                        />
                       </div>
                     </td>
                   </tr>
