@@ -31,8 +31,11 @@ export type PromoCard = {
 export interface AdminSettingsForm {
   siteName: string;
   siteTagline: string;
+  shippingFeePhnomPenh: number;
   shippingFeeVet: number;
   shippingFeeJnt: number;
+  freeShippingThreshold: number;
+  workingHours: string;
   header: {
     siteName: string;
     logoLetter: string;

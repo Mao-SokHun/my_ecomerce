@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { apiCache } from '../lib/memoryCache';
+import { broadcastRealtime } from '../lib/socket';
 
 const defaultFees = (base: number) => ({
   shippingFee: base,
@@ -153,6 +154,7 @@ export const updateSettings = async (req: Request, res: Response) => {
 
     apiCache.invalidatePrefix('settings:');
     apiCache.delete('settings:global');
+    broadcastRealtime('SETTINGS_UPDATED', settings);
     res.json({ success: true, message: 'Settings updated successfully', data: settings });
   } catch (error) {
     console.error('updateSettings error:', error);

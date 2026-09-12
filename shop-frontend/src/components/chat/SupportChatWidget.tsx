@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
-import { supportApi } from '@/lib/api';
+import { supportApi, settingApi } from '@/lib/api';
 import { playMessageAlertChime } from '@/lib/soundAlert';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import toast from 'react-hot-toast';
@@ -72,6 +72,23 @@ export default function SupportChatWidget() {
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [lastPendingQuestion, setLastPendingQuestion] = useState<{ name: string; phone: string; text: string } | null>(null);
 
+  // Store Global Settings for Auto-Chat & FAQs
+  const [storeSettings, setStoreSettings] = useState<{
+    siteName?: string;
+    shippingFee?: number;
+    shippingFeeVet?: number;
+    shippingFeeJnt?: number;
+    shippingFeePhnomPenh?: number;
+    freeShippingThreshold?: number;
+    workingHours?: string;
+    footer?: {
+      brandName?: string;
+      address?: string;
+      phones?: string[];
+      email?: string;
+    };
+  } | null>(null);
+
   // Auto-fill user information if logged in
   useEffect(() => {
     if (user) {
@@ -80,61 +97,139 @@ export default function SupportChatWidget() {
     }
   }, [user, clientName, clientPhone]);
 
-  // FAQ Data definition
-  const faqList: FAQItem[] = [
-    {
-      key: 'order_status',
-      question: {
-        km: '📦 របៀបឆែកមើលស្ថានភាពការបញ្ជាទិញ',
-        en: '📦 How to check order status',
-        zh: '📦 如何查询订单状态',
+  // Load store settings & listen for live changes
+  useEffect(() => {
+    const applyData = (d: any) => {
+      if (!d) return;
+      const footerInfo = d.footerInfo || {};
+      const footer = footerInfo.footer || {};
+      setStoreSettings({
+        siteName: d.siteName || footer.brandName || 'SH-Shop',
+        shippingFee: d.shippingFee ?? 1.0,
+        shippingFeeVet: d.shippingFeeVet ?? 1.0,
+        shippingFeeJnt: d.shippingFeeJnt ?? 1.0,
+        shippingFeePhnomPenh: footer.shippingFeePhnomPenh ?? d.shippingFee ?? 1.0,
+        freeShippingThreshold: footer.freeShippingThreshold ?? 50.0,
+        workingHours: footer.workingHours || 'រៀងរាល់ថ្ងៃ ម៉ោង 8:00 ព្រឹក - 9:00 យប់',
+        footer: {
+          brandName: footer.brandName || d.siteName || 'SH-Shop',
+          address: footer.address || 'ផ្ទះលេខ ២៤៧, ផ្លូវបឹងសាឡាង, ទួលគោក, ភ្នំពេញ',
+          phones: footer.phones?.length ? footer.phones : ['097 494 4390', '088 545 9115'],
+          email: footer.email || 'shshopbyonline@gmail.com',
+        },
+      });
+    };
+
+    settingApi.get().then(({ data }) => {
+      if (data?.data) applyData(data.data);
+    }).catch(() => {});
+
+    const handleSettingsUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) applyData(customEvent.detail);
+    };
+
+    window.addEventListener('settings:updated', handleSettingsUpdated);
+    return () => window.removeEventListener('settings:updated', handleSettingsUpdated);
+  }, []);
+
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for store settings
+  useEffect(() => {
+    if (!socket) return;
+    const handleRealtimeSettings = (data: any) => {
+      if (data) {
+        const footerInfo = data.footerInfo || {};
+        const footer = footerInfo.footer || {};
+        setStoreSettings({
+          siteName: data.siteName || footer.brandName || 'SH-Shop',
+          shippingFee: data.shippingFee ?? 1.0,
+          shippingFeeVet: data.shippingFeeVet ?? 1.0,
+          shippingFeeJnt: data.shippingFeeJnt ?? 1.0,
+          shippingFeePhnomPenh: footer.shippingFeePhnomPenh ?? data.shippingFee ?? 1.0,
+          freeShippingThreshold: footer.freeShippingThreshold ?? 50.0,
+          workingHours: footer.workingHours || 'រៀងរាល់ថ្ងៃ ម៉ោង 8:00 ព្រឹក - 9:00 យប់',
+          footer: {
+            brandName: footer.brandName || data.siteName || 'SH-Shop',
+            address: footer.address || 'ផ្ទះលេខ ២៤៧, ផ្លូវបឹងសាឡាង, ទួលគោក, ភ្នំពេញ',
+            phones: footer.phones?.length ? footer.phones : ['097 494 4390', '088 545 9115'],
+            email: footer.email || 'shshopbyonline@gmail.com',
+          },
+        });
+      }
+    };
+    socket.on('SETTINGS_UPDATED', handleRealtimeSettings);
+    return () => {
+      socket.off('SETTINGS_UPDATED', handleRealtimeSettings);
+    };
+  }, [socket]);
+
+  // Dynamic FAQ list generated directly from live admin settings
+  const faqList: FAQItem[] = useMemo(() => {
+    const ppFee = Number(storeSettings?.shippingFeePhnomPenh ?? storeSettings?.shippingFee ?? 1.0).toFixed(2);
+    const vetFee = Number(storeSettings?.shippingFeeVet ?? 1.0).toFixed(2);
+    const jntFee = Number(storeSettings?.shippingFeeJnt ?? 1.0).toFixed(2);
+    const freeThreshold = Number(storeSettings?.freeShippingThreshold ?? 50.0).toFixed(2);
+    const storeAddress = storeSettings?.footer?.address || 'ផ្ទះលេខ ២៤៧, ផ្លូវបឹងសាឡាង, ទួលគោក, ភ្នំពេញ';
+    const storeHours = storeSettings?.workingHours || (language === 'km' ? 'រៀងរាល់ថ្ងៃ ម៉ោង 8:00 ព្រឹក - 9:00 យប់' : 'Daily 8:00 AM - 9:00 PM');
+    const storePhones = storeSettings?.footer?.phones?.length ? storeSettings.footer.phones.join(' / ') : '097 494 4390 / 088 545 9115';
+
+    return [
+      {
+        key: 'order_status',
+        question: {
+          km: '📦 របៀបឆែកមើលស្ថានភាពការបញ្ជាទិញ',
+          en: '📦 How to check order status',
+          zh: '📦 如何查询订单状态',
+        },
+        answer: {
+          km: 'របៀបឆែកមើលស្ថានភាព Order ៖ ចូលទៅកាន់គណនីរបស់អ្នក ➔ "ការបញ្ជាទិញរបស់ខ្ញុំ" ដើម្បីមើលស្ថានភាពចុងក្រោយ (Pending, Confirmed, Shipped, Delivered)។',
+          en: 'To check order status: Go to your Account ➔ "My Orders" to see the latest status (Pending, Confirmed, Shipped, Delivered).',
+          zh: '如何查询订单状态：登录您的账户 ➔ “我的订单”，即可查看当前状态（待付款、已确认、已发货、已送达）。',
+        },
       },
-      answer: {
-        km: 'របៀបឆែកមើលស្ថានភាព Order ៖ ចូលទៅកាន់គណនីរបស់អ្នក ➔ "ការបញ្ជាទិញរបស់ខ្ញុំ" ដើម្បីមើលស្ថានភាពចុងក្រោយ (Pending, Confirmed, Shipped, Delivered)។',
-        en: 'To check order status: Go to your Account ➔ "My Orders" to see the latest status (Pending, Confirmed, Shipped, Delivered).',
-        zh: '如何查询订单状态：登录您的账户 ➔ “我的订单”，即可查看当前状态（待付款、已确认、已发货、已送达）。',
+      {
+        key: 'payment',
+        question: {
+          km: '💳 របៀបទូទាត់ប្រាក់តាម KHQR / Bakong',
+          en: '💳 How to pay via KHQR / Bakong',
+          zh: '💳 如何通过 KHQR / Bakong 付款',
+        },
+        answer: {
+          km: 'យើងខ្ញុំទទួលការទូទាត់តាម Bakong KHQR (ស្កែនបានគ្រប់ធនាគារទាំងអស់ដូចជា ABA, ACLEDA, Canadia, Wing, etc.) ទាំងប្រាក់រៀល (KHR) និងដុល្លារ (USD) ដោយសុវត្ថិភាពខ្ពស់។',
+          en: 'We accept payments via Bakong KHQR (Scan from any KH bank app: ABA, ACLEDA, Wing, Canadia, etc.) in both USD and KHR safely.',
+          zh: '我们支持 Bakong KHQR 扫码支付（支持所有柬埔寨银行 APP），支持美元（USD）和瑞尔（KHR）。',
+        },
       },
-    },
-    {
-      key: 'payment',
-      question: {
-        km: '💳 របៀបទូទាត់ប្រាក់តាម KHQR / Bakong',
-        en: '💳 How to pay via KHQR / Bakong',
-        zh: '💳 如何通过 KHQR / Bakong 付款',
+      {
+        key: 'shipping',
+        question: {
+          km: '🚚 ព័ត៌មានដឹកជញ្ជូន និងថ្លៃសេវា',
+          en: '🚚 Shipping info & fees',
+          zh: '🚚 配送信息与费用',
+        },
+        answer: {
+          km: `ព័ត៌មានសេវាដឹកជញ្ជូន៖\n- ភ្នំពេញ៖ ១ ទៅ ២ ថ្ងៃ ($${ppFee})\n- តាមខេត្ត៖ ២ ទៅ ៣ ថ្ងៃតាមរយៈក្រុមហ៊ុន VET ($${vetFee}) ឬ J&T ($${jntFee})\n*ឥតគិតថ្លៃសម្រាប់ការទិញចាប់ពី $${freeThreshold} ឡើងទៅ!*`,
+          en: `Shipping details:\n- Phnom Penh: 1-2 days ($${ppFee})\n- Provinces: 2-3 days via VET ($${vetFee}) or J&T Express ($${jntFee})\n*Free shipping for orders over $${freeThreshold}!*`,
+          zh: `配送信息：\n- 金边：1 至 2 天（$${ppFee}）\n- 其他省份：2 至 3 天，通过 VET（$${vetFee}）或 J&T 快递（$${jntFee}）\n*订单满 $${freeThreshold} 免运费！*`,
+        },
       },
-      answer: {
-        km: 'យើងខ្ញុំទទួលការទូទាត់តាម Bakong KHQR (ស្កែនបានគ្រប់ធនាគារទាំងអស់ដូចជា ABA, ACLEDA, Canadia, Wing, etc.) ទាំងប្រាក់រៀល (KHR) និងដុល្លារ (USD) ដោយសុវត្ថិភាពខ្ពស់។',
-        en: 'We accept payments via Bakong KHQR (Scan from any KH bank app: ABA, ACLEDA, Wing, Canadia, etc.) in both USD and KHR safely.',
-        zh: '我们支持 Bakong KHQR 扫码支付（支持所有柬埔寨银行 APP），支持美元（USD）和瑞尔（KHR）。',
+      {
+        key: 'hours_address',
+        question: {
+          km: '⏱️ ម៉ោងធ្វើការ និងអាសយដ្ឋានហាង',
+          en: '⏱️ Working hours & Address',
+          zh: '⏱️ 营业时间与地址',
+        },
+        answer: {
+          km: `ព័ត៌មានហាង៖\n- ម៉ោងធ្វើការ៖ ${storeHours}\n- អាសយដ្ឋាន៖ ${storeAddress}\n- លេខទូរស័ព្ទ៖ ${storePhones}`,
+          en: `Store Information:\n- Working hours: ${storeHours}\n- Address: ${storeAddress}\n- Phone: ${storePhones}`,
+          zh: `店铺信息：\n- 营业时间：${storeHours}\n- 地址：${storeAddress}\n- 电话：${storePhones}`,
+        },
       },
-    },
-    {
-      key: 'shipping',
-      question: {
-        km: '🚚 ព័ត៌មានដឹកជញ្ជូន និងថ្លៃសេវា',
-        en: '🚚 Shipping info & fees',
-        zh: '🚚 配送信息与费用',
-      },
-      answer: {
-        km: 'ព័ត៌មានសេវាដឹកជញ្ជូន៖\n- ភ្នំពេញ៖ ១ ទៅ ២ ថ្ងៃ ($1.00)\n- តាមខេត្ត៖ ២ ទៅ ៣ ថ្ងៃតាមរយៈក្រុមហ៊ុន VET ឬ J&T ($1.00)\n*ឥតគិតថ្លៃសម្រាប់ការទិញចាប់ពី $50 ឡើងទៅ!*',
-        en: 'Shipping details:\n- Phnom Penh: 1-2 days ($1.00)\n- Provinces: 2-3 days via VET or J&T Express ($1.00)\n*Free shipping for orders over $50!*',
-        zh: '配送信息：\n- 金边：1 至 2 天（$1.00）\n- 其他省份：2 至 3 天，通过 VET 或 J&T 快递（$1.00）\n*订单满 $50 免运费！*',
-      },
-    },
-    {
-      key: 'hours_address',
-      question: {
-        km: '⏱️ ម៉ោងធ្វើការ និងអាសយដ្ឋានហាង',
-        en: '⏱️ Working hours & Address',
-        zh: '⏱️ 营业时间与地址',
-      },
-      answer: {
-        km: 'ព័ត៌មានហាង៖\n- ម៉ោងធ្វើការ៖ រៀងរាល់ថ្ងៃ ម៉ោង 8:00 ព្រឹក - 9:00 យប់\n- អាសយដ្ឋាន៖ ផ្ទះលេខ ២៤៧, ផ្លូវបឹងសាឡាង, ទួលគោក, ភ្នំពេញ។',
-        en: 'Store Information:\n- Working hours: Daily 8:00 AM - 9:00 PM\n- Address: 247 Beong Salang St, Toul Kork, Phnom Penh.',
-        zh: '店铺信息：\n- 营业时间：每日早上 8:00 - 晚上 9:00\n- 地址：金边市堆谷区沙南社路 247 号。',
-      },
-    },
-  ];
+    ];
+  }, [storeSettings, language]);
 
   const label = {
     title: language === 'km' ? 'ជំនួយការ SH-Shop' : language === 'zh' ? 'SH-Shop 智能助理' : 'SH-Shop Assistant',
@@ -210,8 +305,6 @@ export default function SupportChatWidget() {
       }
     }
   }, [language, label.greeting, loadChatMessages]);
-
-  const { socket } = useRealtime();
 
   // Instant Real-time WebSocket listener for Customer Live Chat
   useEffect(() => {

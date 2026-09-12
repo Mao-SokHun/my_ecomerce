@@ -82,8 +82,11 @@ const adminSettingsI18n: Record<UILang, Record<string, string>> = {
 const defaultForm = (): AdminSettingsForm => ({
   siteName: 'SH-Shop',
   siteTagline: 'Your trusted online store',
+  shippingFeePhnomPenh: 1,
   shippingFeeVet: 1,
   shippingFeeJnt: 1,
+  freeShippingThreshold: 50,
+  workingHours: 'រៀងរាល់ថ្ងៃ ម៉ោង 8:00 ព្រឹក - 9:00 យប់',
   header: {
     siteName: 'SH-Shop',
     logoLetter: 'S',
@@ -238,8 +241,11 @@ export default function AdminSettingsPage() {
           ...base,
           siteName: d.siteName || base.siteName,
           siteTagline: layout.header?.tagline || base.siteTagline,
+          shippingFeePhnomPenh: (layout.footer as any)?.shippingFeePhnomPenh ?? d.shippingFee ?? 1,
           shippingFeeVet: d.shippingFeeVet ?? legacy,
           shippingFeeJnt: d.shippingFeeJnt ?? legacy,
+          freeShippingThreshold: (layout.footer as any)?.freeShippingThreshold ?? 50,
+          workingHours: (layout.footer as any)?.workingHours || base.workingHours,
           header: { ...base.header, ...layout.header },
           footer: {
             ...base.footer,
@@ -304,13 +310,21 @@ export default function AdminSettingsPage() {
       const shopAddress = form.footer.address.trim() || form.invoice.shopAddress.trim() || 'Phnom Penh, Cambodia';
       await settingApi.update({
         siteName: brandName,
-        // Keep legacy fee in sync for backward compatibility.
-        shippingFee: form.shippingFeeVet,
+        shippingFee: form.shippingFeePhnomPenh || form.shippingFeeVet,
         shippingFeeVet: form.shippingFeeVet,
         shippingFeeJnt: form.shippingFeeJnt,
         footerInfo: {
           header: { ...form.header, siteName: brandName, tagline: form.siteTagline },
-          footer: { ...form.footer, brandName, email: contactEmail, phones: contactPhones, address: shopAddress },
+          footer: {
+            ...form.footer,
+            brandName,
+            email: contactEmail,
+            phones: contactPhones,
+            address: shopAddress,
+            shippingFeePhnomPenh: form.shippingFeePhnomPenh,
+            freeShippingThreshold: form.freeShippingThreshold,
+            workingHours: form.workingHours,
+          },
           homepage: form.homepage,
           invoice: { ...form.invoice, shopName: brandName, supportEmail: contactEmail, supportPhone: contactPhoneLine, shopAddress },
         },
