@@ -12,12 +12,12 @@ import {
 } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
-import { Search, Loader2, Clock, TrendingUp, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Loader2, Clock, TrendingUp, ArrowRight, X, Sparkles, Trash2 } from 'lucide-react';
 import type { AppLanguage } from '@/lib/i18n';
 import { t } from '@/lib/i18n';
 import { formatPrice } from '@/lib/utils';
-import { addRecentSearch } from '@/lib/recentSearches';
+import { addRecentSearch, clearRecentSearches } from '@/lib/recentSearches';
 import { useNavbarSearchAssist, type SearchSuggestion } from './useNavbarSearchAssist';
 
 type Slot = 'desktop' | 'mobile' | null;
@@ -32,8 +32,10 @@ type SearchCtx = {
   openPanel: (slot: Exclude<Slot, null>) => void;
   scheduleClose: () => void;
   cancelBlur: () => void;
-  handleSubmit: (e: FormEvent) => void;
+  handleSubmit: (e?: FormEvent) => void;
   goToResults: (q: string) => void;
+  handleClear: () => void;
+  handleClearAllRecent: () => void;
 };
 
 const Ctx = createContext<SearchCtx | null>(null);
@@ -70,7 +72,7 @@ export function NavbarSearchProvider({
 
   const scheduleClose = useCallback(() => {
     cancelBlur();
-    blurTimer.current = setTimeout(() => setActiveSlot(null), 200);
+    blurTimer.current = setTimeout(() => setActiveSlot(null), 250);
   }, [cancelBlur]);
 
   const openPanel = useCallback(
@@ -82,12 +84,13 @@ export function NavbarSearchProvider({
   );
 
   const handleSubmit = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault();
+    (e?: FormEvent) => {
+      if (e) e.preventDefault();
       const q = searchQuery.trim();
-      if (!q) return;
-      addRecentSearch(q);
-      assist.refreshRecent();
+      if (q) {
+        addRecentSearch(q);
+        assist.refreshRecent();
+      }
       onSubmitSearch(q);
       setActiveSlot(null);
     },
@@ -97,15 +100,25 @@ export function NavbarSearchProvider({
   const goToResults = useCallback(
     (q: string) => {
       const tq = q.trim();
-      if (!tq) return;
-      addRecentSearch(tq);
-      assist.refreshRecent();
+      if (tq) {
+        addRecentSearch(tq);
+        assist.refreshRecent();
+      }
       setSearchQuery(tq);
       onSubmitSearch(tq);
       setActiveSlot(null);
     },
     [assist, onSubmitSearch, setSearchQuery],
   );
+
+  const handleClear = useCallback(() => {
+    setSearchQuery('');
+  }, [setSearchQuery]);
+
+  const handleClearAllRecent = useCallback(() => {
+    clearRecentSearches();
+    assist.refreshRecent();
+  }, [assist]);
 
   const value = useMemo(
     () =>
@@ -121,12 +134,16 @@ export function NavbarSearchProvider({
         cancelBlur,
         handleSubmit,
         goToResults,
+        handleClear,
+        handleClearAllRecent,
       }) satisfies SearchCtx,
     [
       activeSlot,
       assist,
       cancelBlur,
       goToResults,
+      handleClear,
+      handleClearAllRecent,
       handleSubmit,
       language,
       onSubmitSearch,
@@ -147,6 +164,8 @@ function DropdownPanel({ slot }: { slot: 'desktop' | 'mobile' }) {
     assist,
     activeSlot,
     goToResults,
+    handleClearAllRecent,
+    cancelBlur,
   } = useSearchCtx();
 
   if (activeSlot !== slot) return null;
@@ -155,105 +174,164 @@ function DropdownPanel({ slot }: { slot: 'desktop' | 'mobile' }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.15 }}
-      className="absolute left-0 right-0 top-full mt-2 z-[70] rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-surface-900 shadow-xl shadow-gray-200/50 dark:shadow-black/40 max-h-[min(70vh,420px)] overflow-y-auto"
-      onMouseDown={(e) => e.preventDefault()}
+      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      className="absolute left-0 right-0 top-full mt-2.5 z-[70] rounded-3xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-[#0B0F17]/95 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] max-h-[min(75vh,480px)] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        cancelBlur();
+      }}
       role="listbox"
       aria-label={t(language, 'searchAriaSuggestions')}
     >
+      {/* Live Auto-Suggestions */}
       {showSuggest && (
-        <div className="p-2 border-b border-gray-100 dark:border-gray-800">
-          <p className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-            {t(language, 'searchQuickResults')}
-          </p>
+        <div className="p-3">
+          <div className="flex items-center justify-between px-2 pb-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <Sparkles className="w-3.5 h-3.5 text-primary-500" />
+              {t(language, 'searchQuickResults')}
+            </span>
+            {assist.suggestions.length > 0 && (
+              <span className="text-[10px] font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 px-2 py-0.5 rounded-full">
+                {assist.suggestions.length} {language === 'km' ? 'លទ្ធផល' : 'results'}
+              </span>
+            )}
+          </div>
+
           {assist.loading ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500">
-              <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex flex-col items-center justify-center gap-2 py-8 text-sm text-slate-500">
+              <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
+              <span className="text-xs">{language === 'km' ? 'កំពុងស្វែងរក...' : 'Searching products...'}</span>
             </div>
           ) : assist.suggestions.length === 0 ? (
-            <p className="px-3 py-4 text-sm text-gray-500 text-center">{t(language, 'searchNoMatches')}</p>
+            <div className="py-6 text-center space-y-1">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {language === 'km' ? `រកមិនឃើញ "${q}" ទេ` : `No results found for "${q}"`}
+              </p>
+              <p className="text-[11px] text-slate-400">
+                {language === 'km' ? 'សូមសាកល្បងពាក្យគន្លឹះផ្សេងទៀត' : 'Try searching with different keywords'}
+              </p>
+            </div>
           ) : (
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {assist.suggestions.map((item: SearchSuggestion) => (
                 <li key={item.id}>
                   <Link
                     href={`/products/${item.slug}`}
-                    className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-gray-50 dark:hover:bg-surface-800 transition-colors"
+                    className="flex items-center gap-3 rounded-2xl p-2 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all duration-150 group"
                     onClick={() => {
                       addRecentSearch(item.name);
                       assist.refreshRecent();
                     }}
                   >
-                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-surface-800">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60">
                       {item.thumbnail ? (
-                        <Image src={item.thumbnail} alt={item.name} fill className="object-cover" sizes="44px" />
+                        <Image src={item.thumbnail} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-200" sizes="48px" />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-[10px] text-gray-400">SKU</div>
+                        <div className="flex h-full items-center justify-center text-[10px] font-bold text-slate-400">SH</div>
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {[item.brand, formatPrice(item.price, language)].filter(Boolean).join(' · ')}
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                        {item.name}
                       </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {item.brand && (
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[120px]">
+                            {item.brand}
+                          </span>
+                        )}
+                        <span className="text-xs font-extrabold text-primary-600 dark:text-primary-400">
+                          {formatPrice(item.price, language)}
+                        </span>
+                      </div>
                     </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0 mr-1" />
                   </Link>
                 </li>
               ))}
             </ul>
           )}
+
           <button
             type="button"
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary-50 py-2.5 text-sm font-semibold text-primary-700 hover:bg-primary-100 dark:bg-primary-900/25 dark:text-primary-300 dark:hover:bg-primary-900/40"
+            className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm hover:shadow-md hover:shadow-primary-500/25 active:scale-[0.99] transition-all"
             onClick={() => goToResults(q)}
           >
-            {t(language, 'searchSeeAllResults')} <ArrowRight className="w-4 h-4" />
+            <span>{t(language, 'searchSeeAllResults')}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {!showSuggest && (
-        <p className="px-4 py-3 text-xs text-gray-500 border-b border-gray-100 dark:border-gray-800">
-          {t(language, 'searchHintMinChars')}
-        </p>
-      )}
-
+      {/* Recent Searches */}
       {assist.recent.length > 0 && (
-        <div className="p-3 border-b border-gray-100 dark:border-gray-800">
-          <p className="flex items-center gap-1.5 px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-            <Clock className="w-3.5 h-3.5" /> {t(language, 'searchRecent')}
-          </p>
-          <div className="flex flex-wrap gap-2">
+        <div className="p-3.5 space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              {t(language, 'searchRecent')}
+            </span>
+            <button
+              type="button"
+              onClick={handleClearAllRecent}
+              className="text-[10px] text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 flex items-center gap-1 transition-colors"
+              title="Clear search history"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>{language === 'km' ? 'លុបប្រវត្តិ' : 'Clear'}</span>
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
             {assist.recent.map((term) => (
               <button
                 key={term}
                 type="button"
-                className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-surface-800 dark:text-gray-200 dark:hover:bg-surface-700"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-primary-50 hover:text-primary-600 dark:bg-slate-800 dark:hover:bg-primary-950/50 dark:hover:text-primary-300 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700/60 transition-all cursor-pointer active:scale-95"
                 onClick={() => goToResults(term)}
               >
-                {term}
+                <Search className="w-3 h-3 text-slate-400 opacity-70" />
+                <span>{term}</span>
               </button>
             ))}
           </div>
         </div>
       )}
 
+      {/* Trending / Popular Products */}
       {assist.trending.length > 0 && (
-        <div className="p-3">
-          <p className="flex items-center gap-1.5 px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-            <TrendingUp className="w-3.5 h-3.5" /> {t(language, 'searchTrending')}
-          </p>
+        <div className="p-3.5 space-y-2">
+          <span className="flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+            {t(language, 'searchTrending')}
+          </span>
           <ul className="space-y-1">
-            {assist.trending.slice(0, 5).map((p) => (
+            {assist.trending.slice(0, 4).map((p, idx) => (
               <li key={p.id}>
                 <Link
                   href={`/products/${p.slug}`}
-                  className="flex items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-surface-800"
+                  className="flex items-center justify-between gap-3 rounded-2xl px-2.5 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group"
                 >
-                  <span className="truncate text-gray-800 dark:text-gray-100">{p.name}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-gray-500">{formatPrice(p.price, language)}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                      idx === 0
+                        ? 'bg-amber-500 text-white shadow-xs shadow-amber-500/30'
+                        : idx === 1
+                        ? 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <span className="truncate font-semibold text-slate-800 dark:text-slate-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      {p.name}
+                    </span>
+                  </div>
+                  <span className="shrink-0 text-xs font-bold text-primary-600 dark:text-primary-400">
+                    {formatPrice(p.price, language)}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -272,22 +350,22 @@ export function NavbarSearchDesktop() {
     handleSubmit,
     openPanel,
     scheduleClose,
+    handleClear,
   } = useSearchCtx();
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex-1 max-w-md hidden md:flex ml-8"
+      className="flex-1 max-w-lg hidden md:flex ml-6 lg:ml-8"
       role="search"
       aria-label={t(language, 'searchPlaceholder')}
     >
       <div className="relative w-full" onFocus={() => openPanel('desktop')} onBlur={scheduleClose}>
-        <motion.div
-          className="relative w-full flex items-center"
-          whileFocus={{ scale: 1.02 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+        <div className="relative w-full flex items-center group">
+          {/* Left Search Icon */}
+          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 group-focus-within:text-primary-600 dark:group-focus-within:text-primary-400 transition-colors" />
+
+          {/* Search Input Box */}
           <input
             type="search"
             name="search"
@@ -296,17 +374,35 @@ export function NavbarSearchDesktop() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t(language, 'searchPlaceholder')}
-            className="w-full pl-11 pr-12 py-2.5 text-sm bg-gray-100/50 dark:bg-surface-800/50 border border-transparent focus:border-primary-500/30 focus:bg-white dark:focus:bg-surface-900 rounded-2xl text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 transition-all duration-200 ease-smooth-out"
+            className="w-full pl-11 pr-20 py-2.5 text-xs sm:text-sm font-medium bg-slate-100/90 hover:bg-slate-100 focus:bg-white dark:bg-[#111827] dark:hover:bg-[#162032] dark:focus:bg-[#0B0F17] border border-slate-200/90 dark:border-slate-800/90 focus:border-primary-500 dark:focus:border-primary-500 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15 shadow-2xs transition-all duration-200"
           />
-          <button
-            type="submit"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-xl text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/30 transition-colors"
-            aria-label={language === 'km' ? 'ស្វែងរក' : language === 'zh' ? '搜索' : 'Search'}
-          >
-            <Search className="w-4 h-4" />
-          </button>
-        </motion.div>
-        <DropdownPanel slot="desktop" />
+
+          {/* Right Action Icons: Clear Button + Search Button */}
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClear}
+                aria-label="Clear search"
+                className="w-7 h-7 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <button
+              type="submit"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white shadow-sm hover:shadow-md hover:shadow-primary-500/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              aria-label={language === 'km' ? 'ស្វែងរក' : language === 'zh' ? '搜索' : 'Search'}
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          <DropdownPanel slot="desktop" />
+        </AnimatePresence>
       </div>
     </form>
   );
@@ -320,13 +416,14 @@ export function NavbarSearchMobile() {
     handleSubmit,
     openPanel,
     scheduleClose,
+    handleClear,
   } = useSearchCtx();
 
   return (
     <div className="pb-2 md:hidden">
       <form onSubmit={handleSubmit} role="search" aria-label={t(language, 'searchPlaceholder')}>
         <div className="relative" onFocus={() => openPanel('mobile')} onBlur={scheduleClose}>
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="search"
             name="search"
@@ -335,16 +432,33 @@ export function NavbarSearchMobile() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t(language, 'searchPlaceholder')}
-            className="w-full min-h-[44px] pl-10 pr-12 py-2.5 text-sm bg-gray-100 dark:bg-surface-800 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-gray-100 transition-all duration-200 ease-smooth-out"
+            className="w-full min-h-[42px] pl-10 pr-20 py-2 text-xs sm:text-sm font-medium bg-slate-100 dark:bg-[#111827] border border-slate-200/90 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-900 dark:text-white placeholder-slate-400 transition-all"
           />
-          <button
-            type="submit"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-lg text-primary-600 hover:bg-white/60 dark:text-primary-400 dark:hover:bg-surface-700"
-            aria-label={language === 'km' ? 'ស្វែងរក' : language === 'zh' ? '搜索' : 'Search'}
-          >
-            <Search className="w-5 h-5" />
-          </button>
-          <DropdownPanel slot="mobile" />
+
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClear}
+                aria-label="Clear search"
+                className="w-7 h-7 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <button
+              type="submit"
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white shadow-xs active:scale-95 transition-all"
+              aria-label={language === 'km' ? 'ស្វែងរក' : language === 'zh' ? '搜索' : 'Search'}
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <AnimatePresence>
+            <DropdownPanel slot="mobile" />
+          </AnimatePresence>
         </div>
       </form>
     </div>
