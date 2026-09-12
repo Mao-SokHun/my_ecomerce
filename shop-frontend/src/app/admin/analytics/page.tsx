@@ -614,6 +614,7 @@ export default function FinancialAccountingPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
+                <th className="text-center py-3 px-3 w-12 text-xs font-semibold text-gray-500">{isKhmer ? 'ល.រ' : '#'}</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
                 <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'យកមក (Cost)' : 'Cost Price'}</th>
@@ -626,12 +627,12 @@ export default function FinancialAccountingPage() {
             <tbody>
               {processedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-gray-500">
+                  <td colSpan={8} className="text-center py-10 text-gray-500">
                     {isKhmer ? 'មិនមានទិន្នន័យទំនិញត្រូវនឹងការស្វែងរកទេ' : 'No products found'}
                   </td>
                 </tr>
               ) : (
-                processedProducts.map((p) => {
+                processedProducts.map((p, index) => {
                   const cost = Number(p.costPrice) || 0;
                   const price = Number(p.price) || 0;
                   const stock = Number(p.stock) || 0;
@@ -645,6 +646,11 @@ export default function FinancialAccountingPage() {
                       key={p.id}
                       className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
                     >
+                      {/* Row Index # */}
+                      <td className="py-3 px-3 text-center text-xs font-mono font-bold text-gray-400 dark:text-gray-500">
+                        {index + 1}
+                      </td>
+
                       {/* Product Name & Thumbnail */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
@@ -721,7 +727,7 @@ export default function FinancialAccountingPage() {
             {processedProducts.length > 0 && (
               <tfoot>
                 <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-surface-800/50 font-bold text-sm text-gray-900 dark:text-white">
-                  <td className="py-3.5 px-4">
+                  <td colSpan={2} className="py-3.5 px-4">
                     {isKhmer ? `សរុប (${processedProducts.length} មុខ):` : `Total (${processedProducts.length} items):`}
                   </td>
                   <td className="py-3.5 px-4 text-center font-bold">

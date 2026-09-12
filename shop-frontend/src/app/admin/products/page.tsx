@@ -887,6 +887,7 @@ export default function AdminProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <th className="py-2.5 px-3 w-12 text-center">{isKhmer ? 'ល.រ' : '#'}</th>
                   <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
                   <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
                   <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
@@ -897,7 +898,7 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
-                {filteredProducts.map((product) => {
+                {filteredProducts.map((product, index) => {
                   const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                   const isLow = product.stock > 0 && product.stock <= 5;
                   const isOut = product.stock <= 0;
@@ -907,6 +908,11 @@ export default function AdminProductsPage() {
                       key={product.id}
                       className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
                     >
+                      {/* Row Index # */}
+                      <td className="py-2.5 px-3 text-center text-xs font-mono font-bold text-slate-400 dark:text-slate-500">
+                        {index + 1}
+                      </td>
+
                       {/* Product Name & Thumbnail */}
                       <td className="py-2.5 px-3 sm:px-4">
                         <div className="flex items-center gap-2.5">
