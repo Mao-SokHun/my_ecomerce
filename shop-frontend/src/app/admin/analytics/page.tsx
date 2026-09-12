@@ -399,50 +399,49 @@ export default function FinancialAccountingPage() {
         </div>
       </div>
 
-      {/* Middle Section: Category Breakdown & Profit Simulator */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Middle Section: Category Breakdown & Compact Profit Simulator */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         {/* Category Breakdown (2 Cols) */}
-        <div className="lg:col-span-2 bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-2 bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-primary-500" />
+              <div className="w-7 h-7 rounded-lg bg-primary-500/10 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4" />
+              </div>
               <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                {isKhmer ? 'ការបែងចែកដើមទុន និងប្រាក់ចំណេញតាមប្រភេទ (Category Profit Breakdown)' : 'Profit Breakdown by Category'}
+                {isKhmer ? 'ការបែងចែកចំណេញតាមប្រភេទ' : 'Profit by Category'}
               </h2>
             </div>
-            <span className="text-xs text-slate-400">{categoryAnalysis.length} Categories</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-surface-800 text-slate-500">
+              {categoryAnalysis.length} {isKhmer ? 'ប្រភេទ' : 'Categories'}
+            </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
             {categoryAnalysis.map((cat) => {
               const margin = cat.retail > 0 ? Math.round((cat.profit / cat.retail) * 100) : 0;
               const profitShare = financials.totalEstGrossProfit > 0 ? Math.round((cat.profit / financials.totalEstGrossProfit) * 100) : 0;
 
               return (
-                <div key={cat.name} className="p-3 rounded-xl bg-slate-50/80 dark:bg-surface-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="font-bold text-slate-900 dark:text-white">{cat.name}</span>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-500 dark:text-slate-400 font-mono">
-                        {isKhmer ? 'ដើម:' : 'Cost:'} {formatPrice(cat.cost, language)}
-                      </span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                        +{formatPrice(cat.profit, language)} ({margin}%)
-                      </span>
-                    </div>
+                <div key={cat.name} className="p-3 rounded-xl bg-slate-50/80 dark:bg-surface-850 border border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[130px]">{cat.name}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs">
+                      +{formatPrice(cat.profit, language)}
+                    </span>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-surface-700 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-surface-700 overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
                       style={{ width: `${Math.max(5, Math.min(100, profitShare))}%` }}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>{cat.count} {isKhmer ? 'គ្រឿងក្នុងស្តុក' : 'items'}</span>
-                    <span>{profitShare}% {isKhmer ? 'នៃប្រាក់ចំណេញសរុប' : 'of total profit'}</span>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>{cat.count} {isKhmer ? 'គ្រឿង' : 'pcs'} • Margin: {margin}%</span>
+                    <span>{profitShare}% {isKhmer ? 'ចំណែកចំណេញ' : 'share'}</span>
                   </div>
                 </div>
               );
@@ -450,84 +449,92 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Interactive Profit & Margin Simulator Calculator (1 Col) */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl border border-indigo-900/50 shadow-md space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-            <Calculator className="w-4 h-4 text-emerald-400" />
-            <h2 className="font-bold text-sm sm:text-base tracking-tight">
-              {isKhmer ? 'ម៉ាស៊ីនគណនាប្រាក់ចំណេញ (Profit Simulator)' : 'Profit & Margin Simulator'}
-            </h2>
+        {/* Compact, Ultra-Sleek Profit Simulator (1 Col - Fits Content, Never Stretches) */}
+        <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Calculator className="w-4 h-4" />
+              </div>
+              <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញរហ័ស' : 'Quick Profit Simulator'}
+              </h2>
+            </div>
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+              Live
+            </span>
           </div>
 
-          <div className="space-y-3 text-xs">
+          <div className="grid grid-cols-3 gap-2">
             {/* Input Cost */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">
-                {isKhmer ? 'ថ្លៃដើមយកមក ($ Cost Price)' : 'Cost Price ($)'}
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
               </label>
               <input
                 type="number"
                 step="0.01"
                 value={simCost}
                 onChange={(e) => setSimCost(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
 
             {/* Input Selling Price */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">
-                {isKhmer ? 'ថ្លៃលក់ចេញ ($ Selling Price)' : 'Selling Price ($)'}
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
               </label>
               <input
                 type="number"
                 step="0.01"
                 value={simPrice}
                 onChange={(e) => setSimPrice(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
 
             {/* Input Quantity */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">
-                {isKhmer ? 'ចំនួនគ្រោងលក់ (Quantity)' : 'Quantity'}
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'ចំនួន' : 'Qty'}
               </label>
               <input
                 type="number"
                 value={simQty}
                 onChange={(e) => setSimQty(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl bg-white/10 border border-white/20 text-white font-mono font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
+          </div>
 
-            {/* Simulator Output Summary */}
-            <div className="p-3.5 rounded-xl bg-white/10 border border-white/15 space-y-2.5 mt-4">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-300">{isKhmer ? 'ចំណេញក្នុង ១ គ្រឿង:' : 'Profit / Unit:'}</span>
-                <strong className="font-mono text-emerald-400 text-sm font-black">
-                  +${simResult.profitPerUnit.toFixed(2)}
-                </strong>
-              </div>
+          {/* Compact Clean Output Box */}
+          <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
+              </span>
+              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
+              </strong>
+            </div>
 
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-300">{isKhmer ? 'ភាគរយ Margin:' : 'Gross Margin:'}</span>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold font-mono">
-                  {simResult.margin}%
-                </span>
-              </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
+                {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
+              </span>
+              <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
+                ${simResult.totalCost.toFixed(2)}
+              </span>
+            </div>
 
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-300">{isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}</span>
-                <span className="font-mono font-bold text-slate-200">${simResult.totalCost.toFixed(2)}</span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs pt-2 border-t border-white/10 font-bold">
-                <span className="text-amber-300">{isKhmer ? 'ប្រាក់ចំណេញសរុប:' : 'Total Est. Profit:'}</span>
-                <span className="font-mono text-emerald-400 text-base font-black">
-                  +${simResult.totalProfit.toFixed(2)}
-                </span>
-              </div>
+            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
+              <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
+                {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
+              </span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
+                +${simResult.totalProfit.toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
