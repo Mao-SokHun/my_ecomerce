@@ -32,13 +32,13 @@ jobs:
       - name: Validate Backend Build
         run: |
           cd shop-backend
-          npm ci
+          npm install
           npm run build
 
       - name: Validate Frontend Build
         run: |
           cd shop-frontend
-          npm ci
+          npm install
           npm run build
 
   # ========================================
