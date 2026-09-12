@@ -541,34 +541,34 @@ export default function FinancialAccountingPage() {
       </div>
 
       {/* Bottom Section: Full Product Valuation & Profit Table */}
-      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+      <div className="card overflow-hidden shadow-sm">
         {/* Table Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-              {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត (Product Profit & Valuation Matrix)' : 'Product Profit & Valuation Matrix'}
+            <h2 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+              {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត' : 'Product Profit & Valuation Matrix'}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               {isKhmer ? 'បង្ហាញតម្លៃយកមក តម្លៃលក់ចេញ និងប្រាក់ចំណេញក្នុងទំនិញនីមួយៗ' : 'Full financial overview per individual catalog item'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input with generous padding */}
+            {/* Search Input */}
             <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
-                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition"
+                className="w-full h-10 pl-10 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-xs transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 dark:bg-surface-700 text-gray-500 hover:text-gray-800 dark:hover:text-white flex items-center justify-center text-xs transition"
                   title="Clear search"
                 >
                   ✕
@@ -581,14 +581,14 @@ export default function FinancialAccountingPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
+                className="h-10 pl-3.5 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
               >
                 <option value="ALL">{isKhmer ? '📁 គ្រប់ប្រភេទទាំងអស់' : '📁 All Categories'}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
 
             {/* Sort Filter Dropdown */}
@@ -596,7 +596,7 @@ export default function FinancialAccountingPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
+                className="h-10 pl-3.5 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
               >
                 <option value="profit_desc">{isKhmer ? '💰 ចំណេញសរុបខ្ពស់បំផុត' : '💰 Highest Total Profit'}</option>
                 <option value="margin_desc">{isKhmer ? '📈 Margin % ខ្ពស់បំផុត' : '📈 Highest Margin %'}</option>
@@ -604,29 +604,29 @@ export default function FinancialAccountingPage() {
                 <option value="cost_desc">{isKhmer ? '🏷️ ដើមទុនខ្ពស់បំផុត' : '🏷️ Highest Inventory Cost'}</option>
                 <option value="name_asc">{isKhmer ? '🔤 តាមឈ្មោះ A-Z' : '🔤 Name A-Z'}</option>
               </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           </div>
         </div>
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-surface-850 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                <th className="py-3.5 px-3 text-center">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក (Cost)' : 'Cost Price'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ (Price)' : 'Selling Price'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប (Total Cost)' : 'Total Cost'}</th>
-                <th className="py-3.5 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'យកមក (Cost)' : 'Cost Price'}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'លក់ចេញ (Price)' : 'Selling Price'}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ចំណេញ/១គ្រឿង' : 'Profit / Unit'}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody>
               {processedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="text-center py-10 text-gray-500">
                     {isKhmer ? 'មិនមានទិន្នន័យទំនិញត្រូវនឹងការស្វែងរកទេ' : 'No products found'}
                   </td>
                 </tr>
@@ -641,20 +641,23 @@ export default function FinancialAccountingPage() {
                   const totalProfit = stock * profitUnit;
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/90 dark:hover:bg-surface-850/60 transition-colors group">
+                    <tr
+                      key={p.id}
+                      className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
+                    >
                       {/* Product Name & Thumbnail */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <Link
                             href={`/products/${p.slug || p.id}`}
                             target="_blank"
-                            className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700 block group-hover:shadow-sm transition"
+                            className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             {p.thumbnail ? (
-                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover group-hover:scale-105 transition duration-200" sizes="40px" />
+                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover" sizes="36px" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
@@ -663,72 +666,50 @@ export default function FinancialAccountingPage() {
                             <Link
                               href={`/products/${p.slug || p.id}`}
                               target="_blank"
-                              className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition"
+                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition"
                             >
                               {p.name}
                             </Link>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
-                              {p.brand && <span className="uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">{p.brand}</span>}
-                              {p.category && <span>• {p.category.name}</span>}
-                            </div>
+                            <p className="text-xs text-gray-400">
+                              {p.brand ? `${p.brand} • ` : ''}{p.category?.name || 'General'}
+                            </p>
                           </div>
                         </div>
                       </td>
 
                       {/* Stock */}
-                      <td className="py-3 px-3 text-center">
-                        <span className={`inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${
-                          stock <= 0
-                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
-                            : stock <= 5
-                            ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60'
-                            : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-surface-800 dark:text-slate-200 dark:border-slate-700'
-                        }`}>
-                          {stock}
-                        </span>
+                      <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-300 font-medium">
+                        {stock}
                       </td>
 
                       {/* Cost */}
-                      <td className="py-3 px-3 text-right">
-                        {cost > 0 ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700">
-                            {formatPrice(cost, language)}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 font-medium italic">
-                            {isKhmer ? 'មិនទាន់កំណត់' : 'No cost'}
-                          </span>
-                        )}
+                      <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">
+                        {cost > 0 ? formatPrice(cost, language) : '—'}
                       </td>
 
                       {/* Selling Price */}
-                      <td className="py-3 px-3 text-right">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60">
-                          {formatPrice(price, language)}
-                        </span>
+                      <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">
+                        {formatPrice(price, language)}
                       </td>
 
                       {/* Profit / Unit & Margin */}
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-4 text-right">
                         {cost > 0 ? (
-                          <div className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
-                            <span>+{formatPrice(profitUnit, language)}</span>
-                            <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-black">
-                              {margin}%
-                            </span>
-                          </div>
+                          <span className="badge badge-success font-semibold">
+                            +{formatPrice(profitUnit, language)} ({margin}%)
+                          </span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-gray-400 text-xs">—</span>
                         )}
                       </td>
 
                       {/* Total Cost */}
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300 font-bold text-xs">
+                      <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300 font-medium">
                         {formatPrice(totalCost, language)}
                       </td>
 
                       {/* Total Est Profit */}
-                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
                         +{formatPrice(totalProfit, language)}
                       </td>
                     </tr>
@@ -739,23 +720,23 @@ export default function FinancialAccountingPage() {
             {/* Table Footer Totals */}
             {processedProducts.length > 0 && (
               <tfoot>
-                <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-surface-850 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                  <td className="py-3.5 px-4 font-black">
+                <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-surface-800/50 font-bold text-sm text-gray-900 dark:text-white">
+                  <td className="py-3.5 px-4">
                     {isKhmer ? `សរុប (${processedProducts.length} មុខ):` : `Total (${processedProducts.length} items):`}
                   </td>
-                  <td className="py-3.5 px-3 text-center font-mono font-black">
+                  <td className="py-3.5 px-4 text-center font-bold">
                     {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)}
                   </td>
-                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
-                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
-                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
-                  <td className="py-3.5 px-3 text-right font-mono font-black text-slate-800 dark:text-slate-200">
+                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
+                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
+                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
+                  <td className="py-3.5 px-4 text-right font-bold text-gray-700 dark:text-gray-300">
                     {formatPrice(
                       processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0),
                       language
                     )}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
+                  <td className="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
                     +{formatPrice(
                       processedProducts.reduce((sum, p) => {
                         const cost = Number(p.costPrice) || 0;
