@@ -19,8 +19,8 @@ router.get('/store-announcement', getLatestStoreAnnouncement);
 // ─── CUSTOMER NOTIFICATIONS ─────────────────────────────────────────────────
 router.get('/', optionalAuth, getCustomerNotifications);
 router.get('/unread-count', optionalAuth, getUnreadCount);
-router.put('/:id/read', authenticate, markNotificationAsRead);
-router.put('/read-all', authenticate, markAllNotificationsAsRead);
+router.put('/:id/read', optionalAuth, markNotificationAsRead);
+router.put('/read-all', optionalAuth, markAllNotificationsAsRead);
 
 // ─── ADMIN BROADCAST & MANAGEMENT ───────────────────────────────────────────
 router.post('/admin/broadcast', authenticate, requireAdmin, broadcastNotification);

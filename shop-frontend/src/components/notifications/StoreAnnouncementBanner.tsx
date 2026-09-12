@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Sparkles, Megaphone, Gift, AlertTriangle, X, ArrowRight } from 'lucide-react';
 import { notificationApi } from '@/lib/api';
@@ -15,6 +15,8 @@ type Announcement = {
   createdAt: string;
 };
 
+const DISMISSED_KEY = 'dismissed_store_announcements_v1';
+
 export function StoreAnnouncementBanner() {
   const { language } = useLanguageStore();
   const isKhmer = language === 'km';
@@ -27,9 +29,15 @@ export function StoreAnnouncementBanner() {
       .getLatestAnnouncement()
       .then(({ data }) => {
         const item = data?.data as Announcement | null;
-        if (item) {
-          const dismissedId = sessionStorage.getItem('dismissed_store_announcement');
-          if (dismissedId !== item.id) {
+        if (item && item.id) {
+          try {
+            const raw = localStorage.getItem(DISMISSED_KEY);
+            const dismissedList: string[] = raw ? JSON.parse(raw) : [];
+            if (!dismissedList.includes(item.id)) {
+              setAnnouncement(item);
+              setIsDismissed(false);
+            }
+          } catch {
             setAnnouncement(item);
             setIsDismissed(false);
           }
@@ -38,12 +46,23 @@ export function StoreAnnouncementBanner() {
       .catch(() => {});
   }, []);
 
-  const handleDismiss = () => {
-    if (announcement) {
-      sessionStorage.setItem('dismissed_store_announcement', announcement.id);
+  const handleDismiss = useCallback(() => {
+    if (announcement?.id) {
+      try {
+        const raw = localStorage.getItem(DISMISSED_KEY);
+        const dismissedList: string[] = raw ? JSON.parse(raw) : [];
+        if (!dismissedList.includes(announcement.id)) {
+          dismissedList.push(announcement.id);
+          localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissedList));
+        }
+      } catch {
+        /* ignore */
+      }
+      // Also mark as read in backend
+      notificationApi.markAsRead(announcement.id).catch(() => {});
     }
     setIsDismissed(true);
-  };
+  }, [announcement]);
 
   if (isDismissed || !announcement) return null;
 
@@ -82,6 +101,7 @@ export function StoreAnnouncementBanner() {
           {announcement.link && (
             <Link
               href={announcement.link}
+              onClick={handleDismiss}
               className="px-3 py-1 rounded-xl bg-white/20 hover:bg-white text-white hover:text-slate-900 text-[11px] font-bold transition flex items-center gap-1 backdrop-blur-md"
             >
               <span>{isKhmer ? 'មើលប្រូម៉ូសិន' : 'Explore'}</span>

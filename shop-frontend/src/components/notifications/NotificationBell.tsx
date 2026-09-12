@@ -55,20 +55,36 @@ export function NotificationBell() {
         notificationApi.getUnreadCount(),
       ]);
 
-      if (notifsRes.status === 'fulfilled') {
-        const list = (notifsRes.value.data?.data || []) as Notification[];
-        setNotifications(list);
+      let localReadIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('dismissed_store_announcements_v1');
+        const rawRead = localStorage.getItem('read_notifications_v1');
+        const list1 = raw ? JSON.parse(raw) : [];
+        const list2 = rawRead ? JSON.parse(rawRead) : [];
+        localReadIds = Array.from(new Set([...list1, ...list2]));
+      } catch {
+        /* ignore */
       }
 
-      if (unreadRes.status === 'fulfilled') {
-        const count = Number(unreadRes.value.data?.data?.unreadCount || 0);
-        setUnreadCount(count);
+      if (notifsRes.status === 'fulfilled') {
+        const list = (notifsRes.value.data?.data || []) as Notification[];
+        const mapped = list.map((item) => ({
+          ...item,
+          isRead: item.isRead || localReadIds.includes(item.id),
+        }));
+        setNotifications(mapped);
 
-        if (silent && !isFirstLoadRef.current && count > prevCountRef.current && prevCountRef.current >= 0) {
+        const realUnread = mapped.filter((n) => !n.isRead).length;
+        setUnreadCount(realUnread);
+
+        if (silent && !isFirstLoadRef.current && realUnread > prevCountRef.current && prevCountRef.current >= 0) {
           playMessageAlertChime();
         }
-        prevCountRef.current = count;
+        prevCountRef.current = realUnread;
         isFirstLoadRef.current = false;
+      } else if (unreadRes.status === 'fulfilled') {
+        const count = Number(unreadRes.value.data?.data?.unreadCount || 0);
+        setUnreadCount(count);
       }
     } catch {
       /* ignore */
@@ -101,9 +117,20 @@ export function NotificationBell() {
   const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
-      if (isAuthenticated) {
-        await notificationApi.markAsRead(id);
+      try {
+        const raw = localStorage.getItem('dismissed_store_announcements_v1');
+        const rawRead = localStorage.getItem('read_notifications_v1');
+        const list1 = raw ? JSON.parse(raw) : [];
+        const list2 = rawRead ? JSON.parse(rawRead) : [];
+        const set = new Set([...list1, ...list2, id]);
+        localStorage.setItem('dismissed_store_announcements_v1', JSON.stringify(Array.from(set)));
+        localStorage.setItem('read_notifications_v1', JSON.stringify(Array.from(set)));
+      } catch {
+        /* ignore */
       }
+
+      notificationApi.markAsRead(id).catch(() => {});
+
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
       );
@@ -116,9 +143,21 @@ export function NotificationBell() {
   // Mark all as read
   const handleMarkAllAsRead = async () => {
     try {
-      if (isAuthenticated) {
-        await notificationApi.markAllAsRead();
+      try {
+        const allIds = notifications.map((n) => n.id);
+        const raw = localStorage.getItem('dismissed_store_announcements_v1');
+        const rawRead = localStorage.getItem('read_notifications_v1');
+        const list1 = raw ? JSON.parse(raw) : [];
+        const list2 = rawRead ? JSON.parse(rawRead) : [];
+        const set = new Set([...list1, ...list2, ...allIds]);
+        localStorage.setItem('dismissed_store_announcements_v1', JSON.stringify(Array.from(set)));
+        localStorage.setItem('read_notifications_v1', JSON.stringify(Array.from(set)));
+      } catch {
+        /* ignore */
       }
+
+      notificationApi.markAllAsRead().catch(() => {});
+
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch {
