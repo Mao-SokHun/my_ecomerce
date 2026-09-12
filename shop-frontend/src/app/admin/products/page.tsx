@@ -877,13 +877,13 @@ export default function AdminProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                  <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
-                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
-                  <th className="py-2.5 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
-                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
-                  <th className="py-2.5 px-3 sm:px-4 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 w-[28%] min-w-[200px]">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell w-[13%] min-w-[110px]">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
+                  <th className="py-2.5 px-3 w-[12%] min-w-[90px]">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
+                  <th className="py-2.5 px-3 w-[12%] min-w-[90px]">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                  <th className="py-2.5 px-3 text-center w-[11%] min-w-[85px]">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
+                  <th className="py-2.5 px-3 text-center w-[11%] min-w-[85px]">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 text-right w-[13%] min-w-[95px]">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
@@ -919,7 +919,7 @@ export default function AdminProductsPage() {
                               </div>
                             )}
                           </Link>
-                          <div className="min-w-0 max-w-[200px] sm:max-w-xs">
+                          <div className="min-w-0 flex-1">
                             <Link
                               href={`/products/${product.slug || product.id}`}
                               target="_blank"

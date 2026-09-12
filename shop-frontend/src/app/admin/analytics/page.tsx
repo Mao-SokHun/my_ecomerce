@@ -656,13 +656,13 @@ export default function FinancialAccountingPage() {
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-surface-850 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                <th className="py-3.5 px-3 text-center">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក' : 'Cost Price'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ' : 'Selling Price'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
-                <th className="py-3.5 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
+                <th className="py-3.5 px-4 w-[28%] min-w-[200px]">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                <th className="py-3.5 px-3 text-center w-[9%] min-w-[70px]">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                <th className="py-3.5 px-3 text-right w-[12%] min-w-[95px]">{isKhmer ? 'ថ្លៃដើមយកមក' : 'Cost Price'}</th>
+                <th className="py-3.5 px-3 text-right w-[12%] min-w-[95px]">{isKhmer ? 'តម្លៃលក់ចេញ' : 'Selling Price'}</th>
+                <th className="py-3.5 px-3 text-right w-[13%] min-w-[105px]">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
+                <th className="py-3.5 px-3 text-right w-[13%] min-w-[110px]">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
+                <th className="py-3.5 px-4 text-right w-[13%] min-w-[115px]">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -701,7 +701,7 @@ export default function FinancialAccountingPage() {
                               </div>
                             )}
                           </Link>
-                          <div className="min-w-0 max-w-[220px] sm:max-w-sm">
+                          <div className="min-w-0 flex-1">
                             <Link
                               href={`/products/${p.slug || p.id}`}
                               target="_blank"
