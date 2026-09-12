@@ -120,6 +120,23 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
       );
     }
 
+    try {
+      const notif = await prisma.notification.create({
+        data: {
+          title: `💬 សំណួរ Chat ថ្មីពី ${inquiry.name || 'អតិថិជន'}`,
+          message: inquiry.question,
+          type: 'URGENT',
+          target: 'ALL',
+          link: `/admin/support-inbox?id=${inquiry.id}`,
+          isRead: false,
+          sentBy: inquiry.name || 'Customer',
+        },
+      });
+      emitToAdmin('NOTIFICATION_NEW', notif);
+    } catch (notifErr) {
+      console.error('Failed to create support inquiry notification:', notifErr);
+    }
+
     emitToAdmin('SUPPORT_INQUIRY_CREATED', inquiry);
 
     res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry, sessionToken });
