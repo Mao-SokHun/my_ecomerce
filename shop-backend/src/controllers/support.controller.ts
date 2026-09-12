@@ -234,6 +234,25 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
     emitToInquiry(id, 'SUPPORT_MESSAGE_CREATED', { inquiryId: id, message });
     broadcastRealtime(`support:inquiry:${id}`, message);
 
+    if (sender === 'USER') {
+      try {
+        const notif = await prisma.notification.create({
+          data: {
+            title: `💬 សារថ្មីពី ${inquiry.name || 'អតិថិជន'}`,
+            message: text,
+            type: 'URGENT',
+            target: 'ALL',
+            link: `/admin/support-inbox?id=${inquiry.id}`,
+            isRead: false,
+            sentBy: inquiry.name || 'Customer',
+          },
+        });
+        emitToAdmin('NOTIFICATION_NEW', notif);
+      } catch (notifErr) {
+        console.error('Failed to create support reply notification:', notifErr);
+      }
+    }
+
     res.status(201).json({ success: true, data: message });
   } catch (error) {
     next(error);
@@ -256,7 +275,13 @@ export const listSupportInquiries = async (req: AuthRequest, res: Response, next
     const [inquiries, total] = await Promise.all([
       prisma.supportInquiry.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
