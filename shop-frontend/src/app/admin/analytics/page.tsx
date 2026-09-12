@@ -590,14 +590,14 @@ export default function FinancialAccountingPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                <th className="py-3 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                <th className="py-3 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="py-3 px-3 text-right">{isKhmer ? 'យកមក (Cost)' : 'Cost Price'}</th>
-                <th className="py-3 px-3 text-right">{isKhmer ? 'លក់ចេញ (Price)' : 'Selling Price'}</th>
-                <th className="py-3 px-3 text-right">{isKhmer ? 'ចំណេញ/១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="py-3 px-3 text-right">{isKhmer ? 'ដើមទុនស្តុកសរុប' : 'Total Cost'}</th>
-                <th className="py-3 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-surface-850 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                <th className="py-3.5 px-3 text-center">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក (Cost)' : 'Cost Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ (Price)' : 'Selling Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប (Total Cost)' : 'Total Cost'}</th>
+                <th className="py-3.5 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -618,25 +618,34 @@ export default function FinancialAccountingPage() {
                   const totalProfit = stock * profitUnit;
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors">
+                    <tr key={p.id} className="hover:bg-slate-50/90 dark:hover:bg-surface-850/60 transition-colors group">
                       {/* Product Name & Thumbnail */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700">
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={`/products/${p.slug || p.id}`}
+                            target="_blank"
+                            className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700 block group-hover:shadow-sm transition"
+                            title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
+                          >
                             {p.thumbnail ? (
-                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover" sizes="36px" />
+                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover group-hover:scale-105 transition duration-200" sizes="40px" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-400">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
-                          </div>
-                          <div className="min-w-0 max-w-[200px] sm:max-w-xs">
-                            <span className="font-bold text-slate-900 dark:text-white truncate block">
+                          </Link>
+                          <div className="min-w-0 max-w-[220px] sm:max-w-sm">
+                            <Link
+                              href={`/products/${p.slug || p.id}`}
+                              target="_blank"
+                              className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition"
+                            >
                               {p.name}
-                            </span>
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
-                              {p.brand && <span className="uppercase font-bold">{p.brand}</span>}
+                            </Link>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                              {p.brand && <span className="uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">{p.brand}</span>}
                               {p.category && <span>• {p.category.name}</span>}
                             </div>
                           </div>
@@ -644,8 +653,14 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       {/* Stock */}
-                      <td className="py-3 px-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300">
+                      <td className="py-3 px-3 text-center">
+                        <span className={`inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${
+                          stock <= 0
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                            : stock <= 5
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60'
+                            : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-surface-800 dark:text-slate-200 dark:border-slate-700'
+                        }`}>
                           {stock}
                         </span>
                       </td>
@@ -653,17 +668,19 @@ export default function FinancialAccountingPage() {
                       {/* Cost */}
                       <td className="py-3 px-3 text-right">
                         {cost > 0 ? (
-                          <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700">
                             {formatPrice(cost, language)}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-amber-500 font-medium italic">No cost</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 font-medium italic">
+                            {isKhmer ? 'មិនទាន់កំណត់' : 'No cost'}
+                          </span>
                         )}
                       </td>
 
                       {/* Selling Price */}
                       <td className="py-3 px-3 text-right">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60">
                           {formatPrice(price, language)}
                         </span>
                       </td>
@@ -671,9 +688,11 @@ export default function FinancialAccountingPage() {
                       {/* Profit / Unit & Margin */}
                       <td className="py-3 px-3 text-right">
                         {cost > 0 ? (
-                          <div className="inline-flex items-center gap-1 font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 px-1.5 py-0.5 rounded text-xs">
+                          <div className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
                             <span>+{formatPrice(profitUnit, language)}</span>
-                            <span className="text-[10px] opacity-80">({margin}%)</span>
+                            <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-black">
+                              {margin}%
+                            </span>
                           </div>
                         ) : (
                           <span className="text-slate-400">—</span>
@@ -681,7 +700,7 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       {/* Total Cost */}
-                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300 font-semibold">
+                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300 font-bold text-xs">
                         {formatPrice(totalCost, language)}
                       </td>
 
@@ -694,6 +713,39 @@ export default function FinancialAccountingPage() {
                 })
               )}
             </tbody>
+            {/* Table Footer Totals */}
+            {processedProducts.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-surface-850 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                  <td className="py-3.5 px-4 font-black">
+                    {isKhmer ? `សរុប (${processedProducts.length} មុខ):` : `Total (${processedProducts.length} items):`}
+                  </td>
+                  <td className="py-3.5 px-3 text-center font-mono font-black">
+                    {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)}
+                  </td>
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right font-mono font-black text-slate-800 dark:text-slate-200">
+                    {formatPrice(
+                      processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0),
+                      language
+                    )}
+                  </td>
+                  <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
+                    +{formatPrice(
+                      processedProducts.reduce((sum, p) => {
+                        const cost = Number(p.costPrice) || 0;
+                        const price = Number(p.price) || 0;
+                        const stock = Number(p.stock) || 0;
+                        return sum + stock * Math.max(0, price - cost);
+                      }, 0),
+                      language
+                    )}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

@@ -889,7 +889,7 @@ export default function AdminProductsPage() {
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                   <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
                   <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
-                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃលក់ / យកមក / ចំណេញ' : 'Price / Cost / Profit'}</th>
+                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
                   <th className="py-2.5 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
                   <th className="py-2.5 px-3 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
                   <th className="py-2.5 px-3 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
@@ -965,15 +965,11 @@ export default function AdminProductsPage() {
                         )}
                       </td>
 
-                      {/* Price & Cost Accounting (Sell, Cost, Profit) */}
+                      {/* Clean Elegant Selling Price */}
                       <td className="py-2.5 px-3">
-                        <div className="flex flex-col gap-1 min-w-[140px]">
-                          {/* Selling Price */}
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                              {isKhmer ? 'លក់:' : 'Sell:'}
-                            </span>
-                            <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
                               {formatPrice(product.price, language)}
                             </span>
                             {hasDiscount && (
@@ -982,27 +978,9 @@ export default function AdminProductsPage() {
                               </span>
                             )}
                           </div>
-
-                          {/* Cost Price & Profit / Margin */}
-                          {product.costPrice != null && product.costPrice > 0 ? (
-                            <div className="space-y-0.5">
-                              <div className="text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                                <span>{isKhmer ? 'យកមក:' : 'Cost:'}</span>{' '}
-                                <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                  {formatPrice(product.costPrice, language)}
-                                </span>
-                              </div>
-                              <div className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/60 px-1.5 py-0.5 rounded-md tabular-nums">
-                                <span>{isKhmer ? 'ចំណេញ:' : 'Profit:'}</span>
-                                <span>+{formatPrice(product.price - product.costPrice, language)}</span>
-                                <span className="text-[9px] opacity-80">
-                                  ({Math.round(((product.price - product.costPrice) / (product.price || 1)) * 100)}%)
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded w-fit italic">
-                              {isKhmer ? '⚠️ មិនទាន់ដាក់ថ្លៃដើម' : '⚠️ No cost'}
+                          {hasDiscount && (
+                            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                              -{Math.round((((product.comparePrice || 0) - product.price) / (product.comparePrice || 1)) * 100)}% off
                             </span>
                           )}
                         </div>
