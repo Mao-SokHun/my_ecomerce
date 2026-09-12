@@ -239,13 +239,13 @@ export default function AdminOrdersPage() {
   const statuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
   const orderStatusOptions: DropdownOption[] = useMemo(() => [
-    { value: 'PENDING', label: isKhmer ? 'PENDING (រង់ចាំ)' : 'PENDING', dotColor: '#eab308' },
-    { value: 'CONFIRMED', label: isKhmer ? 'CONFIRMED (បានបញ្ជាក់)' : 'CONFIRMED', dotColor: '#3b82f6' },
-    { value: 'PROCESSING', label: isKhmer ? 'PROCESSING (កំពុងរៀបចំ)' : 'PROCESSING', dotColor: '#8b5cf6' },
-    { value: 'SHIPPED', label: isKhmer ? 'SHIPPED (បានផ្ញើចេញ)' : 'SHIPPED', dotColor: '#6366f1' },
-    { value: 'DELIVERED', label: isKhmer ? 'DELIVERED (បានដឹកដល់)' : 'DELIVERED', dotColor: '#10b981' },
-    { value: 'CANCELLED', label: isKhmer ? 'CANCELLED (បានបោះបង់)' : 'CANCELLED', dotColor: '#ef4444' },
-  ], [isKhmer]);
+    { value: 'PENDING', label: 'PENDING', dotColor: '#eab308' },
+    { value: 'CONFIRMED', label: 'CONFIRMED', dotColor: '#3b82f6' },
+    { value: 'PROCESSING', label: 'PROCESSING', dotColor: '#8b5cf6' },
+    { value: 'SHIPPED', label: 'SHIPPED', dotColor: '#6366f1' },
+    { value: 'DELIVERED', label: 'DELIVERED', dotColor: '#10b981' },
+    { value: 'CANCELLED', label: 'CANCELLED', dotColor: '#ef4444' },
+  ], []);
 
   const orderFilterOptions: DropdownOption[] = useMemo(() => [
     { value: '', label: adminT(language, 'allStatuses'), dotColor: '#94a3b8' },
@@ -568,7 +568,7 @@ export default function AdminOrdersPage() {
                     <span
                       className={`badge text-[11px] ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}
                     >
-                      {selectedOrder.paymentStatus === 'PAID' ? 'PAID (បានបង់)' : 'UNPAID (មិនទាន់បង់)'}
+                      {selectedOrder.paymentStatus === 'PAID' ? 'PAID' : 'UNPAID'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
