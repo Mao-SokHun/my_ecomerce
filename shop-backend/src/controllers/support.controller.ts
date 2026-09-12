@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { sendTelegramMessage } from '../lib/notifier';
-import { emitToAdmin, broadcastRealtime } from '../lib/socket';
+import { emitToAdmin, emitToInquiry, broadcastRealtime } from '../lib/socket';
 
 // ─── Telegram helpers ────────────────────────────────────────────────────────
 
@@ -214,6 +214,7 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
     });
 
     emitToAdmin('SUPPORT_MESSAGE_CREATED', { inquiryId: id, message });
+    emitToInquiry(id, 'SUPPORT_MESSAGE_CREATED', { inquiryId: id, message });
     broadcastRealtime(`support:inquiry:${id}`, message);
 
     res.status(201).json({ success: true, data: message });

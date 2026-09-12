@@ -5,6 +5,7 @@ import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { supportApi } from '@/lib/api';
 import { Phone, Send, MessageSquare, RefreshCw, Volume2, VolumeX, CheckCircle2, AlertCircle, Clock, User } from 'lucide-react';
 import { playMessageAlertChime } from '@/lib/soundAlert';
+import { useRealtime } from '@/providers/RealtimeProvider';
 import toast from 'react-hot-toast';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
@@ -137,7 +138,71 @@ export default function AdminSupportInboxPage() {
     return () => clearInterval(timer);
   }, [loadInquiries]);
 
-  // Poll active chat messages every 1.5s
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for Admin Support Inbox
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleInquiryCreated = (newInquiry: Inquiry) => {
+      if (!newInquiry || !newInquiry.id) return;
+      setRows((prev) => {
+        const exists = prev.some((r) => r.id === newInquiry.id);
+        if (exists) return prev;
+        return [newInquiry, ...prev];
+      });
+      if (soundEnabled) playMessageAlertChime();
+      toast(`💬 សំណួរថ្មីពី ${newInquiry.name || 'អតិថិជន'}!`, { icon: '🔔', id: 'admin-live-inquiry' });
+    };
+
+    const handleMessageCreated = (payload: any) => {
+      if (!payload) return;
+      const m = payload.message || (payload.sender ? payload : null);
+      const inqId = payload.inquiryId || (payload.message as any)?.inquiryId || payload.inquiryId;
+
+      // Update inquiries list timestamps/status
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === inqId
+            ? { ...r, status: m?.sender === 'ADMIN' ? 'in_progress' : r.status }
+            : r
+        )
+      );
+
+      // If active inquiry is open, append message live
+      if (selectedId && inqId === selectedId && m && m.text) {
+        const newMsg: ChatMessage = {
+          id: m.id || String(Date.now()),
+          inquiryId: inqId,
+          sender: m.sender || 'USER',
+          senderName: m.senderName || 'User',
+          text: m.text,
+          createdAt: m.createdAt || new Date().toISOString(),
+        };
+
+        setMessages((prev) => {
+          const exists = prev.some((existing) => existing.id === newMsg.id || (existing.text === newMsg.text && existing.sender === newMsg.sender));
+          if (exists) return prev;
+          return [...prev, newMsg];
+        });
+
+        if (m.sender === 'USER') {
+          if (soundEnabled) playMessageAlertChime();
+          toast(`💬 ${m.senderName || 'អតិថិជន'}: ${m.text.slice(0, 40)}`, { icon: '💬', id: 'admin-live-msg' });
+        }
+      }
+    };
+
+    socket.on('SUPPORT_INQUIRY_CREATED', handleInquiryCreated);
+    socket.on('SUPPORT_MESSAGE_CREATED', handleMessageCreated);
+
+    return () => {
+      socket.off('SUPPORT_INQUIRY_CREATED', handleInquiryCreated);
+      socket.off('SUPPORT_MESSAGE_CREATED', handleMessageCreated);
+    };
+  }, [socket, selectedId, soundEnabled]);
+
+  // Poll active chat messages fallback
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
@@ -152,7 +217,7 @@ export default function AdminSupportInboxPage() {
 
     const messagesTimer = setInterval(() => {
       loadMessages(selectedId, true);
-    }, 1500);
+    }, 2500);
 
     return () => clearInterval(messagesTimer);
   }, [selectedId, loadMessages]);

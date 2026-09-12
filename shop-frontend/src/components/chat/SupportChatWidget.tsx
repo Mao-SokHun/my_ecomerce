@@ -27,6 +27,7 @@ import { useLanguageStore } from '@/store/languageStore';
 import { useAuthStore } from '@/store/authStore';
 import { supportApi } from '@/lib/api';
 import { playMessageAlertChime } from '@/lib/soundAlert';
+import { useRealtime } from '@/providers/RealtimeProvider';
 import toast from 'react-hot-toast';
 
 type Msg = {
@@ -210,18 +211,75 @@ export default function SupportChatWidget() {
     }
   }, [language, label.greeting, loadChatMessages]);
 
+  const { socket } = useRealtime();
+
+  // Instant Real-time WebSocket listener for Customer Live Chat
+  useEffect(() => {
+    if (!socket || !inquiryId) return;
+
+    socket.emit('join:inquiry', inquiryId);
+
+    const handleMessageCreated = (payload: any) => {
+      if (!payload) return;
+      const m = payload.message || (payload.sender ? payload : null);
+      const targetInquiryId = payload.inquiryId || (payload.message as any)?.inquiryId || payload.inquiryId;
+
+      if (targetInquiryId && targetInquiryId !== inquiryId) return;
+      if (!m || !m.text) return;
+
+      const newMsg: Msg = {
+        role: m.sender === 'ADMIN' ? 'admin' : 'user',
+        text: m.text,
+        senderName: m.senderName,
+        createdAt: m.createdAt || new Date().toISOString(),
+      };
+
+      setMessages((prev) => {
+        // Prevent duplicate if already in list
+        const exists = prev.some((existing) => 
+          existing.text === newMsg.text && 
+          existing.role === newMsg.role && 
+          (existing.createdAt === newMsg.createdAt || (newMsg.createdAt && existing.createdAt && Math.abs(new Date(existing.createdAt).getTime() - new Date(newMsg.createdAt).getTime()) < 3000))
+        );
+        if (exists) return prev;
+        return [...prev, newMsg];
+      });
+
+      if (m.sender === 'ADMIN') {
+        playMessageAlertChime();
+        if (!open) {
+          setUnreadCount((prev) => prev + 1);
+          toast(`💬 Admin: ${m.text.length > 50 ? m.text.slice(0, 50) + '...' : m.text}`, {
+            icon: '🔔',
+            duration: 6000,
+            id: 'customer-chat-incoming',
+          });
+        }
+      }
+    };
+
+    socket.on('SUPPORT_MESSAGE_CREATED', handleMessageCreated);
+    socket.on(`support:inquiry:${inquiryId}`, handleMessageCreated);
+
+    return () => {
+      socket.emit('leave:inquiry', inquiryId);
+      socket.off('SUPPORT_MESSAGE_CREATED', handleMessageCreated);
+      socket.off(`support:inquiry:${inquiryId}`, handleMessageCreated);
+    };
+  }, [socket, inquiryId, open]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showDetailsForm]);
 
-  // Background and Active Messages Polling every 2.5s
+  // Background and Active Messages Polling fallback
   useEffect(() => {
     if (!inquiryId || !sessionToken) return;
 
     const interval = setInterval(() => {
       loadChatMessages(inquiryId, sessionToken, true);
-    }, 2500);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [inquiryId, sessionToken, loadChatMessages]);

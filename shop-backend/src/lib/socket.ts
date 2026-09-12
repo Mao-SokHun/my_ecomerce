@@ -87,6 +87,19 @@ export const initSocket = (httpServer: HttpServer): Server => {
         socket.leave(`product:${productId}`);
       }
     });
+
+    // Allow listening to specific support inquiry room (for instant customer-admin chat)
+    socket.on('join:inquiry', (inquiryId: string) => {
+      if (inquiryId && typeof inquiryId === 'string') {
+        socket.join(`inquiry:${inquiryId}`);
+      }
+    });
+
+    socket.on('leave:inquiry', (inquiryId: string) => {
+      if (inquiryId && typeof inquiryId === 'string') {
+        socket.leave(`inquiry:${inquiryId}`);
+      }
+    });
   });
 
   return io;
@@ -117,6 +130,19 @@ export const emitToUser = (userId: string, event: string, data: unknown): void =
     }
   } catch (err) {
     console.error(`Failed to emit to user ${userId} on event ${event}:`, err);
+  }
+};
+
+/**
+ * Emit event to anyone in a specific support inquiry room
+ */
+export const emitToInquiry = (inquiryId: string, event: string, data: unknown): void => {
+  try {
+    if (io && inquiryId) {
+      io.to(`inquiry:${inquiryId}`).emit(event, data);
+    }
+  } catch (err) {
+    console.error(`Failed to emit to inquiry ${inquiryId} on event ${event}:`, err);
   }
 };
 
