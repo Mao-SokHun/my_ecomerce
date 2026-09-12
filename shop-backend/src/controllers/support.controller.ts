@@ -203,15 +203,18 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
     }
 
     const isAdmin = adminUser?.role === 'ADMIN';
-    const isOwner = inquiry.sessionToken && inquiry.sessionToken === sessionToken;
+    const isOwner = Boolean(inquiry.sessionToken && inquiry.sessionToken === sessionToken);
 
     if (!isAdmin && !isOwner) {
       res.status(403).json({ success: false, message: 'Access denied' });
       return;
     }
 
-    const sender = isAdmin ? 'ADMIN' : 'USER';
-    const senderName = isAdmin ? (adminUser.name || 'Admin') : (inquiry.name || 'Guest');
+    // If the request includes a valid customer sessionToken for this inquiry, it is sent by the customer (USER)
+    // If sent from the admin inbox (admin credentials without customer sessionToken), it is sent by ADMIN
+    const isSendingAsAdmin = isAdmin && !isOwner;
+    const sender = isSendingAsAdmin ? 'ADMIN' : 'USER';
+    const senderName = isSendingAsAdmin ? (adminUser.name || 'SH-Shop Admin') : (inquiry.name || 'អតិថិជន');
 
     const message = await prisma.supportMessage.create({
       data: {

@@ -641,46 +641,49 @@ export default function SupportChatWidget() {
             </div>
 
             {/* Chat Body / Messages Timeline */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-slate-50/60 dark:bg-surface-950/60 scroll-smooth">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50/60 dark:bg-surface-950/60 scroll-smooth">
               {messages.map((m, i) => {
                 const isUser = m.role === 'user';
                 const isAdmin = m.role === 'admin';
 
                 return (
-                  <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-0.5`}>
-                    {/* Sender Identity */}
-                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1">
+                  <div
+                    key={i}
+                    className={`w-full flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}
+                  >
+                    {/* Sender Identity Bar */}
+                    <div className={`flex items-center gap-1.5 text-[10px] px-1 ${isUser ? 'flex-row-reverse text-gray-400' : 'text-gray-500'}`}>
                       {isAdmin ? (
-                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">
+                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-extrabold bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded-md border border-indigo-200/60 dark:border-indigo-800/60">
                           <ShieldCheck className="w-3 h-3 text-indigo-500" />
                           {m.senderName || label.admin}
                         </span>
                       ) : isUser ? (
-                        <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-950/50 px-1.5 py-0.5 rounded-md border border-primary-200/60 dark:border-primary-800/60">
                           <User className="w-2.5 h-2.5" />
                           {label.you}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-semibold">
+                        <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-surface-800 px-1.5 py-0.5 rounded-md">
                           <MessageSquare className="w-2.5 h-2.5 text-primary-500" />
                           SH-Shop Assistant
                         </span>
                       )}
                       {m.createdAt && (
-                        <span className="text-[9px] opacity-70">
-                          • {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <span className="text-[9px] font-mono opacity-70">
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
                       )}
                     </div>
 
                     {/* Message Bubble */}
                     <div
-                      className={`text-xs p-2.5 rounded-xl leading-relaxed max-w-[88%] whitespace-pre-line ${
+                      className={`text-xs p-3 rounded-2xl leading-relaxed max-w-[85%] whitespace-pre-line ${
                         isUser
-                          ? 'bg-gradient-to-tr from-primary-600 via-primary-500 to-indigo-600 text-white rounded-tr-xs shadow-[0_4px_14px_rgba(79,70,229,0.25)]'
+                          ? 'bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-primary-500/20'
                           : isAdmin
-                            ? 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-100 border border-indigo-200 dark:border-indigo-900/60 rounded-tl-xs shadow-sm ring-1 ring-indigo-500/10'
-                            : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-surface-700/80 rounded-tl-xs shadow-sm'
+                            ? 'bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-indigo-200/80 dark:border-indigo-800/70 rounded-tl-none shadow-sm ring-1 ring-indigo-500/10'
+                            : 'bg-white dark:bg-surface-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-surface-700 rounded-tl-none shadow-sm'
                       }`}
                     >
                       {m.text}

@@ -16,6 +16,7 @@ export interface KhqrCreateResult {
 
 const provider = (process.env.KHQR_PROVIDER || 'mock').toLowerCase();
 
+// @ts-ignore
 import { BakongKHQR, IndividualInfo, khqrData } from 'bakong-khqr';
 
 export const crc16Ccitt = (str: string): string => {

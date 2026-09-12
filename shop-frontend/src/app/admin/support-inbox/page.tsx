@@ -22,6 +22,7 @@ import {
   Smile,
   ShieldCheck,
   AlertCircle,
+  User,
 } from 'lucide-react';
 import { playMessageAlertChime } from '@/lib/soundAlert';
 import { useRealtime } from '@/providers/RealtimeProvider';
@@ -801,28 +802,36 @@ export default function AdminSupportInboxPage() {
                   return (
                     <div
                       key={m.id}
-                      className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isAdmin ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                      className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isAdmin ? 'ml-auto items-end' : 'mr-auto items-start'} space-y-1`}
                     >
-                      <div className="text-[10px] text-slate-400 font-medium mb-1 px-1 flex items-center gap-1.5">
-                        <span className={isAdmin ? 'font-bold text-primary-600 dark:text-primary-400' : 'font-semibold'}>
-                          {m.senderName || (isAdmin ? 'Admin' : 'Customer')}
-                        </span>
-                        {isAdmin && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                      {/* Sender Identity Bar */}
+                      <div className={`flex items-center gap-1.5 text-[10px] px-1 ${isAdmin ? 'flex-row-reverse text-slate-400' : 'text-slate-500'}`}>
+                        {isAdmin ? (
+                          <span className="flex items-center gap-1 text-primary-600 dark:text-primary-400 font-extrabold bg-primary-50 dark:bg-primary-950/60 px-2 py-0.5 rounded-md border border-primary-200/60 dark:border-primary-800/60">
+                            <ShieldCheck className="w-3 h-3 text-primary-500" />
+                            {isKhmer ? 'Admin (អ្នក)' : 'Admin (You)'}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-slate-800 dark:text-slate-200 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60">
+                            <User className="w-3 h-3 text-slate-500" />
+                            {m.senderName || activeInquiry.name || (isKhmer ? 'អតិថិជន' : 'Customer')}
+                          </span>
                         )}
+                        <span className="text-[9px] font-mono opacity-70">
+                          {new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </span>
                       </div>
+
+                      {/* Message Bubble */}
                       <div
-                        className={`text-xs sm:text-sm p-3.5 rounded-2xl leading-relaxed whitespace-pre-line shadow-2xs ${
+                        className={`text-xs sm:text-sm p-3.5 rounded-2xl leading-relaxed whitespace-pre-line ${
                           isAdmin
-                            ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white rounded-tr-none shadow-primary-500/10'
+                            ? 'bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-primary-500/20 font-medium'
                             : 'bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none shadow-sm'
                         }`}
                       >
                         {m.text}
                       </div>
-                      <span className="text-[9px] font-mono text-slate-400 px-1 mt-1 font-medium">
-                        {new Date(m.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
                   );
                 })
