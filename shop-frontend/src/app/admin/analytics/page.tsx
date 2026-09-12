@@ -28,13 +28,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   HelpCircle,
-  X,
-  Copy,
-  Delete,
-  ArrowRight,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
-import { CustomDropdown } from '@/components/ui/CustomDropdown';
 import toast from 'react-hot-toast';
 
 export default function FinancialAccountingPage() {
@@ -49,154 +44,17 @@ export default function FinancialAccountingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'profit_desc' | 'margin_desc' | 'stock_desc' | 'cost_desc' | 'name_asc'>('profit_desc');
 
-  const categoryOptions = useMemo(() => {
-    return [
-      { value: 'ALL', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories' },
-      ...categories.map((c) => ({ value: c.id, label: c.name })),
-    ];
-  }, [categories, isKhmer]);
-
-  const sortOptions = useMemo(() => {
-    return [
-      { value: 'profit_desc', label: isKhmer ? 'ចំណេញសរុបខ្ពស់បំផុត' : 'Highest Total Profit' },
-      { value: 'margin_desc', label: isKhmer ? 'Margin % ខ្ពស់បំផុត' : 'Highest Margin %' },
-      { value: 'stock_desc', label: isKhmer ? 'ចំនួនស្តុកច្រើនបំផុត' : 'Highest Stock' },
-      { value: 'cost_desc', label: isKhmer ? 'ដើមទុនខ្ពស់បំផុត' : 'Highest Inventory Cost' },
-      { value: 'name_asc', label: isKhmer ? 'តាមឈ្មោះ A-Z' : 'Name A-Z' },
-    ];
-  }, [isKhmer]);
-
-  // Tab state between Profit Simulator & Standard Calculator
-  const [calcTab, setCalcTab] = useState<'profit' | 'standard'>('profit');
-
   // Interactive Profit Simulator state
   const [simCost, setSimCost] = useState<string>('20.00');
   const [simPrice, setSimPrice] = useState<string>('45.00');
   const [simQty, setSimQty] = useState<string>('50');
 
-  // Standard Digital Math Calculator state
+  // General Calculator state
   const [calcDisplay, setCalcDisplay] = useState<string>('0');
-  const [calcPrev, setCalcPrev] = useState<string | null>(null);
-  const [calcOp, setCalcOp] = useState<string | null>(null);
-  const [calcResetNext, setCalcResetNext] = useState<boolean>(false);
-
-  const handleCalcDigit = (digit: string) => {
-    if (calcResetNext || calcDisplay === '0' || calcDisplay === 'Error') {
-      setCalcDisplay(digit);
-      setCalcResetNext(false);
-    } else {
-      if (calcDisplay.length < 14) {
-        setCalcDisplay(calcDisplay + digit);
-      }
-    }
-  };
-
-  const handleCalcDecimal = () => {
-    if (calcResetNext || calcDisplay === 'Error') {
-      setCalcDisplay('0.');
-      setCalcResetNext(false);
-    } else if (!calcDisplay.includes('.')) {
-      setCalcDisplay(calcDisplay + '.');
-    }
-  };
-
-  const handleCalcClear = () => {
-    setCalcDisplay('0');
-    setCalcPrev(null);
-    setCalcOp(null);
-    setCalcResetNext(false);
-  };
-
-  const handleCalcBackspace = () => {
-    if (calcResetNext || calcDisplay === 'Error' || calcDisplay.length <= 1) {
-      setCalcDisplay('0');
-    } else {
-      setCalcDisplay(calcDisplay.slice(0, -1));
-    }
-  };
-
-  const computeMath = (a: number, b: number, op: string): number => {
-    switch (op) {
-      case '+': return a + b;
-      case '-': return a - b;
-      case '×': return a * b;
-      case '÷': return b !== 0 ? a / b : NaN;
-      default: return b;
-    }
-  };
-
-  const handleCalcOp = (op: string) => {
-    const current = parseFloat(calcDisplay);
-    if (isNaN(current)) return;
-
-    if (calcOp && calcPrev !== null && !calcResetNext) {
-      const prevNum = parseFloat(calcPrev);
-      const res = computeMath(prevNum, current, calcOp);
-      if (isNaN(res) || !isFinite(res)) {
-        setCalcDisplay('Error');
-        setCalcPrev(null);
-        setCalcOp(null);
-        setCalcResetNext(true);
-        return;
-      }
-      const formatted = Number(res.toFixed(6)).toString();
-      setCalcDisplay(formatted);
-      setCalcPrev(formatted);
-    } else {
-      setCalcPrev(calcDisplay);
-    }
-    setCalcOp(op);
-    setCalcResetNext(true);
-  };
-
-  const handleCalcEqual = () => {
-    if (!calcOp || calcPrev === null) return;
-    const current = parseFloat(calcDisplay);
-    const prevNum = parseFloat(calcPrev);
-    if (isNaN(current) || isNaN(prevNum)) return;
-
-    const res = computeMath(prevNum, current, calcOp);
-    if (isNaN(res) || !isFinite(res)) {
-      setCalcDisplay('Error');
-    } else {
-      const formatted = Number(res.toFixed(6)).toString();
-      setCalcDisplay(formatted);
-    }
-    setCalcPrev(null);
-    setCalcOp(null);
-    setCalcResetNext(true);
-  };
-
-  const handleCalcPercent = () => {
-    const current = parseFloat(calcDisplay);
-    if (!isNaN(current)) {
-      setCalcDisplay((current / 100).toString());
-    }
-  };
-
-  const handleCalcToggleSign = () => {
-    const current = parseFloat(calcDisplay);
-    if (!isNaN(current)) {
-      setCalcDisplay((current * -1).toString());
-    }
-  };
-
-  const copyCalcResult = () => {
-    navigator.clipboard.writeText(calcDisplay);
-    toast.success(isKhmer ? `បានចម្លង: ${calcDisplay}` : `Copied: ${calcDisplay}`);
-  };
-
-  const applyCalcToCost = () => {
-    setSimCost(calcDisplay);
-    setCalcTab('profit');
-    toast.success(isKhmer ? 'បានផ្ទេរទៅតម្លៃដើមទុន ($)' : 'Applied to Cost Price');
-  };
-
-  const applyCalcToPrice = () => {
-    setSimPrice(calcDisplay);
-    setCalcTab('profit');
-    toast.success(isKhmer ? 'បានផ្ទេរទៅតម្លៃលក់ ($)' : 'Applied to Selling Price');
-  };
+  const [calcPrev, setCalcPrev] = useState<string>('');
+  const [calcOp, setCalcOp] = useState<string>('');
+  const [calcExpression, setCalcExpression] = useState<string>('');
+  const [calcJustEvaled, setCalcJustEvaled] = useState<boolean>(false);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -598,395 +456,330 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Interactive Multi-Function Calculator (Profit Simulator + Standard Digital Calculator) */}
+        {/* Compact, Ultra-Sleek Profit Simulator (1 Col - Fits Content, Never Stretches) */}
         <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-          {/* Header with Segmented Tab Switcher */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-slate-100 dark:bg-surface-800 border border-slate-200/60 dark:border-slate-700/60">
-              <button
-                type="button"
-                onClick={() => setCalcTab('profit')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  calcTab === 'profit'
-                    ? 'bg-white dark:bg-surface-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                }`}
-              >
-                <TrendingUp className="w-3.5 h-3.5" />
-                <span>{isKhmer ? 'គណនាចំណេញ' : 'Profit'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCalcTab('standard')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                  calcTab === 'standard'
-                    ? 'bg-white dark:bg-surface-900 text-primary-600 dark:text-primary-400 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                }`}
-              >
-                <Calculator className="w-3.5 h-3.5" />
-                <span>{isKhmer ? 'ម៉ាស៊ីនគិតលេខ' : 'Calculator'}</span>
-              </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <Calculator className="w-4 h-4" />
+              </div>
+              <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញរហ័ស' : 'Quick Profit Simulator'}
+              </h2>
             </div>
-
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-              calcTab === 'profit'
-                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/40'
-                : 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/40 border-primary-200/60 dark:border-primary-800/40'
-            }`}>
-              {calcTab === 'profit' ? 'Simulator' : 'Digital'}
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+              Live
             </span>
           </div>
 
-          {/* TAB 1: Quick Profit Simulator */}
-          {calcTab === 'profit' ? (
-            <div className="space-y-3 animate-in fade-in duration-200">
-              <div className="grid grid-cols-3 gap-2">
-                {/* Input Cost */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                    {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={simCost}
-                    onChange={(e) => setSimCost(e.target.value)}
-                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
-
-                {/* Input Selling Price */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                    {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={simPrice}
-                    onChange={(e) => setSimPrice(e.target.value)}
-                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
-
-                {/* Input Quantity */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
-                    {isKhmer ? 'ចំនួន' : 'Qty'}
-                  </label>
-                  <input
-                    type="number"
-                    value={simQty}
-                    onChange={(e) => setSimQty(e.target.value)}
-                    className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Compact Clean Output Box */}
-              <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-600 dark:text-slate-300 font-medium">
-                    {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
-                  </span>
-                  <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                    +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
-                  </strong>
-                </div>
-
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500 dark:text-slate-400">
-                    {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
-                  </span>
-                  <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
-                    ${simResult.totalCost.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
-                  <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
-                    {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
-                  </span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
-                    +${simResult.totalProfit.toFixed(2)}
-                  </span>
-                </div>
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            {/* Input Cost */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={simCost}
+                onChange={(e) => setSimCost(e.target.value)}
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
-          ) : (
-            /* TAB 2: Full Interactive Standard Digital Calculator */
-            <div className="space-y-2.5 animate-in fade-in duration-200">
-              {/* Digital Screen Display */}
-              <div className="p-2.5 rounded-xl bg-slate-900 text-white shadow-inner flex flex-col justify-between border border-slate-800">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono h-4">
-                  <span>{calcPrev ? `${calcPrev} ${calcOp || ''}` : ''}</span>
-                  <button
-                    type="button"
-                    onClick={copyCalcResult}
-                    className="p-1 hover:text-white rounded hover:bg-slate-800 transition text-slate-400 flex items-center gap-1"
-                    title="Copy Result"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                </div>
-                <div className="text-right text-xl sm:text-2xl font-black font-mono tracking-tight overflow-x-auto whitespace-nowrap text-emerald-400 py-0.5">
-                  {calcDisplay}
-                </div>
-              </div>
 
-              {/* Quick Actions to inject into simulator */}
-              <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                <button
-                  type="button"
-                  onClick={applyCalcToCost}
-                  className="py-1 px-2 rounded-lg bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 font-bold transition flex items-center justify-center gap-1"
-                >
-                  <ArrowRight className="w-3 h-3 text-amber-500" />
-                  <span>{isKhmer ? 'ដាក់ជាដើមទុន ($)' : 'Set as Cost'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={applyCalcToPrice}
-                  className="py-1 px-2 rounded-lg bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 font-bold transition flex items-center justify-center gap-1"
-                >
-                  <ArrowRight className="w-3 h-3 text-sky-500" />
-                  <span>{isKhmer ? 'ដាក់ជាតម្លៃលក់ ($)' : 'Set as Price'}</span>
-                </button>
-              </div>
-
-              {/* Keypad Buttons (Grid 4x5) */}
-              <div className="grid grid-cols-4 gap-1.5 font-mono font-bold text-xs">
-                {/* Row 1 */}
-                <button
-                  type="button"
-                  onClick={handleCalcClear}
-                  className="h-8.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30 transition active:scale-95"
-                >
-                  AC
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCalcToggleSign}
-                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition active:scale-95"
-                >
-                  ±
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCalcPercent}
-                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 transition active:scale-95"
-                >
-                  %
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcOp('÷')}
-                  className={`h-8.5 rounded-xl transition active:scale-95 ${
-                    calcOp === '÷'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
-                  }`}
-                >
-                  ÷
-                </button>
-
-                {/* Row 2 */}
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('7')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  7
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('8')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  8
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('9')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  9
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcOp('×')}
-                  className={`h-8.5 rounded-xl transition active:scale-95 ${
-                    calcOp === '×'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
-                  }`}
-                >
-                  ×
-                </button>
-
-                {/* Row 3 */}
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('4')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  4
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('5')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  5
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('6')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  6
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcOp('-')}
-                  className={`h-8.5 rounded-xl transition active:scale-95 ${
-                    calcOp === '-'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
-                  }`}
-                >
-                  -
-                </button>
-
-                {/* Row 4 */}
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('1')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('2')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  2
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('3')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  3
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleCalcOp('+')}
-                  className={`h-8.5 rounded-xl transition active:scale-95 ${
-                    calcOp === '+'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40'
-                  }`}
-                >
-                  +
-                </button>
-
-                {/* Row 5 */}
-                <button
-                  type="button"
-                  onClick={() => handleCalcDigit('0')}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  0
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCalcDecimal}
-                  className="h-8.5 rounded-xl bg-slate-50 dark:bg-surface-800 hover:bg-slate-100 dark:hover:bg-surface-750 text-slate-800 dark:text-white border border-slate-200/60 dark:border-slate-700/60 transition active:scale-95"
-                >
-                  .
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCalcBackspace}
-                  className="h-8.5 rounded-xl bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-600 dark:text-slate-400 transition active:scale-95 flex items-center justify-center"
-                  title="Backspace"
-                >
-                  ⌫
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCalcEqual}
-                  className="h-8.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black shadow-sm shadow-emerald-500/30 transition active:scale-95"
-                >
-                  =
-                </button>
-              </div>
+            {/* Input Selling Price */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={simPrice}
+                onChange={(e) => setSimPrice(e.target.value)}
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
-          )}
+
+            {/* Input Quantity */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+                {isKhmer ? 'ចំនួន' : 'Qty'}
+              </label>
+              <input
+                type="number"
+                value={simQty}
+                onChange={(e) => setSimQty(e.target.value)}
+                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Compact Clean Output Box */}
+          <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
+              </span>
+              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
+              </strong>
+            </div>
+
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
+                {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
+              </span>
+              <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
+                ${simResult.totalCost.toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
+              <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
+                {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
+              </span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
+                +${simResult.totalProfit.toFixed(2)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom Section: Full Product Valuation & Profit Table */}
+      {/* General Purpose Calculator */}
+      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <Calculator className="w-4 h-4" />
+          </div>
+          <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+            {isKhmer ? 'ម៉ាស៊ីនគណនាទូទៅ' : 'General Calculator'}
+          </h2>
+          {calcExpression && (
+            <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono truncate max-w-xs text-right">
+              {calcExpression}
+            </span>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            {/* Display */}
+            <div className="w-full sm:max-w-[320px]">
+              <div className="w-full h-16 px-4 flex items-center justify-end rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 mb-3 overflow-hidden">
+                <span className="font-mono font-black text-2xl text-slate-900 dark:text-white truncate text-right">
+                  {calcDisplay}
+                </span>
+              </div>
+
+              {/* Calculator Buttons Grid */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {/* Row 1 */}
+                {[['AC', 'ac'], ['+/-', 'sign'], ['%', 'pct'], ['÷', '/']].map(([label, val]) => (
+                  <button
+                    key={val}
+                    onClick={() => {
+                      if (val === 'ac') {
+                        setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
+                      } else if (val === 'sign') {
+                        setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
+                      } else if (val === 'pct') {
+                        setCalcDisplay((d) => String(parseFloat(d) / 100));
+                      } else {
+                        setCalcPrev(calcDisplay); setCalcOp(val);
+                        setCalcExpression(calcDisplay + ' ' + label + ' ');
+                        setCalcJustEvaled(false);
+                      }
+                    }}
+                    className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-slate-200/80 dark:bg-surface-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-surface-600"
+                  >{label}</button>
+                ))}
+                {/* Row 2 */}
+                {[['7','7'],['8','8'],['9','9'],['×','*']].map(([label, val]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      if (['/', '*', '-', '+'].includes(val)) {
+                        setCalcPrev(calcDisplay); setCalcOp(val);
+                        setCalcExpression(calcDisplay + ' ' + label + ' ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      ['×','÷','+','-'].includes(label)
+                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >{label}</button>
+                ))}
+                {/* Row 3 */}
+                {[['4','4'],['5','5'],['6','6'],['-','-']].map(([label, val]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      if (['/', '*', '-', '+'].includes(val)) {
+                        setCalcPrev(calcDisplay); setCalcOp(val);
+                        setCalcExpression(calcDisplay + ' ' + label + ' ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      ['×','÷','+','-'].includes(label)
+                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >{label}</button>
+                ))}
+                {/* Row 4 */}
+                {[['1','1'],['2','2'],['3','3'],['+','+']].map(([label, val]) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      if (['/', '*', '-', '+'].includes(val)) {
+                        setCalcPrev(calcDisplay); setCalcOp(val);
+                        setCalcExpression(calcDisplay + ' ' + label + ' ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                      ['×','÷','+','-'].includes(label)
+                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >{label}</button>
+                ))}
+                {/* Row 5: 0, ., = */}
+                <button
+                  onClick={() => {
+                    const next = calcJustEvaled || calcDisplay === '0' ? '0' : calcDisplay + '0';
+                    setCalcDisplay(next === '00' ? '0' : next); setCalcJustEvaled(false);
+                  }}
+                  className="col-span-2 h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                >0</button>
+                <button
+                  onClick={() => {
+                    if (!calcDisplay.includes('.')) setCalcDisplay((d) => d + '.');
+                  }}
+                  className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                >.</button>
+                <button
+                  onClick={() => {
+                    const a = parseFloat(calcPrev);
+                    const b = parseFloat(calcDisplay);
+                    if (!calcOp || isNaN(a) || isNaN(b)) return;
+                    let res = 0;
+                    if (calcOp === '+') res = a + b;
+                    else if (calcOp === '-') res = a - b;
+                    else if (calcOp === '*') res = a * b;
+                    else if (calcOp === '/') res = b !== 0 ? a / b : 0;
+                    const rounded = Math.round(res * 1e10) / 1e10;
+                    setCalcExpression(calcExpression + b + ' =');
+                    setCalcDisplay(String(rounded));
+                    setCalcPrev(''); setCalcOp('');
+                    setCalcJustEvaled(true);
+                  }}
+                  className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-blue-500 hover:bg-blue-600 text-white"
+                >=</button>
+              </div>
+            </div>
+
+            {/* Quick Tips */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {[
+                { label: isKhmer ? 'ចំណេញ / គ្រឿង' : 'Profit / Unit', formula: 'Price − Cost', example: '45 − 20 = 25' },
+                { label: isKhmer ? 'ភាគរយម៉ាហ្ស៊ីន' : 'Margin %', formula: '(Price−Cost)÷Price×100', example: '(45−20)÷45×100 = 55.6%' },
+                { label: isKhmer ? 'ដើមទុនសរុប' : 'Total Cost', formula: 'Cost × Qty', example: '20 × 50 = 1,000' },
+                { label: isKhmer ? 'ចំណូលសរុប' : 'Total Revenue', formula: 'Price × Qty', example: '45 × 50 = 2,250' },
+                { label: isKhmer ? 'ចំណេញសរុប' : 'Total Profit', formula: '(Price−Cost) × Qty', example: '25 × 50 = 1,250' },
+                { label: isKhmer ? 'ប្រាក់ចែករំលែក (%)' : 'Markup %', formula: '(Price−Cost)÷Cost×100', example: '25÷20×100 = 125%' },
+              ].map((tip) => (
+                <div key={tip.label} className="p-3 rounded-xl bg-slate-50/80 dark:bg-surface-850 border border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-0.5">{tip.label}</p>
+                  <p className="text-[10px] font-mono text-slate-600 dark:text-slate-300">{tip.formula}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{tip.example}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section: Full Product Valuation & Profit Table (Classic Orders Table Style) */}
       <div className="card overflow-hidden shadow-sm">
         {/* Table Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-surface-900">
           <div>
             <h2 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
               {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត' : 'Product Profit & Valuation Matrix'}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-gray-400">
               {isKhmer ? 'បង្ហាញតម្លៃយកមក តម្លៃលក់ចេញ និងប្រាក់ចំណេញក្នុងទំនិញនីមួយៗ' : 'Full financial overview per individual catalog item'}
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-            {/* Search Input */}
-            <div className="relative flex-1 sm:w-64 min-w-[220px]">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Search Input with generous padding */}
+            <div className="relative min-w-[240px] flex-1 sm:flex-initial">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand...' : 'Search product, brand...'}
-                style={{ paddingLeft: '2.75rem', paddingRight: '2.5rem' }}
-                className="w-full h-10 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+                placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
+                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-2xs"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition z-10"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 dark:bg-surface-700 text-gray-500 hover:text-gray-800 dark:hover:text-white flex items-center justify-center text-xs transition"
                   title="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  ✕
                 </button>
               )}
             </div>
 
-            {/* CustomDropdown Category Filter */}
-            <CustomDropdown
-              size="md"
-              value={selectedCategory}
-              onChange={setSelectedCategory}
-              options={categoryOptions}
-              icon={<Layers className="w-4 h-4 text-primary-500" />}
-              className="w-full sm:w-auto min-w-[180px]"
-              buttonClassName="bg-slate-50 dark:bg-surface-800 border-slate-200 dark:border-surface-700 font-medium text-slate-800 dark:text-slate-100"
-            />
+            {/* Category Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
+              >
+                <option value="ALL">{isKhmer ? '📁 គ្រប់ប្រភេទទាំងអស់' : '📁 All Categories'}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
 
-            {/* CustomDropdown Sort Filter */}
-            <CustomDropdown
-              size="md"
-              value={sortBy}
-              onChange={(val) => setSortBy(val as any)}
-              options={sortOptions}
-              icon={<SlidersHorizontal className="w-4 h-4 text-slate-400" />}
-              className="w-full sm:w-auto min-w-[190px]"
-              buttonClassName="bg-slate-50 dark:bg-surface-800 border-slate-200 dark:border-surface-700 font-medium text-slate-800 dark:text-slate-100"
-            />
+            {/* Sort Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
+              >
+                <option value="profit_desc">{isKhmer ? '💰 ចំណេញសរុបខ្ពស់បំផុត' : '💰 Highest Total Profit'}</option>
+                <option value="margin_desc">{isKhmer ? '📈 Margin % ខ្ពស់បំផុត' : '📈 Highest Margin %'}</option>
+                <option value="stock_desc">{isKhmer ? '📦 ចំនួនស្តុកច្រើនបំផុត' : '📦 Highest Stock'}</option>
+                <option value="cost_desc">{isKhmer ? '🏷️ ដើមទុនខ្ពស់បំផុត' : '🏷️ Highest Inventory Cost'}</option>
+                <option value="name_asc">{isKhmer ? '🔤 តាមឈ្មោះ A-Z' : '🔤 Name A-Z'}</option>
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -995,25 +788,24 @@ export default function FinancialAccountingPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                <th className="text-center py-3 px-3 w-12 text-xs font-semibold text-gray-500">{isKhmer ? 'ល.រ' : '#'}</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'យកមក (Cost)' : 'Cost Price'}</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'លក់ចេញ (Price)' : 'Selling Price'}</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ចំណេញ/១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ថ្លៃដើមយកមក' : 'Cost'}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'តម្លៃលក់ចេញ' : 'Selling Price'}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
                 <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
             <tbody>
               {processedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-500">
+                  <td colSpan={7} className="text-center py-10 text-gray-500">
                     {isKhmer ? 'មិនមានទិន្នន័យទំនិញត្រូវនឹងការស្វែងរកទេ' : 'No products found'}
                   </td>
                 </tr>
               ) : (
-                processedProducts.map((p, index) => {
+                processedProducts.map((p) => {
                   const cost = Number(p.costPrice) || 0;
                   const price = Number(p.price) || 0;
                   const stock = Number(p.stock) || 0;
@@ -1027,71 +819,71 @@ export default function FinancialAccountingPage() {
                       key={p.id}
                       className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
                     >
-                      {/* Row Index # */}
-                      <td className="py-3 px-3 text-center text-xs font-mono font-bold text-gray-400 dark:text-gray-500">
-                        {index + 1}
-                      </td>
-
                       {/* Product Name & Thumbnail */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <Link
                             href={`/products/${p.slug || p.id}`}
                             target="_blank"
-                            className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
+                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             {p.thumbnail ? (
-                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover" sizes="36px" />
+                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover" sizes="40px" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
                           </Link>
-                          <div className="min-w-0 max-w-[220px] sm:max-w-sm">
+                          <div className="min-w-0 max-w-[200px] sm:max-w-xs">
                             <Link
                               href={`/products/${p.slug || p.id}`}
                               target="_blank"
-                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition"
+                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors text-sm"
                             >
                               {p.name}
                             </Link>
-                            <p className="text-xs text-gray-400">
-                              {p.brand ? `${p.brand} • ` : ''}{p.category?.name || 'General'}
-                            </p>
+                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                              {p.brand && <span className="font-semibold uppercase text-[10px]">{p.brand}</span>}
+                              {p.category && <span>• {p.category.name}</span>}
+                            </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Stock */}
-                      <td className="py-3 px-4 text-center text-gray-600 dark:text-gray-300 font-medium">
-                        {stock}
+                      <td className="py-3 px-4 text-gray-500">
+                        {stock} {isKhmer ? 'មុខ' : 'items'}
                       </td>
 
                       {/* Cost */}
-                      <td className="py-3 px-4 text-right text-gray-500 dark:text-gray-400">
-                        {cost > 0 ? formatPrice(cost, language) : '—'}
+                      <td className="py-3 px-4 text-gray-500">
+                        {cost > 0 ? (
+                          formatPrice(cost, language)
+                        ) : (
+                          <span className="text-xs text-amber-500 italic">{isKhmer ? 'មិនទាន់កំណត់' : 'No cost'}</span>
+                        )}
                       </td>
 
                       {/* Selling Price */}
-                      <td className="py-3 px-4 text-right font-bold text-gray-900 dark:text-white">
+                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
                         {formatPrice(price, language)}
                       </td>
 
                       {/* Profit / Unit & Margin */}
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4">
                         {cost > 0 ? (
-                          <span className="badge badge-success font-semibold">
+                          <span className="badge badge-success">
                             +{formatPrice(profitUnit, language)} ({margin}%)
                           </span>
                         ) : (
-                          <span className="text-gray-400 text-xs">—</span>
+                          <span className="text-gray-400">—</span>
                         )}
                       </td>
 
                       {/* Total Cost */}
-                      <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300 font-medium">
+                      <td className="py-3 px-4 text-gray-500">
                         {formatPrice(totalCost, language)}
                       </td>
 
@@ -1107,23 +899,23 @@ export default function FinancialAccountingPage() {
             {/* Table Footer Totals */}
             {processedProducts.length > 0 && (
               <tfoot>
-                <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-surface-800/50 font-bold text-sm text-gray-900 dark:text-white">
-                  <td colSpan={2} className="py-3.5 px-4">
+                <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-surface-800 font-bold text-sm text-gray-900 dark:text-white">
+                  <td className="py-3 px-4">
                     {isKhmer ? `សរុប (${processedProducts.length} មុខ):` : `Total (${processedProducts.length} items):`}
                   </td>
-                  <td className="py-3.5 px-4 text-center font-bold">
-                    {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)}
+                  <td className="py-3 px-4 text-gray-500">
+                    {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)} {isKhmer ? 'មុខ' : 'items'}
                   </td>
-                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
-                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
-                  <td className="py-3.5 px-4 text-right text-gray-400 text-xs">—</td>
-                  <td className="py-3.5 px-4 text-right font-bold text-gray-700 dark:text-gray-300">
+                  <td className="py-3 px-4 text-gray-400">—</td>
+                  <td className="py-3 px-4 text-gray-400">—</td>
+                  <td className="py-3 px-4 text-gray-400">—</td>
+                  <td className="py-3 px-4 text-gray-900 dark:text-white">
                     {formatPrice(
                       processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0),
                       language
                     )}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">
                     +{formatPrice(
                       processedProducts.reduce((sum, p) => {
                         const cost = Number(p.costPrice) || 0;

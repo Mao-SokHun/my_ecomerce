@@ -859,24 +859,24 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Luxury Product Table */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
+      {/* Products Table (Classic Standard Style) */}
+      <div className="card overflow-hidden shadow-sm">
         {loading ? (
           <div className="p-8 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-semibold text-slate-500 animate-pulse">
+            <p className="text-xs font-semibold text-gray-500 animate-pulse">
               {isKhmer ? 'កំពុងផ្ទុកបញ្ជីទំនិញ...' : 'Loading products catalog...'}
             </p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="p-8 text-center space-y-2.5">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
+            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-gray-400">
               <Package className="w-6 h-6 stroke-1" />
             </div>
-            <p className="text-sm font-bold text-slate-900 dark:text-white">
+            <p className="text-sm font-bold text-gray-900 dark:text-white">
               {isKhmer ? 'រកមិនឃើញទំនិញឡើយ' : 'No products found'}
             </p>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <p className="text-xs text-gray-400 max-w-sm mx-auto">
               {isKhmer
                 ? 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក ឬចុច "បន្ថែមទំនិញថ្មី" ដើម្បីបង្កើតទំនិញដំបូង'
                 : 'Try adjusting your search or filters, or add a new product to get started.'}
@@ -884,21 +884,20 @@ export default function AdminProductsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  <th className="py-2.5 px-3 w-12 text-center">{isKhmer ? 'ល.រ' : '#'}</th>
-                  <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                  <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
-                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
-                  <th className="py-2.5 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
-                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
-                  <th className="py-2.5 px-3 sm:px-4 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'Featured' : 'Featured'}</th>
+                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
-                {filteredProducts.map((product, index) => {
+              <tbody>
+                {filteredProducts.map((product) => {
                   const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                   const isLow = product.stock > 0 && product.stock <= 5;
                   const isOut = product.stock <= 0;
@@ -906,20 +905,15 @@ export default function AdminProductsPage() {
                   return (
                     <tr
                       key={product.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
+                      className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
                     >
-                      {/* Row Index # */}
-                      <td className="py-2.5 px-3 text-center text-xs font-mono font-bold text-slate-400 dark:text-slate-500">
-                        {index + 1}
-                      </td>
-
                       {/* Product Name & Thumbnail */}
-                      <td className="py-2.5 px-3 sm:px-4">
-                        <div className="flex items-center gap-2.5">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
                           <Link
                             href={`/products/${product.slug || product.id}`}
                             target="_blank"
-                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-sm transition-shadow block"
+                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             {product.thumbnail ? (
@@ -927,11 +921,11 @@ export default function AdminProductsPage() {
                                 src={product.thumbnail}
                                 alt={product.name}
                                 fill
-                                className="object-cover group-hover:scale-110 transition-transform duration-300"
+                                className="object-cover"
                                 sizes="40px"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
@@ -940,18 +934,18 @@ export default function AdminProductsPage() {
                             <Link
                               href={`/products/${product.slug || product.id}`}
                               target="_blank"
-                              className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors"
+                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors text-sm"
                             >
                               {product.name}
                             </Link>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
                               {product.brand && (
-                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                <span className="font-semibold uppercase text-[10px]">
                                   {product.brand}
                                 </span>
                               )}
                               {product.category && (
-                                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate md:hidden">
+                                <span className="truncate md:hidden">
                                   • {product.category.name}
                                 </span>
                               )}
@@ -961,129 +955,67 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Category */}
-                      <td className="py-2.5 px-3 hidden md:table-cell">
-                        {product.category ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
-                            {product.category.name}
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-slate-400">—</span>
-                        )}
+                      <td className="py-3 px-4 hidden md:table-cell text-gray-500 text-xs">
+                        {product.category?.name || '—'}
                       </td>
 
-                      {/* Clean Elegant Selling Price */}
-                      <td className="py-2.5 px-3">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
-                              {formatPrice(product.price, language)}
-                            </span>
-                            {hasDiscount && (
-                              <span className="text-[10px] text-slate-400 line-through tabular-nums">
-                                {formatPrice(product.comparePrice || 0, language)}
-                              </span>
-                            )}
-                          </div>
+                      {/* Clean Price */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {formatPrice(product.price, language)}
+                          </span>
                           {hasDiscount && (
-                            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                              -{Math.round((((product.comparePrice || 0) - product.price) / (product.comparePrice || 1)) * 100)}% off
+                            <span className="text-xs text-gray-400 line-through">
+                              {formatPrice(product.comparePrice || 0, language)}
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Stock & Quick Restock Button */}
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => openRestock(product, e)}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${
-                              isOut
-                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
-                                : isLow
-                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
-                            }`}
-                            title={isKhmer ? 'ចុចដើម្បីកែប្រែ ឬបំពេញស្តុក' : 'Click to adjust or restock inventory'}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isOut ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
-                              }`}
-                            />
-                            <span>{product.stock}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => openRestock(product, e)}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
-                            title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
-                          </button>
-                        </div>
+                      {/* Stock */}
+                      <td className="py-3 px-4 text-gray-500">
+                        <span className={`badge ${
+                          isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'
+                        }`}>
+                          {product.stock} {isKhmer ? 'គ្រឿង' : 'items'}
+                        </span>
                       </td>
 
-                      {/* Featured (1-Click Interactive Star Toggle) */}
-                      <td className="py-2.5 px-3 text-center">
+                      {/* Featured */}
+                      <td className="py-3 px-4 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleFeatured(product, e)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                            product.isFeatured
-                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-2xs hover:bg-amber-100'
-                              : 'bg-slate-100/60 dark:bg-surface-800/60 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-transparent hover:border-amber-200'
+                          className={`badge cursor-pointer ${
+                            product.isFeatured ? 'badge-warning' : 'bg-gray-100 text-gray-400 dark:bg-surface-800'
                           }`}
-                          title={
-                            product.isFeatured
-                              ? (isKhmer ? 'ចុចដើម្បីបិទ Featured' : 'Click to remove from Featured')
-                              : (isKhmer ? 'ចុចដើម្បីបើក Featured លើ Homepage' : 'Click to make Featured on Homepage')
-                          }
                         >
-                          <Star
-                            className={`w-3 h-3 transition-transform ${
-                              product.isFeatured ? 'text-amber-500 fill-amber-500 scale-110' : 'text-slate-400'
-                            }`}
-                          />
-                          <span>{product.isFeatured ? (isKhmer ? 'Featured' : 'Featured') : isKhmer ? 'ធម្មតា' : 'Normal'}</span>
+                          <Star className={`w-3 h-3 mr-1 ${product.isFeatured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                          <span>{product.isFeatured ? 'Featured' : (isKhmer ? 'ធម្មតា' : 'Normal')}</span>
                         </button>
                       </td>
 
-                      {/* Status (1-Click Interactive Active Toggle) */}
-                      <td className="py-2.5 px-3 text-center">
+                      {/* Status */}
+                      <td className="py-3 px-4 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleActive(product, e)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
-                            product.isActive
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-2xs'
-                              : 'bg-slate-100 dark:bg-surface-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                          className={`badge cursor-pointer ${
+                            product.isActive ? 'badge-success' : 'bg-gray-100 text-gray-400 dark:bg-surface-800'
                           }`}
-                          title={
-                            product.isActive
-                              ? (isKhmer ? 'ចុចដើម្បីបិទលក់ (Draft)' : 'Click to set Inactive')
-                              : (isKhmer ? 'ចុចដើម្បីបើកលក់ (Active)' : 'Click to set Active')
-                          }
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              product.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
-                            }`}
-                          />
-                          <span>{product.isActive ? (isKhmer ? 'សកម្ម' : 'Active') : isKhmer ? 'អសកម្ម' : 'Draft'}</span>
+                          <span>{product.isActive ? (isKhmer ? 'សកម្ម' : 'Active') : (isKhmer ? 'អសកម្ម' : 'Draft')}</span>
                         </button>
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2.5 px-3 sm:px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/products/${product.slug || product.id}`}
                             target="_blank"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
+                            className="p-1.5 rounded-lg border border-primary-200 dark:border-primary-900/50 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-950/30 hover:bg-primary-100 transition flex items-center gap-1 text-xs font-semibold shadow-xs"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -1091,18 +1023,18 @@ export default function AdminProductsPage() {
                           <button
                             type="button"
                             onClick={(e) => openEdit(product, e)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700 transition"
                             title={isKhmer ? 'កែប្រែ' : 'Edit'}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => handleDelete(product.id, product.name, e)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
                             title={isKhmer ? 'លុប' : 'Delete'}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
