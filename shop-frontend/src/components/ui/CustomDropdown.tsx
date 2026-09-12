@@ -23,6 +23,7 @@ interface CustomDropdownProps {
   size?: 'xs' | 'sm' | 'md';
   disabled?: boolean;
   align?: 'left' | 'right';
+  placement?: 'auto' | 'top' | 'bottom';
   icon?: React.ReactNode;
 }
 
@@ -37,12 +38,37 @@ export function CustomDropdown({
   size = 'sm',
   disabled = false,
   align = 'left',
+  placement = 'auto',
   icon,
 }: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((o) => o.value === value);
+
+  // Calculate opening direction (upward vs downward)
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen && containerRef.current) {
+      if (placement === 'top') {
+        setOpenUpward(true);
+      } else if (placement === 'bottom') {
+        setOpenUpward(false);
+      } else {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        // If less than 240px space below and more space above, open upward
+        if (spaceBelow < 240 && spaceAbove > spaceBelow) {
+          setOpenUpward(true);
+        } else {
+          setOpenUpward(false);
+        }
+      }
+    }
+    setIsOpen((prev) => !prev);
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -95,7 +121,7 @@ export function CustomDropdown({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggle}
         className={`w-full flex items-center justify-between transition-all duration-200 select-none border cursor-pointer ${sizeClasses} ${
           disabled
             ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
@@ -131,11 +157,13 @@ export function CustomDropdown({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -3, scale: 0.98 }}
+            initial={{ opacity: 0, y: openUpward ? 3 : -3, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -3, scale: 0.98 }}
+            exit={{ opacity: 0, y: openUpward ? 3 : -3, scale: 0.98 }}
             transition={{ duration: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            className={`absolute z-50 mt-1.5 ${menuMinW} max-h-60 overflow-y-auto bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl shadow-black/60 p-1 ring-1 ring-black/10 focus:outline-none ${
+            className={`absolute z-50 ${
+              openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            } ${menuMinW} max-h-60 overflow-y-auto bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl shadow-black/60 p-1 ring-1 ring-black/10 focus:outline-none ${
               align === 'right' ? 'right-0' : 'left-0'
             } ${menuClassName}`}
             role="listbox"
