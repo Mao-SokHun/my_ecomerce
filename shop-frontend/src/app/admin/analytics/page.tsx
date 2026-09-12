@@ -28,8 +28,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   HelpCircle,
+  X,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
 import toast from 'react-hot-toast';
 
 export default function FinancialAccountingPage() {
@@ -43,6 +45,23 @@ export default function FinancialAccountingPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'profit_desc' | 'margin_desc' | 'stock_desc' | 'cost_desc' | 'name_asc'>('profit_desc');
+
+  const categoryOptions = useMemo(() => {
+    return [
+      { value: 'ALL', label: isKhmer ? 'គ្រប់ប្រភេទទាំងអស់' : 'All Categories' },
+      ...categories.map((c) => ({ value: c.id, label: c.name })),
+    ];
+  }, [categories, isKhmer]);
+
+  const sortOptions = useMemo(() => {
+    return [
+      { value: 'profit_desc', label: isKhmer ? 'ចំណេញសរុបខ្ពស់បំផុត' : 'Highest Total Profit' },
+      { value: 'margin_desc', label: isKhmer ? 'Margin % ខ្ពស់បំផុត' : 'Highest Margin %' },
+      { value: 'stock_desc', label: isKhmer ? 'ចំនួនស្តុកច្រើនបំផុត' : 'Highest Stock' },
+      { value: 'cost_desc', label: isKhmer ? 'ដើមទុនខ្ពស់បំផុត' : 'Highest Inventory Cost' },
+      { value: 'name_asc', label: isKhmer ? 'តាមឈ្មោះ A-Z' : 'Name A-Z' },
+    ];
+  }, [isKhmer]);
 
   // Interactive Profit Simulator state
   const [simCost, setSimCost] = useState<string>('20.00');
@@ -553,59 +572,51 @@ export default function FinancialAccountingPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             {/* Search Input */}
-            <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div className="relative flex-1 sm:w-64 min-w-[220px]">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
-                className="w-full h-10 pl-10 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand...' : 'Search product, brand...'}
+                style={{ paddingLeft: '2.75rem', paddingRight: '2.5rem' }}
+                className="w-full h-10 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 dark:bg-surface-700 text-gray-500 hover:text-gray-800 dark:hover:text-white flex items-center justify-center text-xs transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-surface-700 transition z-10"
                   title="Clear search"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Category Filter Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-10 pl-3.5 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
-              >
-                <option value="ALL">{isKhmer ? '📁 គ្រប់ប្រភេទទាំងអស់' : '📁 All Categories'}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
+            {/* CustomDropdown Category Filter */}
+            <CustomDropdown
+              size="md"
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              options={categoryOptions}
+              icon={<Layers className="w-4 h-4 text-primary-500" />}
+              className="w-full sm:w-auto min-w-[180px]"
+              buttonClassName="bg-slate-50 dark:bg-surface-800 border-slate-200 dark:border-surface-700 font-medium text-slate-800 dark:text-slate-100"
+            />
 
-            {/* Sort Filter Dropdown */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-10 pl-3.5 pr-8 text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
-              >
-                <option value="profit_desc">{isKhmer ? '💰 ចំណេញសរុបខ្ពស់បំផុត' : '💰 Highest Total Profit'}</option>
-                <option value="margin_desc">{isKhmer ? '📈 Margin % ខ្ពស់បំផុត' : '📈 Highest Margin %'}</option>
-                <option value="stock_desc">{isKhmer ? '📦 ចំនួនស្តុកច្រើនបំផុត' : '📦 Highest Stock'}</option>
-                <option value="cost_desc">{isKhmer ? '🏷️ ដើមទុនខ្ពស់បំផុត' : '🏷️ Highest Inventory Cost'}</option>
-                <option value="name_asc">{isKhmer ? '🔤 តាមឈ្មោះ A-Z' : '🔤 Name A-Z'}</option>
-              </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
+            {/* CustomDropdown Sort Filter */}
+            <CustomDropdown
+              size="md"
+              value={sortBy}
+              onChange={(val) => setSortBy(val as any)}
+              options={sortOptions}
+              icon={<SlidersHorizontal className="w-4 h-4 text-slate-400" />}
+              className="w-full sm:w-auto min-w-[190px]"
+              buttonClassName="bg-slate-50 dark:bg-surface-800 border-slate-200 dark:border-surface-700 font-medium text-slate-800 dark:text-slate-100"
+            />
           </div>
         </div>
 
