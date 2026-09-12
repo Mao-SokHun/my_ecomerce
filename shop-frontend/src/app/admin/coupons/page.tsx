@@ -1011,20 +1011,20 @@ export default function AdminCouponsPage() {
                           <button
                             type="button"
                             onClick={() => startEdit(c)}
-                            className="p-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-primary-50 dark:bg-slate-800 dark:hover:bg-primary-950/60 text-slate-700 hover:text-primary-600 dark:text-slate-300 dark:hover:text-primary-400 transition-all hover:scale-105"
+                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/60 rounded-xl transition-all hover:scale-105 active:scale-95"
                             title={adminT(language, 'editBtn')}
                             aria-label={adminT(language, 'editBtn')}
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => removeCoupon(c.id)}
-                            className="p-2 text-xs font-semibold rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-all hover:scale-105"
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 rounded-xl transition-all hover:scale-105 active:scale-95"
                             title={adminT(language, 'deleteBtn')}
                             aria-label={adminT(language, 'deleteBtn')}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
