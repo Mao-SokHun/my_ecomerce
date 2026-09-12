@@ -28,6 +28,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   HelpCircle,
+  Delete,
+  History,
+  Bookmark,
+  Trash2,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -49,12 +53,18 @@ export default function FinancialAccountingPage() {
   const [simPrice, setSimPrice] = useState<string>('45.00');
   const [simQty, setSimQty] = useState<string>('50');
 
-  // General Calculator state
-  const [calcDisplay, setCalcDisplay] = useState<string>('0');
-  const [calcPrev, setCalcPrev] = useState<string>('');
-  const [calcOp, setCalcOp] = useState<string>('');
-  const [calcExpression, setCalcExpression] = useState<string>('');
-  const [calcJustEvaled, setCalcJustEvaled] = useState<boolean>(false);
+  // Calculation history
+  type SimHistoryEntry = {
+    id: number; cost: number; price: number; qty: number;
+    profit: number; margin: number; markup: number; timestamp: string;
+  };
+  const [simHistory, setSimHistory] = useState<SimHistoryEntry[]>([]);
+
+  // Backspace: remove last character from a numeric string
+  const backspace = (val: string, setter: (v: string) => void) => {
+    const next = val.slice(0, -1);
+    setter(next === '' || next === '-' ? '0' : next);
+  };
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -263,6 +273,22 @@ export default function FinancialAccountingPage() {
     toast.success(isKhmer ? 'បានទាញយករបាយការណ៍ CSV ជោគជ័យ' : 'CSV Report downloaded successfully');
   };
 
+  // Save current simulation to history
+  const saveToHistory = () => {
+    const cost = Math.max(0, Number(simCost) || 0);
+    const price = Math.max(0, Number(simPrice) || 0);
+    const qty = Math.max(1, Number(simQty) || 1);
+    const profitPerUnit = Math.max(0, price - cost);
+    const margin = price > 0 ? Math.round((profitPerUnit / price) * 100) : 0;
+    const markup = cost > 0 ? Math.round((profitPerUnit / cost) * 100) : 0;
+    setSimHistory((prev) => [{
+      id: Date.now(), cost, price, qty,
+      profit: profitPerUnit * qty, margin, markup,
+      timestamp: new Date().toLocaleTimeString(),
+    }, ...prev].slice(0, 8));
+    toast.success(isKhmer ? 'បានរក្សាទុករបាយការណ៍ក្នុង History' : 'Saved to history!');
+  };
+
   return (
     <div
       className="space-y-4 pb-12"
@@ -424,29 +450,29 @@ export default function FinancialAccountingPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
             {categoryAnalysis.map((cat) => {
               const margin = cat.retail > 0 ? Math.round((cat.profit / cat.retail) * 100) : 0;
               const profitShare = financials.totalEstGrossProfit > 0 ? Math.round((cat.profit / financials.totalEstGrossProfit) * 100) : 0;
 
               return (
-                <div key={cat.name} className="p-3 rounded-xl bg-slate-50/80 dark:bg-surface-850 border border-slate-100 dark:border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-900 dark:text-white truncate max-w-[130px]">{cat.name}</span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-xs">
+                <div key={cat.name} className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-surface-850 border border-slate-100 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-[140px]">{cat.name}</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono text-sm">
                       +{formatPrice(cat.profit, language)}
                     </span>
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-surface-700 overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-surface-700 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
                       style={{ width: `${Math.max(5, Math.min(100, profitShare))}%` }}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>{cat.count} {isKhmer ? 'គ្រឿង' : 'pcs'} • Margin: {margin}%</span>
                     <span>{profitShare}% {isKhmer ? 'ចំណែកចំណេញ' : 'share'}</span>
                   </div>
@@ -456,15 +482,16 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Compact, Ultra-Sleek Profit Simulator (1 Col - Fits Content, Never Stretches) */}
+        {/* Profit Simulator with Backspace + History */}
         <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+          {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                 <Calculator className="w-4 h-4" />
               </div>
               <h2 className="font-bold text-sm text-slate-900 dark:text-white">
-                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញរហ័ស' : 'Quick Profit Simulator'}
+                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញ' : 'Profit Simulator'}
               </h2>
             </div>
             <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
@@ -472,257 +499,153 @@ export default function FinancialAccountingPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {/* Input Cost */}
+          {/* 3 Inputs with backspace buttons */}
+          <div className="grid grid-cols-3 gap-3">
+            {/* Cost */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={simCost}
-                onChange={(e) => setSimCost(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+              <div className="flex gap-1">
+                <input
+                  type="number" step="0.01" value={simCost}
+                  onChange={(e) => setSimCost(e.target.value)}
+                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <button type="button" onClick={() => backspace(simCost, setSimCost)}
+                  title="Delete last digit"
+                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
+                  <Delete className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            {/* Input Selling Price */}
+            {/* Sell Price */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={simPrice}
-                onChange={(e) => setSimPrice(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+              <div className="flex gap-1">
+                <input
+                  type="number" step="0.01" value={simPrice}
+                  onChange={(e) => setSimPrice(e.target.value)}
+                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <button type="button" onClick={() => backspace(simPrice, setSimPrice)}
+                  title="Delete last digit"
+                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
+                  <Delete className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            {/* Input Quantity */}
+            {/* Qty */}
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 truncate">
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'ចំនួន' : 'Qty'}
               </label>
-              <input
-                type="number"
-                value={simQty}
-                onChange={(e) => setSimQty(e.target.value)}
-                className="w-full h-8.5 px-2 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
+              <div className="flex gap-1">
+                <input
+                  type="number" value={simQty}
+                  onChange={(e) => setSimQty(e.target.value)}
+                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <button type="button" onClick={() => backspace(simQty, setSimQty)}
+                  title="Delete last digit"
+                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
+                  <Delete className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Compact Clean Output Box */}
-          <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-600 dark:text-slate-300 font-medium">
+          {/* Live Result */}
+          <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
                 {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
               </span>
-              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-sm">
                 +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
               </strong>
             </div>
-
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500 dark:text-slate-400">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-500 dark:text-slate-400">
                 {isKhmer ? 'ដើមទុនសរុប:' : 'Total Cost:'}
               </span>
-              <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold">
+              <span className="font-mono text-slate-600 dark:text-slate-300 font-semibold text-sm">
                 ${simResult.totalCost.toFixed(2)}
               </span>
             </div>
-
-            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-emerald-200/60 dark:border-emerald-800/40 font-bold">
-              <span className="text-emerald-800 dark:text-emerald-200 font-extrabold">
+            <div className="flex justify-between items-center pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="text-base text-emerald-800 dark:text-emerald-200 font-extrabold">
                 {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
               </span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-sm font-black">
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl font-black">
                 +${simResult.totalProfit.toFixed(2)}
               </span>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* General Purpose Calculator */}
-      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            <Calculator className="w-4 h-4" />
-          </div>
-          <h2 className="font-bold text-sm text-slate-900 dark:text-white">
-            {isKhmer ? 'ម៉ាស៊ីនគណនាទូទៅ' : 'General Calculator'}
-          </h2>
-          {calcExpression && (
-            <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono truncate max-w-xs text-right">
-              {calcExpression}
-            </span>
+          {/* Save to History Button */}
+          <button
+            type="button"
+            onClick={saveToHistory}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition active:scale-95"
+          >
+            <Bookmark className="w-4 h-4" />
+            {isKhmer ? 'រក្សាទុករបាយការណ៍នេះ' : 'Save to History'}
+          </button>
+
+          {/* History Log */}
+          {simHistory.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                  <History className="w-3.5 h-3.5" />
+                  <span>{isKhmer ? 'ប្រវត្តិគណនា' : 'Calculation History'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSimHistory([])}
+                  className="flex items-center gap-1 text-[11px] text-rose-500 hover:text-rose-700 transition font-semibold"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  {isKhmer ? 'លុបទាំងអស់' : 'Clear all'}
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+                {simHistory.map((h) => (
+                  <div key={h.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-100 dark:border-slate-800 text-xs group hover:border-emerald-300 dark:hover:border-emerald-700 transition">
+                    <div className="space-y-0.5">
+                      <div className="font-mono text-slate-600 dark:text-slate-300">
+                        Cost <strong>${h.cost}</strong> · Sell <strong>${h.price}</strong> · Qty <strong>{h.qty}</strong>
+                      </div>
+                      <div className="text-slate-400 text-[10px]">{h.timestamp}</div>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <div className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                        +${h.profit.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-slate-400">{h.margin}% margin</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-
-        <div className="p-4 sm:p-5">
-          <div className="flex flex-col sm:flex-row gap-4 items-start">
-            {/* Display */}
-            <div className="w-full sm:max-w-[320px]">
-              <div className="w-full h-16 px-4 flex items-center justify-end rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 mb-3 overflow-hidden">
-                <span className="font-mono font-black text-2xl text-slate-900 dark:text-white truncate text-right">
-                  {calcDisplay}
-                </span>
-              </div>
-
-              {/* Calculator Buttons Grid */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {/* Row 1 */}
-                {[['AC', 'ac'], ['+/-', 'sign'], ['%', 'pct'], ['÷', '/']].map(([label, val]) => (
-                  <button
-                    key={val}
-                    onClick={() => {
-                      if (val === 'ac') {
-                        setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
-                      } else if (val === 'sign') {
-                        setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
-                      } else if (val === 'pct') {
-                        setCalcDisplay((d) => String(parseFloat(d) / 100));
-                      } else {
-                        setCalcPrev(calcDisplay); setCalcOp(val);
-                        setCalcExpression(calcDisplay + ' ' + label + ' ');
-                        setCalcJustEvaled(false);
-                      }
-                    }}
-                    className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-slate-200/80 dark:bg-surface-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-surface-600"
-                  >{label}</button>
-                ))}
-                {/* Row 2 */}
-                {[['7','7'],['8','8'],['9','9'],['×','*']].map(([label, val]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      if (['/', '*', '-', '+'].includes(val)) {
-                        setCalcPrev(calcDisplay); setCalcOp(val);
-                        setCalcExpression(calcDisplay + ' ' + label + ' ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
-                    }}
-                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                      ['×','÷','+','-'].includes(label)
-                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
-                  >{label}</button>
-                ))}
-                {/* Row 3 */}
-                {[['4','4'],['5','5'],['6','6'],['-','-']].map(([label, val]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      if (['/', '*', '-', '+'].includes(val)) {
-                        setCalcPrev(calcDisplay); setCalcOp(val);
-                        setCalcExpression(calcDisplay + ' ' + label + ' ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
-                    }}
-                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                      ['×','÷','+','-'].includes(label)
-                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
-                  >{label}</button>
-                ))}
-                {/* Row 4 */}
-                {[['1','1'],['2','2'],['3','3'],['+','+']].map(([label, val]) => (
-                  <button
-                    key={label}
-                    onClick={() => {
-                      if (['/', '*', '-', '+'].includes(val)) {
-                        setCalcPrev(calcDisplay); setCalcOp(val);
-                        setCalcExpression(calcDisplay + ' ' + label + ' ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? val : calcDisplay + val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
-                    }}
-                    className={`h-11 rounded-xl text-sm font-bold transition-all active:scale-95 ${
-                      ['×','÷','+','-'].includes(label)
-                        ? 'bg-amber-400 dark:bg-amber-500 text-white hover:bg-amber-500 dark:hover:bg-amber-400'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
-                  >{label}</button>
-                ))}
-                {/* Row 5: 0, ., = */}
-                <button
-                  onClick={() => {
-                    const next = calcJustEvaled || calcDisplay === '0' ? '0' : calcDisplay + '0';
-                    setCalcDisplay(next === '00' ? '0' : next); setCalcJustEvaled(false);
-                  }}
-                  className="col-span-2 h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
-                >0</button>
-                <button
-                  onClick={() => {
-                    if (!calcDisplay.includes('.')) setCalcDisplay((d) => d + '.');
-                  }}
-                  className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
-                >.</button>
-                <button
-                  onClick={() => {
-                    const a = parseFloat(calcPrev);
-                    const b = parseFloat(calcDisplay);
-                    if (!calcOp || isNaN(a) || isNaN(b)) return;
-                    let res = 0;
-                    if (calcOp === '+') res = a + b;
-                    else if (calcOp === '-') res = a - b;
-                    else if (calcOp === '*') res = a * b;
-                    else if (calcOp === '/') res = b !== 0 ? a / b : 0;
-                    const rounded = Math.round(res * 1e10) / 1e10;
-                    setCalcExpression(calcExpression + b + ' =');
-                    setCalcDisplay(String(rounded));
-                    setCalcPrev(''); setCalcOp('');
-                    setCalcJustEvaled(true);
-                  }}
-                  className="h-11 rounded-xl text-sm font-bold transition-all active:scale-95 bg-blue-500 hover:bg-blue-600 text-white"
-                >=</button>
-              </div>
-            </div>
-
-            {/* Quick Tips */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {[
-                { label: isKhmer ? 'ចំណេញ / គ្រឿង' : 'Profit / Unit', formula: 'Price − Cost', example: '45 − 20 = 25' },
-                { label: isKhmer ? 'ភាគរយម៉ាហ្ស៊ីន' : 'Margin %', formula: '(Price−Cost)÷Price×100', example: '(45−20)÷45×100 = 55.6%' },
-                { label: isKhmer ? 'ដើមទុនសរុប' : 'Total Cost', formula: 'Cost × Qty', example: '20 × 50 = 1,000' },
-                { label: isKhmer ? 'ចំណូលសរុប' : 'Total Revenue', formula: 'Price × Qty', example: '45 × 50 = 2,250' },
-                { label: isKhmer ? 'ចំណេញសរុប' : 'Total Profit', formula: '(Price−Cost) × Qty', example: '25 × 50 = 1,250' },
-                { label: isKhmer ? 'ប្រាក់ចែករំលែក (%)' : 'Markup %', formula: '(Price−Cost)÷Cost×100', example: '25÷20×100 = 125%' },
-              ].map((tip) => (
-                <div key={tip.label} className="p-3 rounded-xl bg-slate-50/80 dark:bg-surface-850 border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-0.5">{tip.label}</p>
-                  <p className="text-[10px] font-mono text-slate-600 dark:text-slate-300">{tip.formula}</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{tip.example}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Bottom Section: Full Product Valuation & Profit Table (Classic Orders Table Style) */}
-      <div className="card overflow-hidden shadow-sm">
+      {/* Bottom Section: Full Product Valuation & Profit Table */}
+      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
         {/* Table Toolbar */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-surface-900">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h2 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
-              {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត' : 'Product Profit & Valuation Matrix'}
+            <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+              {isKhmer ? 'តារាងគណនេយ្យទំនិញលម្អិត (Product Profit & Valuation Matrix)' : 'Product Profit & Valuation Matrix'}
             </h2>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {isKhmer ? 'បង្ហាញតម្លៃយកមក តម្លៃលក់ចេញ និងប្រាក់ចំណេញក្នុងទំនិញនីមួយៗ' : 'Full financial overview per individual catalog item'}
             </p>
           </div>
@@ -730,19 +653,19 @@ export default function FinancialAccountingPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Search Input with generous padding */}
             <div className="relative min-w-[240px] flex-1 sm:flex-initial">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
-                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-2xs"
+                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-200 dark:bg-surface-700 text-gray-500 hover:text-gray-800 dark:hover:text-white flex items-center justify-center text-xs transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-xs transition"
                   title="Clear search"
                 >
                   ✕
@@ -755,14 +678,14 @@ export default function FinancialAccountingPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
+                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
               >
                 <option value="ALL">{isKhmer ? '📁 គ្រប់ប្រភេទទាំងអស់' : '📁 All Categories'}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
 
             {/* Sort Filter Dropdown */}
@@ -770,7 +693,7 @@ export default function FinancialAccountingPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-gray-50 dark:bg-surface-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer appearance-none"
+                className="h-10 pl-3.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition cursor-pointer appearance-none"
               >
                 <option value="profit_desc">{isKhmer ? '💰 ចំណេញសរុបខ្ពស់បំផុត' : '💰 Highest Total Profit'}</option>
                 <option value="margin_desc">{isKhmer ? '📈 Margin % ខ្ពស់បំផុត' : '📈 Highest Margin %'}</option>
@@ -778,29 +701,29 @@ export default function FinancialAccountingPage() {
                 <option value="cost_desc">{isKhmer ? '🏷️ ដើមទុនខ្ពស់បំផុត' : '🏷️ Highest Inventory Cost'}</option>
                 <option value="name_asc">{isKhmer ? '🔤 តាមឈ្មោះ A-Z' : '🔤 Name A-Z'}</option>
               </select>
-              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
           </div>
         </div>
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ថ្លៃដើមយកមក' : 'Cost'}</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'តម្លៃលក់ចេញ' : 'Selling Price'}</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ដើមទុនសរុប' : 'Total Cost'}</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-surface-850 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <th className="py-3.5 px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                <th className="py-3.5 px-3 text-center">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ថ្លៃដើមយកមក (Cost)' : 'Cost Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'តម្លៃលក់ចេញ (Price)' : 'Selling Price'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit'}</th>
+                <th className="py-3.5 px-3 text-right">{isKhmer ? 'ដើមទុនសរុប (Total Cost)' : 'Total Cost'}</th>
+                <th className="py-3.5 px-4 text-right">{isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Est. Profit'}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {processedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-gray-500">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     {isKhmer ? 'មិនមានទិន្នន័យទំនិញត្រូវនឹងការស្វែងរកទេ' : 'No products found'}
                   </td>
                 </tr>
@@ -815,37 +738,34 @@ export default function FinancialAccountingPage() {
                   const totalProfit = stock * profitUnit;
 
                   return (
-                    <tr
-                      key={p.id}
-                      className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
-                    >
+                    <tr key={p.id} className="hover:bg-slate-50/90 dark:hover:bg-surface-850/60 transition-colors group">
                       {/* Product Name & Thumbnail */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <Link
                             href={`/products/${p.slug || p.id}`}
                             target="_blank"
-                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
+                            className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700 block group-hover:shadow-sm transition"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             {p.thumbnail ? (
-                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover" sizes="40px" />
+                              <Image src={p.thumbnail} alt={p.name} fill className="object-cover group-hover:scale-105 transition duration-200" sizes="40px" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
                           </Link>
-                          <div className="min-w-0 max-w-[200px] sm:max-w-xs">
+                          <div className="min-w-0 max-w-[220px] sm:max-w-sm">
                             <Link
                               href={`/products/${p.slug || p.id}`}
                               target="_blank"
-                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors text-sm"
+                              className="font-bold text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition"
                             >
                               {p.name}
                             </Link>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                              {p.brand && <span className="font-semibold uppercase text-[10px]">{p.brand}</span>}
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                              {p.brand && <span className="uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">{p.brand}</span>}
                               {p.category && <span>• {p.category.name}</span>}
                             </div>
                           </div>
@@ -853,42 +773,58 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       {/* Stock */}
-                      <td className="py-3 px-4 text-gray-500">
-                        {stock} {isKhmer ? 'មុខ' : 'items'}
+                      <td className="py-3 px-3 text-center">
+                        <span className={`inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-lg text-xs font-mono font-bold border ${stock <= 0
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                            : stock <= 5
+                              ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60'
+                              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-surface-800 dark:text-slate-200 dark:border-slate-700'
+                          }`}>
+                          {stock}
+                        </span>
                       </td>
 
                       {/* Cost */}
-                      <td className="py-3 px-4 text-gray-500">
+                      <td className="py-3 px-3 text-right">
                         {cost > 0 ? (
-                          formatPrice(cost, language)
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700">
+                            {formatPrice(cost, language)}
+                          </span>
                         ) : (
-                          <span className="text-xs text-amber-500 italic">{isKhmer ? 'មិនទាន់កំណត់' : 'No cost'}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 font-medium italic">
+                            {isKhmer ? 'មិនទាន់កំណត់' : 'No cost'}
+                          </span>
                         )}
                       </td>
 
                       {/* Selling Price */}
-                      <td className="py-3 px-4 font-bold text-gray-900 dark:text-white">
-                        {formatPrice(price, language)}
+                      <td className="py-3 px-3 text-right">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60">
+                          {formatPrice(price, language)}
+                        </span>
                       </td>
 
                       {/* Profit / Unit & Margin */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3 text-right">
                         {cost > 0 ? (
-                          <span className="badge badge-success">
-                            +{formatPrice(profitUnit, language)} ({margin}%)
-                          </span>
+                          <div className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
+                            <span>+{formatPrice(profitUnit, language)}</span>
+                            <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-black">
+                              {margin}%
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-slate-400">—</span>
                         )}
                       </td>
 
                       {/* Total Cost */}
-                      <td className="py-3 px-4 text-gray-500">
+                      <td className="py-3 px-3 text-right font-mono text-slate-700 dark:text-slate-300 font-bold text-xs">
                         {formatPrice(totalCost, language)}
                       </td>
 
                       {/* Total Est Profit */}
-                      <td className="py-3 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
                         +{formatPrice(totalProfit, language)}
                       </td>
                     </tr>
@@ -899,23 +835,23 @@ export default function FinancialAccountingPage() {
             {/* Table Footer Totals */}
             {processedProducts.length > 0 && (
               <tfoot>
-                <tr className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-surface-800 font-bold text-sm text-gray-900 dark:text-white">
-                  <td className="py-3 px-4">
+                <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-surface-850 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                  <td className="py-3.5 px-4 font-black">
                     {isKhmer ? `សរុប (${processedProducts.length} មុខ):` : `Total (${processedProducts.length} items):`}
                   </td>
-                  <td className="py-3 px-4 text-gray-500">
-                    {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)} {isKhmer ? 'មុខ' : 'items'}
+                  <td className="py-3.5 px-3 text-center font-mono font-black">
+                    {processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0)}
                   </td>
-                  <td className="py-3 px-4 text-gray-400">—</td>
-                  <td className="py-3 px-4 text-gray-400">—</td>
-                  <td className="py-3 px-4 text-gray-400">—</td>
-                  <td className="py-3 px-4 text-gray-900 dark:text-white">
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right text-slate-400 text-xs">—</td>
+                  <td className="py-3.5 px-3 text-right font-mono font-black text-slate-800 dark:text-slate-200">
                     {formatPrice(
                       processedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0) * (Number(p.costPrice) || 0), 0),
                       language
                     )}
                   </td>
-                  <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400 font-bold">
+                  <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
                     +{formatPrice(
                       processedProducts.reduce((sum, p) => {
                         const cost = Number(p.costPrice) || 0;

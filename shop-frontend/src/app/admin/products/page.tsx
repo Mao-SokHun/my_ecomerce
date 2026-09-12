@@ -40,9 +40,8 @@ import { useRealtime } from '@/providers/RealtimeProvider';
 export default function AdminProductsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
-  const modalLabelCls = `block mb-1.5 text-slate-600 dark:text-slate-300 ${
-    isKhmer ? 'text-[13px] font-medium' : 'text-[11px] font-semibold uppercase tracking-[0.06em]'
-  }`;
+  const modalLabelCls = `block mb-1.5 text-slate-600 dark:text-slate-300 ${isKhmer ? 'text-[13px] font-medium' : 'text-[11px] font-semibold uppercase tracking-[0.06em]'
+    }`;
   const modalInputCls = 'input text-sm min-h-[44px]';
   const modalGridCls = 'grid sm:grid-cols-2 gap-4 sm:gap-5';
 
@@ -51,7 +50,7 @@ export default function AdminProductsPage() {
       try {
         const cached = sessionStorage.getItem('admin_cached_products');
         if (cached) return JSON.parse(cached);
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -60,7 +59,7 @@ export default function AdminProductsPage() {
       try {
         const cached = sessionStorage.getItem('admin_cached_categories');
         if (cached) return JSON.parse(cached);
-      } catch {}
+      } catch { }
     }
     return [];
   });
@@ -190,7 +189,7 @@ export default function AdminProductsPage() {
           try {
             sessionStorage.setItem('admin_cached_products', JSON.stringify(list));
             sessionStorage.setItem('admin_cached_categories', JSON.stringify(cats));
-          } catch {}
+          } catch { }
         }
       })
       .catch(console.error)
@@ -290,10 +289,10 @@ export default function AdminProductsPage() {
         prev.map((p) =>
           p.id === restockingProduct.id
             ? {
-                ...p,
-                stock: Math.max(0, finalStock),
-                costPrice: restockCostPrice.trim() !== '' ? Number(restockCostPrice) : p.costPrice,
-              }
+              ...p,
+              stock: Math.max(0, finalStock),
+              costPrice: restockCostPrice.trim() !== '' ? Number(restockCostPrice) : p.costPrice,
+            }
             : p
         )
       );
@@ -555,11 +554,10 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('all')}
-          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
-            filterMode === 'all'
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${filterMode === 'all'
               ? 'bg-gradient-to-br from-indigo-50/90 to-white dark:from-indigo-950/40 dark:to-surface-900 border-indigo-500/50 shadow-sm ring-2 ring-indigo-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-indigo-300 dark:hover:border-indigo-800'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -583,11 +581,10 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('active')}
-          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
-            filterMode === 'active'
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${filterMode === 'active'
               ? 'bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-surface-900 border-emerald-500/50 shadow-sm ring-2 ring-emerald-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-emerald-300 dark:hover:border-emerald-800'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
@@ -612,11 +609,10 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('low_stock')}
-          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
-            filterMode === 'low_stock'
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${filterMode === 'low_stock'
               ? 'bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-surface-900 border-amber-500/50 shadow-sm ring-2 ring-amber-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-amber-300 dark:hover:border-amber-800'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
@@ -630,11 +626,10 @@ export default function AdminProductsPage() {
             <span className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums tracking-tight">
               {lowStockCount}
             </span>
-            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
-              lowStockCount > 0
+            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${lowStockCount > 0
                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 animate-pulse'
                 : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
-            }`}>
+              }`}>
               {lowStockCount > 0 ? (isKhmer ? 'ប្រញាប់' : 'urgent') : (isKhmer ? 'ល្អ' : 'ok')}
             </span>
           </div>
@@ -644,11 +639,10 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('out_of_stock')}
-          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
-            filterMode === 'out_of_stock'
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${filterMode === 'out_of_stock'
               ? 'bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-surface-900 border-rose-500/50 shadow-sm ring-2 ring-rose-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-rose-300 dark:hover:border-rose-800'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
@@ -662,11 +656,10 @@ export default function AdminProductsPage() {
             <span className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums tracking-tight">
               {outOfStockCount}
             </span>
-            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${
-              outOfStockCount > 0
+            <span className={`text-[11px] font-semibold px-1.5 py-0.2 rounded-md ${outOfStockCount > 0
                 ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                 : 'bg-slate-100 dark:bg-surface-800 text-slate-500'
-            }`}>
+              }`}>
               {outOfStockCount > 0 ? (isKhmer ? 'ដាច់ស្តុក' : 'restock') : '0'}
             </span>
           </div>
@@ -676,11 +669,10 @@ export default function AdminProductsPage() {
         <button
           type="button"
           onClick={() => setFilterMode('featured')}
-          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left col-span-2 sm:col-span-1 transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${
-            filterMode === 'featured'
+          className={`group relative p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border text-left col-span-2 sm:col-span-1 transition-all duration-200 overflow-hidden hover:-translate-y-0.5 shadow-2xs ${filterMode === 'featured'
               ? 'bg-gradient-to-br from-purple-50/90 to-white dark:from-purple-950/40 dark:to-surface-900 border-purple-500/50 shadow-sm ring-2 ring-purple-500/20'
               : 'bg-white dark:bg-surface-900 border-slate-200/80 dark:border-surface-750 hover:border-purple-300 dark:hover:border-purple-800'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
@@ -811,41 +803,39 @@ export default function AdminProductsPage() {
                 key={mode}
                 type="button"
                 onClick={() => setFilterMode(mode)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 flex items-center gap-1.5 ${
-                  filterMode === mode
+                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 flex items-center gap-1.5 ${filterMode === mode
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs ring-1 ring-slate-900/10'
                     : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
-                }`}
+                  }`}
               >
                 <span>
                   {mode === 'all'
                     ? isKhmer ? 'ទាំងអស់' : 'All'
                     : mode === 'featured'
-                    ? '⭐ Featured'
-                    : mode === 'low_stock'
-                    ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}`
-                    : mode === 'out_of_stock'
-                    ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}`
-                    : mode === 'active'
-                    ? isKhmer ? 'សកម្ម' : 'Active'
-                    : isKhmer ? 'អសកម្ម' : 'Inactive'}
+                      ? '⭐ Featured'
+                      : mode === 'low_stock'
+                        ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}`
+                        : mode === 'out_of_stock'
+                          ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}`
+                          : mode === 'active'
+                            ? isKhmer ? 'សកម្ម' : 'Active'
+                            : isKhmer ? 'អសកម្ម' : 'Inactive'}
                 </span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                  filterMode === mode
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${filterMode === mode
                     ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
                     : 'bg-slate-200 dark:bg-surface-700 text-slate-600 dark:text-slate-300'
-                }`}>
+                  }`}>
                   {mode === 'all'
                     ? totalCount
                     : mode === 'featured'
-                    ? featuredCount
-                    : mode === 'low_stock'
-                    ? lowStockCount
-                    : mode === 'out_of_stock'
-                    ? outOfStockCount
-                    : mode === 'active'
-                    ? activeCount
-                    : totalCount - activeCount}
+                      ? featuredCount
+                      : mode === 'low_stock'
+                        ? lowStockCount
+                        : mode === 'out_of_stock'
+                          ? outOfStockCount
+                          : mode === 'active'
+                            ? activeCount
+                            : totalCount - activeCount}
                 </span>
               </button>
             ))}
@@ -859,24 +849,24 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Products Table (Classic Standard Style) */}
-      <div className="card overflow-hidden shadow-sm">
+      {/* Luxury Product Table */}
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 shadow-sm overflow-hidden backdrop-blur-xl">
         {loading ? (
           <div className="p-8 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-semibold text-gray-500 animate-pulse">
+            <p className="text-xs font-semibold text-slate-500 animate-pulse">
               {isKhmer ? 'កំពុងផ្ទុកបញ្ជីទំនិញ...' : 'Loading products catalog...'}
             </p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="p-8 text-center space-y-2.5">
-            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-gray-400">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-surface-800 flex items-center justify-center mx-auto text-slate-400">
               <Package className="w-6 h-6 stroke-1" />
             </div>
-            <p className="text-sm font-bold text-gray-900 dark:text-white">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
               {isKhmer ? 'រកមិនឃើញទំនិញឡើយ' : 'No products found'}
             </p>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
               {isKhmer
                 ? 'សូមសាកល្បងផ្លាស់ប្តូរពាក្យស្វែងរក ឬចុច "បន្ថែមទំនិញថ្មី" ដើម្បីបង្កើតទំនិញដំបូង'
                 : 'Try adjusting your search or filters, or add a new product to get started.'}
@@ -884,19 +874,19 @@ export default function AdminProductsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'Featured' : 'Featured'}</th>
-                  <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  <th className="py-2.5 px-3 sm:px-4">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
+                  <th className="py-2.5 px-3">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
+                  <th className="py-2.5 px-3">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
+                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
+                  <th className="py-2.5 px-3 text-center">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 text-right">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
                 {filteredProducts.map((product) => {
                   const hasDiscount = product.comparePrice && product.comparePrice > product.price;
                   const isLow = product.stock > 0 && product.stock <= 5;
@@ -905,15 +895,15 @@ export default function AdminProductsPage() {
                   return (
                     <tr
                       key={product.id}
-                      className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
+                      className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
                     >
                       {/* Product Name & Thumbnail */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
+                      <td className="py-2.5 px-3 sm:px-4">
+                        <div className="flex items-center gap-2.5">
                           <Link
                             href={`/products/${product.slug || product.id}`}
                             target="_blank"
-                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-surface-800 shrink-0 border border-gray-200 dark:border-gray-700 block"
+                            className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-surface-800 shrink-0 border border-slate-200/80 dark:border-slate-700/80 group-hover:shadow-sm transition-shadow block"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             {product.thumbnail ? (
@@ -921,11 +911,11 @@ export default function AdminProductsPage() {
                                 src={product.thumbnail}
                                 alt={product.name}
                                 fill
-                                className="object-cover"
+                                className="object-cover group-hover:scale-110 transition-transform duration-300"
                                 sizes="40px"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
+                              <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
                                 <Package className="w-4 h-4" />
                               </div>
                             )}
@@ -934,18 +924,18 @@ export default function AdminProductsPage() {
                             <Link
                               href={`/products/${product.slug || product.id}`}
                               target="_blank"
-                              className="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors text-sm"
+                              className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate block transition-colors"
                             >
                               {product.name}
                             </Link>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                            <div className="flex items-center gap-1.5 mt-0.5">
                               {product.brand && (
-                                <span className="font-semibold uppercase text-[10px]">
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                   {product.brand}
                                 </span>
                               )}
                               {product.category && (
-                                <span className="truncate md:hidden">
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate md:hidden">
                                   • {product.category.name}
                                 </span>
                               )}
@@ -955,67 +945,123 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Category */}
-                      <td className="py-3 px-4 hidden md:table-cell text-gray-500 text-xs">
-                        {product.category?.name || '—'}
+                      <td className="py-2.5 px-3 hidden md:table-cell">
+                        {product.category ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                            {product.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">—</span>
+                        )}
                       </td>
 
-                      {/* Clean Price */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-gray-900 dark:text-white">
-                            {formatPrice(product.price, language)}
-                          </span>
+                      {/* Clean Elegant Selling Price */}
+                      <td className="py-2.5 px-3">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
+                              {formatPrice(product.price, language)}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-[10px] text-slate-400 line-through tabular-nums">
+                                {formatPrice(product.comparePrice || 0, language)}
+                              </span>
+                            )}
+                          </div>
                           {hasDiscount && (
-                            <span className="text-xs text-gray-400 line-through">
-                              {formatPrice(product.comparePrice || 0, language)}
+                            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                              -{Math.round((((product.comparePrice || 0) - product.price) / (product.comparePrice || 1)) * 100)}% off
                             </span>
                           )}
                         </div>
                       </td>
 
-                      {/* Stock */}
-                      <td className="py-3 px-4 text-gray-500">
-                        <span className={`badge ${
-                          isOut ? 'badge-danger' : isLow ? 'badge-warning' : 'badge-success'
-                        }`}>
-                          {product.stock} {isKhmer ? 'គ្រឿង' : 'items'}
-                        </span>
+                      {/* Stock & Quick Restock Button */}
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => openRestock(product, e)}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${isOut
+                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
+                                : isLow
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
+                              }`}
+                            title={isKhmer ? 'ចុចដើម្បីកែប្រែ ឬបំពេញស្តុក' : 'Click to adjust or restock inventory'}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${isOut ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
+                                }`}
+                            />
+                            <span>{product.stock}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => openRestock(product, e)}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
+                            title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                            <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
+                          </button>
+                        </div>
                       </td>
 
-                      {/* Featured */}
-                      <td className="py-3 px-4 text-center">
+                      {/* Featured (1-Click Interactive Star Toggle) */}
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleFeatured(product, e)}
-                          className={`badge cursor-pointer ${
-                            product.isFeatured ? 'badge-warning' : 'bg-gray-100 text-gray-400 dark:bg-surface-800'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${product.isFeatured
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-2xs hover:bg-amber-100'
+                              : 'bg-slate-100/60 dark:bg-surface-800/60 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-transparent hover:border-amber-200'
+                            }`}
+                          title={
+                            product.isFeatured
+                              ? (isKhmer ? 'ចុចដើម្បីបិទ Featured' : 'Click to remove from Featured')
+                              : (isKhmer ? 'ចុចដើម្បីបើក Featured លើ Homepage' : 'Click to make Featured on Homepage')
+                          }
                         >
-                          <Star className={`w-3 h-3 mr-1 ${product.isFeatured ? 'fill-amber-500 text-amber-500' : ''}`} />
-                          <span>{product.isFeatured ? 'Featured' : (isKhmer ? 'ធម្មតា' : 'Normal')}</span>
+                          <Star
+                            className={`w-3 h-3 transition-transform ${product.isFeatured ? 'text-amber-500 fill-amber-500 scale-110' : 'text-slate-400'
+                              }`}
+                          />
+                          <span>{product.isFeatured ? (isKhmer ? 'Featured' : 'Featured') : isKhmer ? 'ធម្មតា' : 'Normal'}</span>
                         </button>
                       </td>
 
-                      {/* Status */}
-                      <td className="py-3 px-4 text-center">
+                      {/* Status (1-Click Interactive Active Toggle) */}
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
                           onClick={(e) => handleToggleActive(product, e)}
-                          className={`badge cursor-pointer ${
-                            product.isActive ? 'badge-success' : 'bg-gray-100 text-gray-400 dark:bg-surface-800'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${product.isActive
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-2xs'
+                              : 'bg-slate-100 dark:bg-surface-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                            }`}
+                          title={
+                            product.isActive
+                              ? (isKhmer ? 'ចុចដើម្បីបិទលក់ (Draft)' : 'Click to set Inactive')
+                              : (isKhmer ? 'ចុចដើម្បីបើកលក់ (Active)' : 'Click to set Active')
+                          }
                         >
-                          <span>{product.isActive ? (isKhmer ? 'សកម្ម' : 'Active') : (isKhmer ? 'អសកម្ម' : 'Draft')}</span>
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${product.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              }`}
+                          />
+                          <span>{product.isActive ? (isKhmer ? 'សកម្ម' : 'Active') : isKhmer ? 'អសកម្ម' : 'Draft'}</span>
                         </button>
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-2.5 px-3 sm:px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             href={`/products/${product.slug || product.id}`}
                             target="_blank"
-                            className="p-1.5 rounded-lg border border-primary-200 dark:border-primary-900/50 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-950/30 hover:bg-primary-100 transition flex items-center gap-1 text-xs font-semibold shadow-xs"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
                             title={isKhmer ? 'មើលលើហាងផ្ទាល់' : 'View on Store'}
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -1023,18 +1069,18 @@ export default function AdminProductsPage() {
                           <button
                             type="button"
                             onClick={(e) => openEdit(product, e)}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-surface-700 transition"
+                            className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
                             title={isKhmer ? 'កែប្រែ' : 'Edit'}
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => handleDelete(product.id, product.name, e)}
-                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
                             title={isKhmer ? 'លុប' : 'Delete'}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1129,22 +1175,20 @@ export default function AdminProductsPage() {
                       {isKhmer ? 'ស្តុកបច្ចុប្បន្ន' : 'Current'}
                     </div>
                     <div
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums mt-0.5 border ${
-                        restockingProduct.stock === 0
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-extrabold tabular-nums mt-0.5 border ${restockingProduct.stock === 0
                           ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
                           : restockingProduct.stock <= 5
-                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
-                      }`}
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
+                        }`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          restockingProduct.stock === 0
+                        className={`w-1.5 h-1.5 rounded-full ${restockingProduct.stock === 0
                             ? 'bg-rose-500'
                             : restockingProduct.stock <= 5
-                            ? 'bg-amber-500'
-                            : 'bg-emerald-500'
-                        }`}
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-500'
+                          }`}
                       />
                       <span>{restockingProduct.stock} {isKhmer ? 'គ្រឿង' : 'pcs'}</span>
                     </div>
@@ -1164,11 +1208,10 @@ export default function AdminProductsPage() {
                         setRestockQty(10);
                         setRestockReason('shipment');
                       }}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                        restockMode === 'add'
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${restockMode === 'add'
                           ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
+                        }`}
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>{isKhmer ? 'បន្ថែមស្តុក' : 'Add Stock'}</span>
@@ -1180,11 +1223,10 @@ export default function AdminProductsPage() {
                         setRestockQty(restockingProduct.stock);
                         setRestockReason('audit');
                       }}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                        restockMode === 'set'
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${restockMode === 'set'
                           ? 'bg-white dark:bg-surface-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
+                        }`}
                     >
                       <Layers className="w-3.5 h-3.5" />
                       <span>{isKhmer ? 'កំណត់ជាក់ស្តែង' : 'Set Exact'}</span>
@@ -1196,11 +1238,10 @@ export default function AdminProductsPage() {
                         setRestockQty(1);
                         setRestockReason('damaged');
                       }}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
-                        restockMode === 'deduct'
+                      className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-bold transition-all ${restockMode === 'deduct'
                           ? 'bg-white dark:bg-surface-700 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200/60 dark:border-surface-600'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                      }`}
+                        }`}
                     >
                       <Minus className="w-3.5 h-3.5" />
                       <span>{isKhmer ? 'កាត់ចេញ' : 'Deduct'}</span>
@@ -1215,8 +1256,8 @@ export default function AdminProductsPage() {
                       {restockMode === 'add'
                         ? (isKhmer ? 'ចំនួនត្រូវបន្ថែមទៅស្តុក:' : 'Quantity to Add:')
                         : restockMode === 'deduct'
-                        ? (isKhmer ? 'ចំនួនត្រូវកាត់ចេញពីស្តុក:' : 'Quantity to Deduct:')
-                        : (isKhmer ? 'ចំនួនស្តុកសរុបថ្មី:' : 'New Total Quantity:')}
+                          ? (isKhmer ? 'ចំនួនត្រូវកាត់ចេញពីស្តុក:' : 'Quantity to Deduct:')
+                          : (isKhmer ? 'ចំនួនស្តុកសរុបថ្មី:' : 'New Total Quantity:')}
                     </span>
                     <span className="text-[11px] text-slate-400">
                       {isKhmer ? 'ប្រើប៊ូតុង ឬវាយបញ្ចូលផ្ទាល់' : 'Use stepper or type below'}
@@ -1248,13 +1289,12 @@ export default function AdminProductsPage() {
                         min={0}
                         value={restockQty}
                         onChange={(e) => setRestockQty(Math.max(0, parseInt(e.target.value) || 0))}
-                        className={`w-28 sm:w-32 h-12 text-center text-2xl font-black rounded-2xl bg-white dark:bg-surface-900 border-2 text-slate-900 dark:text-white tabular-nums focus:outline-none shadow-xs transition ${
-                          restockMode === 'add'
+                        className={`w-28 sm:w-32 h-12 text-center text-2xl font-black rounded-2xl bg-white dark:bg-surface-900 border-2 text-slate-900 dark:text-white tabular-nums focus:outline-none shadow-xs transition ${restockMode === 'add'
                             ? 'border-primary-500 focus:ring-2 focus:ring-primary-500/20'
                             : restockMode === 'deduct'
-                            ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                            : 'border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
-                        }`}
+                              ? 'border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                              : 'border-indigo-500 focus:ring-2 focus:ring-indigo-500/20'
+                          }`}
                         required
                         autoFocus
                       />
@@ -1311,11 +1351,10 @@ export default function AdminProductsPage() {
                             key={qty}
                             type="button"
                             onClick={() => setRestockQty(qty)}
-                            className={`py-1.5 px-1 rounded-xl text-xs font-bold font-mono transition border active:scale-95 shadow-2xs ${
-                              qty === 0
+                            className={`py-1.5 px-1 rounded-xl text-xs font-bold font-mono transition border active:scale-95 shadow-2xs ${qty === 0
                                 ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
                                 : 'bg-white dark:bg-surface-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-700 hover:text-indigo-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                            }`}
+                              }`}
                           >
                             {qty === 0 ? (isKhmer ? 'អស់ (0)' : 'Out (0)') : qty}
                           </button>
@@ -1402,13 +1441,12 @@ export default function AdminProductsPage() {
                         {isKhmer ? 'បំលាស់ប្តូរ' : 'Change'}
                       </div>
                       <div
-                        className={`text-lg font-black tabular-nums flex items-center justify-center gap-0.5 ${
-                          calculatedStock.diff > 0
+                        className={`text-lg font-black tabular-nums flex items-center justify-center gap-0.5 ${calculatedStock.diff > 0
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : calculatedStock.diff < 0
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : 'text-slate-400'
-                        }`}
+                              ? 'text-rose-600 dark:text-rose-400'
+                              : 'text-slate-400'
+                          }`}
                       >
                         {calculatedStock.diff > 0 ? (
                           <>
@@ -1468,7 +1506,7 @@ export default function AdminProductsPage() {
                             0,
                             ((restockingProduct.price || 0) -
                               (Number(restockCostPrice) || restockingProduct.costPrice || 0)) *
-                              calculatedStock.finalStock
+                            calculatedStock.finalStock
                           ),
                           language
                         )}
@@ -1493,11 +1531,10 @@ export default function AdminProductsPage() {
                         key={reason.id}
                         type="button"
                         onClick={() => setRestockReason(reason.id)}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition border ${
-                          restockReason === reason.id
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition border ${restockReason === reason.id
                             ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-700 font-bold shadow-2xs'
                             : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                        }`}
+                          }`}
                       >
                         {isKhmer ? reason.km : reason.en}
                       </button>
