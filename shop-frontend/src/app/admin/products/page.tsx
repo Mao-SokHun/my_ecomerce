@@ -716,7 +716,7 @@ export default function AdminProductsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isKhmer ? 'ស្វែងរកតាមឈ្មោះ, Brand, Category...' : 'Search products by name, brand, category...'}
-              className="w-full h-10 pl-9.5 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
+              className="w-full h-10 pl-10 pr-9 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder-slate-400 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition shadow-inner"
             />
             {search && (
               <button
