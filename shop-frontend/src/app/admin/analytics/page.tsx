@@ -28,10 +28,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   HelpCircle,
-  Delete,
-  History,
-  Bookmark,
-  Trash2,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -54,18 +50,6 @@ export default function FinancialAccountingPage() {
   const [simPrice, setSimPrice] = useState<string>('45.00');
   const [simQty, setSimQty] = useState<string>('50');
 
-  // Calculation history
-  type SimHistoryEntry = {
-    id: number; cost: number; price: number; qty: number;
-    profit: number; margin: number; markup: number; timestamp: string;
-  };
-  const [simHistory, setSimHistory] = useState<SimHistoryEntry[]>([]);
-
-  // Backspace: remove last character from a numeric string
-  const backspace = (val: string, setter: (v: string) => void) => {
-    const next = val.slice(0, -1);
-    setter(next === '' || next === '-' ? '0' : next);
-  };
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -274,21 +258,6 @@ export default function FinancialAccountingPage() {
     toast.success(isKhmer ? 'បានទាញយករបាយការណ៍ CSV ជោគជ័យ' : 'CSV Report downloaded successfully');
   };
 
-  // Save current simulation to history
-  const saveToHistory = () => {
-    const cost = Math.max(0, Number(simCost) || 0);
-    const price = Math.max(0, Number(simPrice) || 0);
-    const qty = Math.max(1, Number(simQty) || 1);
-    const profitPerUnit = Math.max(0, price - cost);
-    const margin = price > 0 ? Math.round((profitPerUnit / price) * 100) : 0;
-    const markup = cost > 0 ? Math.round((profitPerUnit / cost) * 100) : 0;
-    setSimHistory((prev) => [{
-      id: Date.now(), cost, price, qty,
-      profit: profitPerUnit * qty, margin, markup,
-      timestamp: new Date().toLocaleTimeString(),
-    }, ...prev].slice(0, 8));
-    toast.success(isKhmer ? 'បានរក្សាទុករបាយការណ៍ក្នុង History' : 'Saved to history!');
-  };
 
   // Luxury Category Dropdown Options
   const categoryDropdownOptions: DropdownOption[] = useMemo(() => [
@@ -533,7 +502,7 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Profit Simulator with Backspace + History */}
+        {/* Profit Simulator */}
         <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
@@ -550,25 +519,20 @@ export default function FinancialAccountingPage() {
             </span>
           </div>
 
-          {/* 3 Inputs with backspace buttons */}
+          {/* 3 Inputs */}
           <div className="grid grid-cols-3 gap-3">
             {/* Cost */}
             <div>
               <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'ដើមទុន ($)' : 'Cost ($)'}
               </label>
-              <div className="flex gap-1">
-                <input
-                  type="number" step="0.01" value={simCost}
-                  onChange={(e) => setSimCost(e.target.value)}
-                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <button type="button" onClick={() => backspace(simCost, setSimCost)}
-                  title="Delete last digit"
-                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
-                  <Delete className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                value={simCost}
+                onChange={(e) => setSimCost(e.target.value)}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
 
             {/* Sell Price */}
@@ -576,18 +540,13 @@ export default function FinancialAccountingPage() {
               <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'លក់ ($)' : 'Sell ($)'}
               </label>
-              <div className="flex gap-1">
-                <input
-                  type="number" step="0.01" value={simPrice}
-                  onChange={(e) => setSimPrice(e.target.value)}
-                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <button type="button" onClick={() => backspace(simPrice, setSimPrice)}
-                  title="Delete last digit"
-                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
-                  <Delete className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                value={simPrice}
+                onChange={(e) => setSimPrice(e.target.value)}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
 
             {/* Qty */}
@@ -595,18 +554,12 @@ export default function FinancialAccountingPage() {
               <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5">
                 {isKhmer ? 'ចំនួន' : 'Qty'}
               </label>
-              <div className="flex gap-1">
-                <input
-                  type="number" value={simQty}
-                  onChange={(e) => setSimQty(e.target.value)}
-                  className="w-full h-10 px-2 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                <button type="button" onClick={() => backspace(simQty, setSimQty)}
-                  title="Delete last digit"
-                  className="h-10 w-9 shrink-0 flex items-center justify-center rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition active:scale-95">
-                  <Delete className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <input
+                type="number"
+                value={simQty}
+                onChange={(e) => setSimQty(e.target.value)}
+                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
             </div>
           </div>
 
@@ -637,54 +590,6 @@ export default function FinancialAccountingPage() {
               </span>
             </div>
           </div>
-
-          {/* Save to History Button */}
-          <button
-            type="button"
-            onClick={saveToHistory}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition active:scale-95"
-          >
-            <Bookmark className="w-4 h-4" />
-            {isKhmer ? 'រក្សាទុករបាយការណ៍នេះ' : 'Save to History'}
-          </button>
-
-          {/* History Log */}
-          {simHistory.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <History className="w-3.5 h-3.5" />
-                  <span>{isKhmer ? 'ប្រវត្តិគណនា' : 'Calculation History'}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSimHistory([])}
-                  className="flex items-center gap-1 text-[11px] text-rose-500 hover:text-rose-700 transition font-semibold"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  {isKhmer ? 'លុបទាំងអស់' : 'Clear all'}
-                </button>
-              </div>
-              <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
-                {simHistory.map((h) => (
-                  <div key={h.id} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-100 dark:border-slate-800 text-xs group hover:border-emerald-300 dark:hover:border-emerald-700 transition">
-                    <div className="space-y-0.5">
-                      <div className="font-mono text-slate-600 dark:text-slate-300">
-                        Cost <strong>${h.cost}</strong> · Sell <strong>${h.price}</strong> · Qty <strong>{h.qty}</strong>
-                      </div>
-                      <div className="text-slate-400 text-[10px]">{h.timestamp}</div>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <div className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                        +${h.profit.toFixed(2)}
-                      </div>
-                      <div className="text-[10px] text-slate-400">{h.margin}% margin</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
