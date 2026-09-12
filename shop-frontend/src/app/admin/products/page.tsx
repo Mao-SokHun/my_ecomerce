@@ -955,22 +955,15 @@ export default function AdminProductsPage() {
                         )}
                       </td>
 
-                      {/* Clean Elegant Selling Price */}
+                      {/* Price */}
                       <td className="py-2.5 px-3">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
-                              {formatPrice(product.price, language)}
-                            </span>
-                            {hasDiscount && (
-                              <span className="text-[10px] text-slate-400 line-through tabular-nums">
-                                {formatPrice(product.comparePrice || 0, language)}
-                              </span>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-slate-900 dark:text-white tabular-nums tracking-tight">
+                            {formatPrice(product.price, language)}
+                          </span>
                           {hasDiscount && (
-                            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
-                              -{Math.round((((product.comparePrice || 0) - product.price) / (product.comparePrice || 1)) * 100)}% off
+                            <span className="text-xs text-slate-400 line-through tabular-nums">
+                              {formatPrice(product.comparePrice || 0, language)}
                             </span>
                           )}
                         </div>
