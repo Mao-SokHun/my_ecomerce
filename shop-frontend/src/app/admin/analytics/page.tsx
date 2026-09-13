@@ -65,6 +65,7 @@ export default function FinancialAccountingPage() {
   const [calcPrev, setCalcPrev] = useState<string>('');
   const [calcOp, setCalcOp] = useState<string>('');
   const [calcExpression, setCalcExpression] = useState<string>('');
+  const [calcWaitingForOperand, setCalcWaitingForOperand] = useState<boolean>(false);
   const [calcJustEvaled, setCalcJustEvaled] = useState<boolean>(false);
   const [calcHistory, setCalcHistory] = useState<CalcHistoryItem[]>([]);
   const [calcRightTab, setCalcRightTab] = useState<'formulas' | 'history'>('formulas');
@@ -86,8 +87,92 @@ export default function FinancialAccountingPage() {
     }
   }, []);
 
+  // Digit input (0-9)
+  const handleCalcDigit = (digit: string) => {
+    if (calcWaitingForOperand || calcJustEvaled) {
+      setCalcDisplay(digit);
+      setCalcWaitingForOperand(false);
+      setCalcJustEvaled(false);
+    } else {
+      setCalcDisplay((prev) => (prev === '0' ? digit : prev + digit));
+    }
+  };
+
+  // Decimal point (.)
+  const handleCalcDot = () => {
+    if (calcWaitingForOperand || calcJustEvaled) {
+      setCalcDisplay('0.');
+      setCalcWaitingForOperand(false);
+      setCalcJustEvaled(false);
+    } else if (!calcDisplay.includes('.')) {
+      setCalcDisplay((prev) => prev + '.');
+    }
+  };
+
+  // Operator input (+, -, *, /) with support for chaining
+  const handleCalcOperator = (nextOp: string) => {
+    const opSymbol = nextOp === '*' ? '×' : nextOp === '/' ? '÷' : nextOp;
+
+    if (calcWaitingForOperand) {
+      setCalcOp(nextOp);
+      setCalcExpression(`${calcPrev} ${opSymbol} `);
+      return;
+    }
+
+    if (calcOp && calcPrev) {
+      const a = parseFloat(calcPrev);
+      const b = parseFloat(calcDisplay);
+      if (!isNaN(a) && !isNaN(b)) {
+        let res = 0;
+        if (calcOp === '+') res = a + b;
+        else if (calcOp === '-') res = a - b;
+        else if (calcOp === '*') res = a * b;
+        else if (calcOp === '/') res = b !== 0 ? a / b : 0;
+        const rounded = Math.round(res * 1e10) / 1e10;
+        const resStr = String(rounded);
+        setCalcPrev(resStr);
+        setCalcDisplay(resStr);
+        setCalcExpression(`${resStr} ${opSymbol} `);
+        setCalcOp(nextOp);
+        setCalcWaitingForOperand(true);
+        setCalcJustEvaled(false);
+        return;
+      }
+    }
+
+    setCalcPrev(calcDisplay);
+    setCalcOp(nextOp);
+    setCalcExpression(`${calcDisplay} ${opSymbol} `);
+    setCalcWaitingForOperand(true);
+    setCalcJustEvaled(false);
+  };
+
+  // Toggle sign (+/-)
+  const handleCalcToggleSign = () => {
+    if (calcDisplay === '0') return;
+    setCalcDisplay((prev) => (prev.startsWith('-') ? prev.slice(1) : '-' + prev));
+  };
+
+  // Percentage (%)
+  const handleCalcPercent = () => {
+    const val = parseFloat(calcDisplay);
+    if (isNaN(val)) return;
+    setCalcDisplay(String(val / 100));
+  };
+
+  // All Clear (AC)
+  const handleCalcClearAll = () => {
+    setCalcDisplay('0');
+    setCalcPrev('');
+    setCalcOp('');
+    setCalcExpression('');
+    setCalcWaitingForOperand(false);
+    setCalcJustEvaled(false);
+  };
+
   // Backspace: deletes only the last digit typed
   const handleCalcBackspace = () => {
+    if (calcWaitingForOperand) return;
     if (calcJustEvaled) {
       setCalcDisplay('0');
       setCalcJustEvaled(false);
@@ -119,6 +204,7 @@ export default function FinancialAccountingPage() {
     setCalcDisplay(resStr);
     setCalcPrev('');
     setCalcOp('');
+    setCalcWaitingForOperand(false);
     setCalcJustEvaled(true);
 
     const newItem: CalcHistoryItem = {
@@ -785,9 +871,7 @@ export default function FinancialAccountingPage() {
                 {/* Row 1: AC, Backspace ⌫, %, ÷ */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
-                  }}
+                  onClick={handleCalcClearAll}
                   title={isKhmer ? 'លុបទាំងអស់ (All Clear)' : 'All Clear'}
                   className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100"
                 >
@@ -803,7 +887,7 @@ export default function FinancialAccountingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCalcDisplay((d) => String(parseFloat(d) / 100))}
+                  onClick={handleCalcPercent}
                   title={isKhmer ? 'ភាគរយ (%)' : 'Percentage'}
                   className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70"
                 >
@@ -811,12 +895,12 @@ export default function FinancialAccountingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcPrev(calcDisplay); setCalcOp('/');
-                    setCalcExpression(calcDisplay + ' ÷ ');
-                    setCalcJustEvaled(false);
-                  }}
-                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                  onClick={() => handleCalcOperator('/')}
+                  className={`h-10 rounded-xl text-base font-black transition-all active:scale-95 border ${
+                    calcWaitingForOperand && calcOp === '/'
+                      ? 'bg-indigo-700 text-white ring-2 ring-indigo-400 border-indigo-400 shadow-sm'
+                      : 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs'
+                  }`}
                 >
                   ÷
                 </button>
@@ -826,10 +910,7 @@ export default function FinancialAccountingPage() {
                   <button
                     key={digit}
                     type="button"
-                    onClick={() => {
-                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
-                      setCalcDisplay(next); setCalcJustEvaled(false);
-                    }}
+                    onClick={() => handleCalcDigit(digit)}
                     className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
                     {digit}
@@ -837,12 +918,12 @@ export default function FinancialAccountingPage() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcPrev(calcDisplay); setCalcOp('*');
-                    setCalcExpression(calcDisplay + ' × ');
-                    setCalcJustEvaled(false);
-                  }}
-                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                  onClick={() => handleCalcOperator('*')}
+                  className={`h-10 rounded-xl text-base font-black transition-all active:scale-95 border ${
+                    calcWaitingForOperand && calcOp === '*'
+                      ? 'bg-indigo-700 text-white ring-2 ring-indigo-400 border-indigo-400 shadow-sm'
+                      : 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs'
+                  }`}
                 >
                   ×
                 </button>
@@ -852,10 +933,7 @@ export default function FinancialAccountingPage() {
                   <button
                     key={digit}
                     type="button"
-                    onClick={() => {
-                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
-                      setCalcDisplay(next); setCalcJustEvaled(false);
-                    }}
+                    onClick={() => handleCalcDigit(digit)}
                     className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
                     {digit}
@@ -863,12 +941,12 @@ export default function FinancialAccountingPage() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcPrev(calcDisplay); setCalcOp('-');
-                    setCalcExpression(calcDisplay + ' - ');
-                    setCalcJustEvaled(false);
-                  }}
-                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                  onClick={() => handleCalcOperator('-')}
+                  className={`h-10 rounded-xl text-base font-black transition-all active:scale-95 border ${
+                    calcWaitingForOperand && calcOp === '-'
+                      ? 'bg-indigo-700 text-white ring-2 ring-indigo-400 border-indigo-400 shadow-sm'
+                      : 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs'
+                  }`}
                 >
                   -
                 </button>
@@ -878,10 +956,7 @@ export default function FinancialAccountingPage() {
                   <button
                     key={digit}
                     type="button"
-                    onClick={() => {
-                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
-                      setCalcDisplay(next); setCalcJustEvaled(false);
-                    }}
+                    onClick={() => handleCalcDigit(digit)}
                     className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
                     {digit}
@@ -889,12 +964,12 @@ export default function FinancialAccountingPage() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcPrev(calcDisplay); setCalcOp('+');
-                    setCalcExpression(calcDisplay + ' + ');
-                    setCalcJustEvaled(false);
-                  }}
-                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                  onClick={() => handleCalcOperator('+')}
+                  className={`h-10 rounded-xl text-base font-black transition-all active:scale-95 border ${
+                    calcWaitingForOperand && calcOp === '+'
+                      ? 'bg-indigo-700 text-white ring-2 ring-indigo-400 border-indigo-400 shadow-sm'
+                      : 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs'
+                  }`}
                 >
                   +
                 </button>
@@ -902,28 +977,21 @@ export default function FinancialAccountingPage() {
                 {/* Row 5: 0, ., +/-, = */}
                 <button
                   type="button"
-                  onClick={() => {
-                    const next = calcJustEvaled || calcDisplay === '0' ? '0' : calcDisplay + '0';
-                    setCalcDisplay(next === '00' ? '0' : next); setCalcJustEvaled(false);
-                  }}
+                  onClick={() => handleCalcDigit('0')}
                   className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                 >
                   0
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!calcDisplay.includes('.')) setCalcDisplay((d) => d + '.');
-                  }}
+                  onClick={handleCalcDot}
                   className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                 >
                   .
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
-                  }}
+                  onClick={handleCalcToggleSign}
                   title={isKhmer ? 'ប្តូរសញ្ញា (+/-)' : 'Toggle sign'}
                   className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 font-semibold"
                 >
