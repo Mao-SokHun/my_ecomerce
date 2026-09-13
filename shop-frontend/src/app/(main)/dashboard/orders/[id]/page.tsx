@@ -18,6 +18,7 @@ import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
 import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { generateBarcodeSvg } from '@/lib/barcodeGenerator';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -146,13 +147,23 @@ export default function OrderDetailsPage() {
       .map(
         (item) => `
           <tr>
-            <td>${escapeHtml(item.name)}</td>
-            <td style="text-align:center;">${item.quantity}</td>
-            <td style="text-align:right;">${formatPrice(item.lineTotal, language)}</td>
+            <td style="padding: 5px 0; vertical-align: top; word-break: break-word;">
+              <div style="font-weight: 600; color: #0f172a; font-size: 11px; line-height: 1.35;">${escapeHtml(item.name)}</div>
+              <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">${item.quantity} × ${formatPrice(item.price, language)}</div>
+            </td>
+            <td style="padding: 5px 0 5px 4px; text-align: right; vertical-align: top; font-weight: 700; color: #0f172a; white-space: nowrap; font-size: 11px;">
+              ${formatPrice(item.lineTotal, language)}
+            </td>
           </tr>
         `
       )
       .join('');
+
+    const barcodeSvgHtml = generateBarcodeSvg(invoice.orderNumber, {
+      height: 38,
+      maxWidth: '220px',
+      showText: true,
+    });
 
     const html = `
       <!doctype html>
@@ -230,31 +241,106 @@ export default function OrderDetailsPage() {
               margin: 6px auto 4px auto;
               text-transform: uppercase;
             }
-            .meta-card {
+
+            /* Meta Card */
+            .meta-box {
+              background: #ffffff;
+              border: 1px solid #cbd5e1;
+              border-radius: 9px;
+              margin: 7px 0;
+              overflow: hidden;
+              box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            }
+            .meta-header-row {
               background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 8px;
-              padding: 6px 8px;
-              margin: 8px 0;
+              padding: 5px 8px;
+              border-bottom: 1px solid #e2e8f0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .meta-title-km {
               font-size: 10px;
+              font-weight: 700;
+              color: #0f172a;
+              display: block;
+              line-height: 1.2;
+            }
+            .meta-title-en {
+              font-size: 7.5px;
+              font-weight: 600;
+              color: #64748b;
+              letter-spacing: 0.4px;
+              text-transform: uppercase;
+            }
+            .invoice-pill {
+              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+              background: #0f172a;
+              color: #ffffff;
+              padding: 2px 7px;
+              border-radius: 5px;
+              font-weight: 800;
+              font-size: 10.5px;
+              letter-spacing: 0.5px;
+            }
+            .meta-grid {
+              padding: 3px 8px;
             }
             .meta-row {
               display: flex;
               justify-content: space-between;
-              align-items: flex-start;
-              padding: 1.5px 0;
+              align-items: center;
+              padding: 3.5px 0;
+              border-bottom: 1px dashed #f1f5f9;
+              font-size: 10px;
+              line-height: 1.3;
+            }
+            .meta-row:last-child {
+              border-bottom: none;
+            }
+            .meta-label {
+              display: flex;
+              flex-direction: column;
+              flex-shrink: 0;
+              margin-right: 8px;
+            }
+            .label-km {
+              font-size: 10px;
+              font-weight: 600;
+              color: #475569;
+              line-height: 1.2;
+            }
+            .label-en {
+              font-size: 7.5px;
+              font-weight: 500;
+              color: #94a3b8;
+              letter-spacing: 0.3px;
+              text-transform: uppercase;
+            }
+            .meta-val {
+              color: #0f172a;
+              font-weight: 600;
+              text-align: right;
+              word-break: break-word;
+            }
+            .font-mono {
+              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+            }
+            .meta-address-box {
+              background: #f8fafc;
+              border-top: 1px solid #e2e8f0;
+              padding: 5px 8px 6px 8px;
+              text-align: left;
+            }
+            .address-content {
+              font-size: 10px;
+              color: #1e293b;
+              font-weight: 600;
               line-height: 1.35;
+              word-break: break-word;
+              margin-top: 2px;
             }
-            .meta-label { color: #64748b; font-weight: 500; }
-            .meta-val { color: #0f172a; font-weight: 600; text-align: right; }
-            .invoice-pill {
-              font-family: ui-monospace, monospace;
-              background: #fff;
-              border: 1px solid #cbd5e1;
-              padding: 1px 5px;
-              border-radius: 4px;
-              font-weight: 700;
-            }
+
             table { width: 100%; border-collapse: collapse; margin-top: 4px; }
             th {
               font-size: 9.5px;
@@ -305,19 +391,10 @@ export default function OrderDetailsPage() {
               font-weight: 800;
               font-size: 14px;
             }
-            .barcode-mock {
-              margin: 8px auto 2px auto;
-              letter-spacing: 3px;
-              font-family: ui-monospace, monospace;
-              font-size: 13px;
-              font-weight: 900;
-              color: #0f172a;
-              opacity: 0.85;
-            }
             .thanks {
-              margin-top: 6px;
-              font-size: 10px;
-              font-weight: 600;
+              margin-top: 8px;
+              font-size: 11px;
+              font-weight: 700;
               color: #0f172a;
             }
             .watermark {
@@ -342,39 +419,66 @@ export default function OrderDetailsPage() {
               </div>
             </div>
 
-            <div class="meta-card">
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'orderLabel')}</span>
-                <span class="meta-val"><span class="invoice-pill">${escapeHtml(invoice.orderNumber)}</span></span>
+            <!-- Meta Box -->
+            <div class="meta-box">
+              <div class="meta-header-row">
+                <div>
+                  <span class="meta-title-km">${t(language, 'orderLabel')}</span>
+                  <span class="meta-title-en">INVOICE NUMBER</span>
+                </div>
+                <div>
+                  <span class="invoice-pill">${escapeHtml(invoice.orderNumber)}</span>
+                </div>
               </div>
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'dateLabel')}</span>
-                <span class="meta-val">${escapeHtml(formatDate(invoice.createdAt, language))}</span>
+
+              <div class="meta-grid">
+                <div class="meta-row">
+                  <div class="meta-label">
+                    <span class="label-km">${t(language, 'dateLabel')}</span>
+                    <span class="label-en">Date / Time</span>
+                  </div>
+                  <div class="meta-val">${escapeHtml(formatDate(invoice.createdAt, language))}</div>
+                </div>
+
+                <div class="meta-row">
+                  <div class="meta-label">
+                    <span class="label-km">${t(language, 'customerLabel')}</span>
+                    <span class="label-en">Customer</span>
+                  </div>
+                  <div class="meta-val" style="font-weight: 700;">${escapeHtml(invoice.customerName)}</div>
+                </div>
+
+                <div class="meta-row">
+                  <div class="meta-label">
+                    <span class="label-km">${t(language, 'phoneLabel')}</span>
+                    <span class="label-en">Contact Phone</span>
+                  </div>
+                  <div class="meta-val font-mono">${escapeHtml(invoice.customerPhone || 'N/A')}</div>
+                </div>
+
+                <div class="meta-row">
+                  <div class="meta-label">
+                    <span class="label-km">${t(language, 'paymentType')}</span>
+                    <span class="label-en">Payment Method</span>
+                  </div>
+                  <div class="meta-val">${escapeHtml(paymentTypeForInvoice(language, invoice.paymentMethod))}</div>
+                </div>
               </div>
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'customerLabel')}</span>
-                <span class="meta-val">${escapeHtml(invoice.customerName)}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'phoneLabel')}</span>
-                <span class="meta-val">${escapeHtml(invoice.customerPhone || 'N/A')}</span>
-              </div>
+
               ${invoice.shippingAddress ? `
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'addressLabel')}</span>
-                <span class="meta-val">${escapeHtml(invoice.shippingAddress)}</span>
+              <div class="meta-address-box">
+                <div class="meta-label">
+                  <span class="label-km">📍 ${t(language, 'addressLabel')}</span>
+                  <span class="label-en">Shipping Address</span>
+                </div>
+                <div class="address-content">${escapeHtml(invoice.shippingAddress)}</div>
               </div>` : ''}
-              <div class="meta-row">
-                <span class="meta-label">${t(language, 'paymentType')}</span>
-                <span class="meta-val">${escapeHtml(paymentTypeForInvoice(language, invoice.paymentMethod))}</span>
-              </div>
             </div>
 
             <table>
               <thead>
                 <tr>
                   <th style="text-align:left;">${t(language, 'descriptionLabel')}</th>
-                  <th style="text-align:center;">${t(language, 'qtyLabel')}</th>
                   <th style="text-align:right;">${t(language, 'priceLabel')}</th>
                 </tr>
               </thead>
@@ -402,8 +506,9 @@ export default function OrderDetailsPage() {
               </div>
             </div>
 
-            <div class="center barcode-mock">||| | |||| | | |||| | ||| | |||</div>
-            <div class="center" style="font-size: 8.5px; color: #64748b; font-family: monospace;">* ${escapeHtml(invoice.orderNumber)} *</div>
+            <!-- Crisp Vector Barcode -->
+            ${barcodeSvgHtml}
+
             <div class="center thanks">🙏 ${t(language, 'thankYou')}</div>
             <div class="center watermark">Powered by ${t(language, 'brand')} Cloud POS</div>
           </div>
