@@ -25,10 +25,63 @@ import {
   Calendar,
   Ticket,
   AlertCircle,
+  Sparkles,
+  X,
+  BookmarkPlus,
 } from 'lucide-react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+
+type QuickPreset = {
+  id: string;
+  label: string;
+  icon?: string;
+  code: string;
+  description: string;
+  discountType: string;
+  discount: string;
+  minOrder: string;
+  maxDiscount: string;
+  usageLimit?: string;
+  isCustom?: boolean;
+};
+
+const DEFAULT_PRESETS: QuickPreset[] = [
+  {
+    id: 'preset_off10',
+    label: '10% Off',
+    icon: '🏷️',
+    code: 'OFF10',
+    description: 'បញ្ចុះ 10% គ្រប់ការទិញ',
+    discountType: 'PERCENTAGE',
+    discount: '10',
+    minOrder: '',
+    maxDiscount: '',
+  },
+  {
+    id: 'preset_save20',
+    label: '20% (Max $30)',
+    icon: '🛡️',
+    code: 'SAVE20MAX30',
+    description: 'បញ្ចុះ 20% (ច្រើនបំផុត $30)',
+    discountType: 'PERCENTAGE',
+    discount: '20',
+    minOrder: '50',
+    maxDiscount: '30',
+  },
+  {
+    id: 'preset_fixed5',
+    label: '$5 Fixed',
+    icon: '💵',
+    code: 'SAVE5',
+    description: 'បញ្ចុះតម្លៃ $5 ថេរ',
+    discountType: 'FIXED',
+    discount: '5',
+    minOrder: '20',
+    maxDiscount: '',
+  },
+];
 
 type Coupon = {
   id: string;
@@ -85,6 +138,92 @@ export default function AdminCouponsPage() {
   const [tableSearch, setTableSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'EXPIRED'>('ALL');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Custom Quick Presets Management
+  const [presets, setPresets] = useState<QuickPreset[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sh_admin_coupon_presets');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return DEFAULT_PRESETS;
+  });
+
+  const [showAddPresetModal, setShowAddPresetModal] = useState(false);
+  const [presetForm, setPresetForm] = useState({
+    label: '',
+    icon: '🏷️',
+    code: '',
+    description: '',
+    discountType: 'PERCENTAGE',
+    discount: '10',
+    minOrder: '',
+    maxDiscount: '',
+  });
+
+  const openSaveAsPresetModal = () => {
+    setPresetForm({
+      label: form.discountType === 'PERCENTAGE' ? `${form.discount || '10'}% Off` : `$${form.discount || '5'} Fixed`,
+      icon: form.discountType === 'PERCENTAGE' ? '🏷️' : '💵',
+      code: form.code.trim() || `PROMO${form.discount || '10'}`,
+      description: form.description.trim() || (form.discountType === 'PERCENTAGE' ? `បញ្ចុះ ${form.discount || '10'}%` : `បញ្ចុះ $${form.discount || '5'}`),
+      discountType: form.discountType,
+      discount: form.discount || '10',
+      minOrder: form.minOrder || '',
+      maxDiscount: form.maxDiscount || '',
+    });
+    setShowAddPresetModal(true);
+  };
+
+  const handleSavePreset = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!presetForm.label.trim()) {
+      toast.error(isKhmer ? 'សូមបញ្ចូលឈ្មោះសម្គាល់គំរូរហ័ស' : 'Preset label is required');
+      return;
+    }
+    const newPreset: QuickPreset = {
+      id: `custom_${Date.now()}`,
+      label: presetForm.label.trim(),
+      icon: presetForm.icon || '🏷️',
+      code: presetForm.code.trim() || `PROMO${presetForm.discount}`,
+      description: presetForm.description.trim() || presetForm.label.trim(),
+      discountType: presetForm.discountType,
+      discount: presetForm.discount || '10',
+      minOrder: presetForm.minOrder || '',
+      maxDiscount: presetForm.maxDiscount || '',
+      isCustom: true,
+    };
+    const updated = [...presets, newPreset];
+    setPresets(updated);
+    try {
+      localStorage.setItem('sh_admin_coupon_presets', JSON.stringify(updated));
+    } catch {}
+    setShowAddPresetModal(false);
+    toast.success(isKhmer ? `បានរក្សាទុកគំរូរហ័ស «${newPreset.label}» ជោគជ័យ!` : `Preset "${newPreset.label}" saved!`);
+  };
+
+  const handleDeletePreset = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const target = presets.find((p) => p.id === id);
+    const confirmed = await confirm({
+      title: isKhmer ? 'លុបគំរូរហ័ស' : 'Delete Preset',
+      message: isKhmer ? `តើអ្នកពិតជាចង់លុបគំរូរហ័ស «${target?.label || ''}» នេះមែនទេ?` : `Are you sure you want to delete preset "${target?.label || ''}"?`,
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    const updated = presets.filter((p) => p.id !== id);
+    setPresets(updated);
+    try {
+      localStorage.setItem('sh_admin_coupon_presets', JSON.stringify(updated));
+    } catch {}
+    toast.success(isKhmer ? 'បានលុបគំរូរហ័សជោគជ័យ' : 'Preset deleted');
+  };
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -333,58 +472,62 @@ export default function AdminCouponsPage() {
               : adminT(language, 'createCoupon')}
           </h2>
 
-          {/* Quick Presets */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs">
-            <span className="text-gray-400 flex items-center gap-1">
+          {/* Quick Presets Toolbar */}
+          <div className="flex items-center gap-1.5 text-xs flex-wrap">
+            <span className="text-gray-400 flex items-center gap-1 font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               {isKhmer ? 'គំរូរហ័ស:' : isZh ? '快速模板:' : 'Presets:'}
             </span>
+            {presets.map((preset) => (
+              <div key={preset.id} className="relative group inline-flex items-center">
+                <button
+                  type="button"
+                  onClick={() =>
+                    applyPreset({
+                      code: preset.code,
+                      description: preset.description,
+                      discountType: preset.discountType,
+                      discount: preset.discount,
+                      minOrder: preset.minOrder,
+                      maxDiscount: preset.maxDiscount,
+                    })
+                  }
+                  className={`px-2.5 py-1 rounded-lg transition-all font-medium flex items-center gap-1 shadow-xs active:scale-95 ${
+                    form.code === preset.code
+                      ? 'ring-2 ring-primary-500 bg-primary-100 dark:bg-primary-950/70 text-primary-800 dark:text-primary-300 font-bold'
+                      : preset.discountType === 'FIXED'
+                      ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
+                      : preset.maxDiscount
+                      ? 'bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40'
+                      : 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
+                  title={preset.description}
+                >
+                  <span>{preset.icon || '🏷️'}</span>
+                  <span>{preset.label}</span>
+                </button>
+                {preset.isCustom && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeletePreset(preset.id, e)}
+                    className="ml-0.5 p-0.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
+                    title={isKhmer ? 'លុបគំរូនេះ' : 'Delete preset'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Save current form values as a new preset */}
             <button
               type="button"
-              onClick={() =>
-                applyPreset({
-                  code: 'OFF10',
-                  description: isKhmer ? 'បញ្ចុះ 10% គ្រប់ការទិញ' : '10% Discount',
-                  discountType: 'PERCENTAGE',
-                  discount: '10',
-                  minOrder: '',
-                  maxDiscount: '',
-                })
-              }
-              className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-all font-medium"
+              onClick={openSaveAsPresetModal}
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-950/70 text-primary-700 dark:text-primary-300 border border-dashed border-primary-300 dark:border-primary-700 rounded-lg transition-all font-medium text-xs shadow-xs"
+              title={isKhmer ? 'រក្សាទុកទម្រង់បច្ចុប្បន្នជាគំរូរហ័សថ្មី' : 'Save current values as a new preset'}
             >
-              🏷️ 10% Off
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                applyPreset({
-                  code: 'SAVE20MAX30',
-                  description: isKhmer ? 'បញ្ចុះ 20% (ច្រើនបំផុត $30)' : '20% Off capped $30',
-                  discountType: 'PERCENTAGE',
-                  discount: '20',
-                  minOrder: '50',
-                  maxDiscount: '30',
-                })
-              }
-              className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 rounded-lg transition-all font-medium"
-            >
-              🛡️ 20% (Max $30)
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                applyPreset({
-                  code: 'SAVE5',
-                  description: isKhmer ? 'បញ្ចុះតម្លៃ $5 ថេរ' : '$5 Fixed Discount',
-                  discountType: 'FIXED',
-                  discount: '5',
-                  minOrder: '20',
-                  maxDiscount: '',
-                })
-              }
-              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 rounded-lg transition-all font-medium"
-            >
-              💵 $5 Fixed
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isKhmer ? 'បង្កើតគំរូថ្មី' : isZh ? '+ 添加模板' : '+ Add Preset'}</span>
             </button>
           </div>
         </div>
@@ -1048,6 +1191,104 @@ export default function AdminCouponsPage() {
           </div>
         )}
       </div>
+
+      {/* Add Custom Quick Preset Modal */}
+      {showAddPresetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                  {isKhmer ? 'បង្កើតគំរូរហ័សថ្មី (Quick Preset)' : 'Create Quick Preset'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddPresetModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePreset} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {isKhmer ? 'ឈ្មោះប៊ូតុងគំរូ (Preset Label) *' : 'Preset Button Label *'}
+                </label>
+                <div className="flex gap-2">
+                  <div className="w-16">
+                    <input
+                      type="text"
+                      value={presetForm.icon}
+                      onChange={(e) => setPresetForm((p) => ({ ...p, icon: e.target.value }))}
+                      className="input text-center text-lg h-10 w-full"
+                      placeholder="🏷️"
+                      title="Emoji Icon"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={presetForm.label}
+                    onChange={(e) => setPresetForm((p) => ({ ...p, label: e.target.value }))}
+                    className="input flex-1 h-10 text-sm"
+                    placeholder={isKhmer ? 'ឧ. 15% VIP, $10 Flash' : 'e.g. 15% VIP, $10 Flash'}
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">{isKhmer ? 'ប្រភេទ' : 'Type'}:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {presetForm.discountType === 'PERCENTAGE' ? '% ភាគរយ' : '$ តម្លៃថេរ'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">{isKhmer ? 'ចំនួនបញ្ចុះ' : 'Discount'}:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {presetForm.discountType === 'PERCENTAGE' ? `${presetForm.discount}%` : `$${presetForm.discount}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">{isKhmer ? 'កូដលំនាំដើម' : 'Default Code'}:</span>
+                  <span className="font-mono font-semibold text-primary-600 dark:text-primary-400">
+                    {presetForm.code || `PROMO${presetForm.discount}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">{isKhmer ? 'ទិញអប្បបរមា' : 'Min Order'}:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {presetForm.minOrder ? `$${presetForm.minOrder}` : isKhmer ? 'គ្មាន' : 'None'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddPresetModal(false)}
+                  className="btn-secondary text-xs px-4 py-2"
+                >
+                  {isKhmer ? 'បោះបង់' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary text-xs px-4 py-2 inline-flex items-center gap-1.5"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  {isKhmer ? 'រក្សាទុកជាគំរូ' : 'Save Preset'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
