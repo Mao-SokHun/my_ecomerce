@@ -65,7 +65,24 @@ export default function AdminCategoriesPage() {
           sessionStorage.setItem('admin_cached_categories', JSON.stringify(cats));
         } catch {}
       })
-      .catch(() => toast.error('Failed to load categories'))
+      .catch(async () => {
+        try {
+          const { data } = await categoryApi.getAll();
+          const cats = data?.data || [];
+          if (cats.length > 0) {
+            setCategories(cats);
+            try {
+              sessionStorage.setItem('admin_cached_categories', JSON.stringify(cats));
+            } catch {}
+            return;
+          }
+        } catch {
+          // ignore
+        }
+        if (!silent && categories.length === 0) {
+          toast.error(isKhmer ? 'មិនអាចទាញយកប្រភេទបានទេ' : 'Failed to load categories');
+        }
+      })
       .finally(() => setLoading(false));
   };
 

@@ -94,7 +94,7 @@ export default function AdminCouponsPage() {
   };
 
   const load = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && coupons.length === 0) setLoading(true);
     adminApi
       .getCoupons()
       .then(({ data }) => {
@@ -104,9 +104,14 @@ export default function AdminCouponsPage() {
           sessionStorage.setItem('admin_cached_coupons', JSON.stringify(list));
         } catch {}
       })
-      .catch(() => toast.error('Failed to load coupons'))
+      .catch((err) => {
+        console.error('Failed to load coupons:', err);
+        if (!silent && coupons.length === 0) {
+          toast.error(isKhmer ? 'មិនអាចទាញយកគូប៉ុងបានទេ' : 'Failed to load coupons');
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [coupons.length, isKhmer]);
 
   useEffect(() => {
     load(coupons.length > 0);

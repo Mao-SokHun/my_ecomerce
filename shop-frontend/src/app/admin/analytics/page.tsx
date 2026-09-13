@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { adminApi, orderApi, productApi } from '@/lib/api';
+import { adminApi, orderApi, productApi, categoryApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import {
@@ -54,10 +54,42 @@ export default function FinancialAccountingPage() {
   const { confirm } = useConfirm();
   const [excelModalOpen, setExcelModalOpen] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_products');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<Category[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_categories');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [orders, setOrders] = useState<Order[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_orders');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_products');
+        if (cached && JSON.parse(cached).length > 0) return false;
+      } catch {}
+    }
+    return true;
+  });
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'profit_desc' | 'margin_desc' | 'stock_desc' | 'cost_desc' | 'name_asc'>('profit_desc');
@@ -442,7 +474,7 @@ export default function FinancialAccountingPage() {
   };
 
   const loadData = async (silent = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && products.length === 0) setLoading(true);
     try {
       const [prodRes, catRes, orderRes] = await Promise.allSettled([
         adminApi.getProducts({ limit: 500 }),
@@ -451,32 +483,88 @@ export default function FinancialAccountingPage() {
       ]);
 
       let anySuccess = false;
+      let fetchedProds: Product[] = [];
+      let fetchedCats: Category[] = [];
+      let fetchedOrders: Order[] = [];
+
       if (prodRes.status === 'fulfilled' && prodRes.value.data?.data) {
-        setProducts(prodRes.value.data.data || []);
+        fetchedProds = prodRes.value.data.data || [];
+        setProducts(fetchedProds);
         anySuccess = true;
-      }
-      if (catRes.status === 'fulfilled' && catRes.value.data?.data) {
-        setCategories(catRes.value.data.data || []);
-        anySuccess = true;
-      }
-      if (orderRes.status === 'fulfilled' && orderRes.value.data?.data) {
-        setOrders(orderRes.value.data.data || []);
-        anySuccess = true;
+        try {
+          sessionStorage.setItem('admin_cached_products', JSON.stringify(fetchedProds));
+        } catch {}
+      } else {
+        try {
+          const { data } = await productApi.getAll({ limit: 500 });
+          if (data?.data && data.data.length > 0) {
+            fetchedProds = data.data;
+            setProducts(fetchedProds);
+            anySuccess = true;
+            try {
+              sessionStorage.setItem('admin_cached_products', JSON.stringify(fetchedProds));
+            } catch {}
+          }
+        } catch {}
       }
 
-      if (!anySuccess) {
+      if (catRes.status === 'fulfilled' && catRes.value.data?.data) {
+        fetchedCats = catRes.value.data.data || [];
+        setCategories(fetchedCats);
+        anySuccess = true;
+        try {
+          sessionStorage.setItem('admin_cached_categories', JSON.stringify(fetchedCats));
+        } catch {}
+      } else {
+        try {
+          const { data } = await categoryApi.getAll();
+          if (data?.data && data.data.length > 0) {
+            fetchedCats = data.data;
+            setCategories(fetchedCats);
+            anySuccess = true;
+            try {
+              sessionStorage.setItem('admin_cached_categories', JSON.stringify(fetchedCats));
+            } catch {}
+          }
+        } catch {}
+      }
+
+      if (orderRes.status === 'fulfilled' && orderRes.value.data?.data) {
+        fetchedOrders = orderRes.value.data.data || [];
+        setOrders(fetchedOrders);
+        anySuccess = true;
+        try {
+          sessionStorage.setItem('admin_cached_orders', JSON.stringify(fetchedOrders));
+        } catch {}
+      } else {
+        try {
+          const { data } = await orderApi.getAll({ limit: 200 });
+          if (data?.data && data.data.length > 0) {
+            fetchedOrders = data.data;
+            setOrders(fetchedOrders);
+            anySuccess = true;
+            try {
+              sessionStorage.setItem('admin_cached_orders', JSON.stringify(fetchedOrders));
+            } catch {}
+          }
+        } catch {}
+      }
+
+      if (!anySuccess && !silent && products.length === 0) {
         toast.error(isKhmer ? 'មិនអាចទាញយកទិន្នន័យគណនេយ្យបានទេ' : 'Failed to load financial data');
       }
     } catch (err) {
       console.error('Failed to load accounting data:', err);
-      toast.error(isKhmer ? 'មិនអាចទាញយកទិន្នន័យគណនេយ្យបានទេ' : 'Failed to load financial data');
+      if (!silent && products.length === 0) {
+        toast.error(isKhmer ? 'មិនអាចទាញយកទិន្នន័យគណនេយ្យបានទេ' : 'Failed to load financial data');
+      }
     } finally {
       if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(products.length > 0);
   }, []);
 
   // Category map

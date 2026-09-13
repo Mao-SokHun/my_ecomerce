@@ -56,6 +56,28 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
+    if (!original) return Promise.reject(error);
+
+    // Automatic retry for Render cold starts / 502/503/504 / network timeouts
+    const status = error.response?.status;
+    const isNetworkOrColdStart =
+      !error.response ||
+      status === 502 ||
+      status === 503 ||
+      status === 504 ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ERR_NETWORK';
+
+    const maxRetries = original.method?.toUpperCase() === 'GET' ? 2 : 1;
+    const retryCount = (original._retryCount as number) || 0;
+
+    if (isNetworkOrColdStart && retryCount < maxRetries) {
+      original._retryCount = retryCount + 1;
+      const delayMs = Math.min(1000 * Math.pow(2, retryCount), 3000);
+      await new Promise((res) => setTimeout(res, delayMs));
+      return api(original);
+    }
+
     if (error.response?.status === 401 && !original._retry && typeof window !== 'undefined') {
       original._retry = true;
       if (isRefreshing) {

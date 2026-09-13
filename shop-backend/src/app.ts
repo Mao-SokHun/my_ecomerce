@@ -30,17 +30,21 @@ import { handleStripeWebhook } from './controllers/stripeWebhook.controller';
 const app = express();
 app.set('trust proxy', true);
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-const allowVercelPreviewOrigins = ['1', 'true', 'yes'].includes(
-  String(process.env.CORS_ALLOW_VERCEL || '').trim().toLowerCase()
+const allowedOrigins = Array.from(
+  new Set([
+    'http://localhost:3000',
+    'https://shonlineshop.vercel.app',
+    ...(process.env.FRONTEND_URL || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+  ])
 );
 
 function isAllowedVercelOrigin(origin: string): boolean {
-  if (!allowVercelPreviewOrigins) return false;
+  if (process.env.CORS_ALLOW_VERCEL === '0' || process.env.CORS_ALLOW_VERCEL === 'false') {
+    return false;
+  }
   try {
     const { hostname, protocol } = new URL(origin);
     if (protocol !== 'https:') return false;
