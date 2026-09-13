@@ -174,8 +174,8 @@ export function CustomDropdown({
 
   // Size styling classes - luxury, modern & refined
   const sizeClasses = {
-    xs: 'h-7 text-[11px] pl-2.5 pr-2 rounded-lg gap-1.5 font-medium tracking-tight',
-    sm: 'h-8.5 text-xs pl-3 pr-2.5 rounded-xl gap-2 font-medium',
+    xs: 'h-8 text-[11px] pl-2.5 pr-2 rounded-lg gap-1.5 font-medium tracking-tight',
+    sm: 'h-9 text-xs pl-3 pr-2.5 rounded-xl gap-2 font-medium',
     md: 'h-10 text-xs sm:text-sm pl-3.5 pr-3 rounded-xl gap-2.5 font-medium',
     lg: 'h-11 text-sm pl-4 pr-3.5 rounded-2xl gap-3 font-semibold',
   }[size];

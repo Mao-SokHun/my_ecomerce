@@ -1154,22 +1154,22 @@ export default function FinancialAccountingPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
             {/* Search Input with generous padding */}
-            <div className="relative flex-1 sm:w-56 sm:flex-initial">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="relative flex-1 sm:w-64 sm:flex-initial">
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={isKhmer ? 'ស្វែងរកឈ្មោះ ឬ Brand...' : 'Search product or brand...'}
-                className="w-full h-9 pl-9 pr-7 text-xs rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition"
+                className="w-full h-10 pl-10 pr-8 text-xs sm:text-sm rounded-xl bg-slate-50/90 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 shadow-2xs transition font-medium"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-[10px] transition"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-slate-200 dark:bg-surface-700 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center text-[10px] transition"
                   title="Clear search"
                 >
                   ✕
@@ -1182,10 +1182,10 @@ export default function FinancialAccountingPage() {
               value={selectedCategory}
               onChange={setSelectedCategory}
               options={categoryDropdownOptions}
-              size="sm"
+              size="md"
               searchable={categories.length > 5}
               searchPlaceholder={isKhmer ? 'ស្វែងរកប្រភេទ...' : 'Filter categories...'}
-              className="w-full sm:w-auto min-w-[160px]"
+              className="w-full sm:w-auto min-w-[170px]"
             />
 
             {/* Sort Filter Dropdown */}
@@ -1193,8 +1193,8 @@ export default function FinancialAccountingPage() {
               value={sortBy}
               onChange={(val) => setSortBy(val as any)}
               options={sortDropdownOptions}
-              size="sm"
-              className="w-full sm:w-auto min-w-[175px]"
+              size="md"
+              className="w-full sm:w-auto min-w-[185px]"
             />
           </div>
         </div>
