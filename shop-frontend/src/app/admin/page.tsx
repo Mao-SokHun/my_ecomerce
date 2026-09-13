@@ -5,6 +5,7 @@ import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import { formatPrice, formatDate, getOrderStatusColor } from '@/lib/utils';
+import type { Order } from '@/types';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -120,6 +121,7 @@ export default function AdminDashboard() {
     return true;
   });
   const [period, setPeriod] = useState<7 | 30 | 90>(30);
+  const [ordersList, setOrdersList] = useState<Order[]>([]);
 
   const panelCls = 'rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/95 dark:bg-surface-900/90 backdrop-blur shadow-xs';
 
@@ -127,13 +129,18 @@ export default function AdminDashboard() {
     let isMounted = true;
     const fetchDashboard = (isSilent = false) => {
       if (!isSilent && !data) setLoading(true);
-      adminApi
-        .getDashboard()
-        .then(({ data: res }) => {
+      Promise.all([
+        adminApi.getDashboard(),
+        adminApi.getOrders({ limit: 100 }).catch(() => ({ data: { data: [] } })),
+      ])
+        .then(([dashRes, ordersRes]) => {
           if (isMounted) {
-            setData(res.data);
+            setData(dashRes.data.data);
+            if (ordersRes.data?.data) {
+              setOrdersList(ordersRes.data.data);
+            }
             try {
-              sessionStorage.setItem('admin_cached_dashboard', JSON.stringify(res.data));
+              sessionStorage.setItem('admin_cached_dashboard', JSON.stringify(dashRes.data.data));
             } catch {}
           }
         })
@@ -183,10 +190,10 @@ export default function AdminDashboard() {
     );
   }
 
-  const recentOrders = data?.recentOrders || [];
+  const ordersSource = ordersList.length > 0 ? ordersList : (data?.recentOrders || []);
   const now = Date.now();
   const rangeStart = now - period * 24 * 60 * 60 * 1000;
-  const filteredOrders = recentOrders.filter((o) => new Date(o.createdAt).getTime() >= rangeStart);
+  const filteredOrders = ordersSource.filter((o) => new Date(o.createdAt).getTime() >= rangeStart);
 
   const bucketCount = period <= 7 ? period : period <= 30 ? 10 : 12;
   const bucketMs = (period * 24 * 60 * 60 * 1000) / bucketCount;
@@ -197,10 +204,15 @@ export default function AdminDashboard() {
       const ts = new Date(o.createdAt).getTime();
       return ts >= start && ts < end;
     });
+    // Exclude cancelled orders from revenue
+    const validRevenue = inBucket
+      .filter((o) => o.status !== 'CANCELLED')
+      .reduce((sum, o) => sum + Number(o.total || 0), 0);
+
     return {
       label: i + 1,
       orders: inBucket.length,
-      revenue: inBucket.reduce((sum, o) => sum + o.total, 0),
+      revenue: validRevenue,
     };
   });
 
@@ -221,7 +233,9 @@ export default function AdminDashboard() {
   const ordersPath = makePath(trendBuckets.map((b) => b.orders), 280, 50);
   const revenuePath = makePath(trendBuckets.map((b) => b.revenue), 280, 50);
 
-  const periodRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+  // Exclude cancelled orders from revenue
+  const validPeriodOrders = filteredOrders.filter((o) => o.status !== 'CANCELLED');
+  const periodRevenue = validPeriodOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
   const periodOrders = filteredOrders.length;
 
   const stats = [
