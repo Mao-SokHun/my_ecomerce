@@ -143,19 +143,49 @@ export default function OrderDetailsPage() {
     const printWindow = window.open('', '_blank', 'width=800,height=900');
     if (!printWindow) return;
 
+    const shopName = 'SH-SHOP';
+    const shopPhone = receiptMeta.contactLine || '097 494 4390 / 088 545 9115';
+    const shopAddress = receiptMeta.shopAddress || 'Toul Kork, Phnom Penh';
+
+    const dateStr = new Date(invoice.createdAt).toLocaleString('en-GB', {
+      timeZone: 'Asia/Phnom_Penh',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+    const isPaid = order?.paymentStatus === 'PAID';
+
+    const paymentMethodDisplay = (() => {
+      const pm = (invoice.paymentMethod || order?.paymentMethod || '').toUpperCase();
+      if (pm === 'BAKONG' || pm === 'KHQR') return 'BAKONG';
+      if (pm === 'CARD' || pm === 'STRIPE') return 'VISA / MASTER';
+      if (pm === 'ABA' || pm === 'ABA_PAYWAY') return 'ABA PAY';
+      if (pm === 'COD' || pm === 'CASH') return 'CASH ON DELIVERY';
+      return pm || 'BAKONG';
+    })();
+
     const itemsHtml = invoice.items
       .map(
         (item) => `
-          <tr>
-            <td style="padding: 5px 0; vertical-align: top; word-break: break-word;">
-              <div style="font-weight: 600; color: #0f172a; font-size: 11px; line-height: 1.35;">${escapeHtml(item.name)}</div>
-              <div style="font-size: 9.5px; color: #64748b; margin-top: 1px;">${item.quantity} × ${formatPrice(item.price, language)}</div>
-            </td>
-            <td style="padding: 5px 0 5px 4px; text-align: right; vertical-align: top; font-weight: 700; color: #0f172a; white-space: nowrap; font-size: 11px;">
-              ${formatPrice(item.lineTotal, language)}
-            </td>
-          </tr>
-        `
+        <tr>
+          <td style="padding: 6px 2px; text-align: left; vertical-align: middle; font-weight: 600; color: #000; font-size: 11px; line-height: 1.35; word-break: break-word;">
+            ${escapeHtml(item.name)}
+          </td>
+          <td style="padding: 6px 2px; text-align: center; vertical-align: middle; font-weight: 600; color: #000; font-size: 11px;">
+            ${item.quantity}
+          </td>
+          <td style="padding: 6px 2px; text-align: right; vertical-align: middle; font-weight: 600; color: #000; font-size: 11px; white-space: nowrap;">
+            $${Number(item.price).toFixed(2)}
+          </td>
+          <td style="padding: 6px 2px; text-align: right; vertical-align: middle; font-weight: 700; color: #000; font-size: 11px; white-space: nowrap;">
+            $${Number(item.lineTotal).toFixed(2)}
+          </td>
+        </tr>
+      `
       )
       .join('');
 
@@ -166,351 +196,381 @@ export default function OrderDetailsPage() {
     });
 
     const html = `
-      <!doctype html>
+      <!DOCTYPE html>
       <html lang="km">
         <head>
-          <meta charset="utf-8" />
-          <title>${escapeHtml(invoice.invoiceNumber)} Receipt</title>
+          <meta charset="utf-8">
+          <title>Receipt-${escapeHtml(invoice.orderNumber)}</title>
           <link rel="preconnect" href="https://fonts.googleapis.com">
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
           <style>
-            @page { size: 80mm auto; margin: 0; }
-            @media print {
-              body { margin: 0; padding: 4mm; }
+            @page {
+              size: 80mm auto;
+              margin: 0mm;
             }
-            * { box-sizing: border-box; }
+            @media print {
+              body {
+                margin: 0;
+                padding: 2.5mm;
+              }
+            }
+            * {
+              box-sizing: border-box;
+            }
             body {
+              width: 72mm;
+              margin: 0 auto;
+              padding: 3mm 1mm;
               font-family: 'Plus Jakarta Sans', 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              color: #0f172a;
-              margin: 0;
-              padding: 4mm 2mm;
-              display: flex;
-              justify-content: center;
-              background: #fff;
+              font-size: 11px;
+              line-height: 1.4;
+              color: #000000;
+              background: #ffffff;
               -webkit-font-smoothing: antialiased;
             }
-            .receipt {
-              width: 74mm;
-              padding: 6px 4px 10px;
-            }
-            .center { text-align: center; }
-            .header-badge {
-              display: inline-block;
-              background: #0f172a;
-              color: #fff;
-              font-weight: 800;
-              font-size: 13px;
-              width: 28px;
-              height: 28px;
-              line-height: 28px;
+            
+            /* Header */
+            .shop-header {
               text-align: center;
-              border-radius: 7px;
-              margin-bottom: 2px;
+              padding-bottom: 4px;
             }
-            .shop-name {
-              font-size: 16px;
-              font-weight: 800;
-              color: #0f172a;
+            .shop-title-large {
+              font-size: 24px;
+              font-weight: 900;
               letter-spacing: 0.5px;
-            }
-            .sub-tagline {
-              font-size: 9px;
-              color: #64748b;
-              font-weight: 600;
-              letter-spacing: 0.5px;
+              color: #000000;
+              margin: 0 0 3px 0;
               text-transform: uppercase;
-              margin-top: 1px;
             }
-            .contact-meta {
-              font-size: 9.5px;
-              color: #475569;
-              margin-top: 4px;
+            .social-icons {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 6px;
+              margin: 3px 0 4px 0;
+            }
+            .contact-line {
+              font-size: 10.5px;
+              font-weight: 600;
+              color: #111111;
+              margin: 1.5px 0;
               line-height: 1.35;
             }
-            .receipt-type-pill {
-              display: inline-block;
-              background: #f1f5f9;
-              color: #0f172a;
-              border: 1px solid #cbd5e1;
-              padding: 2px 10px;
-              border-radius: 12px;
-              font-size: 9.5px;
-              font-weight: 700;
-              letter-spacing: 0.5px;
-              margin: 6px auto 4px auto;
-              text-transform: uppercase;
+            .receipt-pill-badge {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 5px;
+              border: 1px dashed #000000;
+              border-radius: 20px;
+              padding: 3px 12px;
+              font-size: 11px;
+              font-weight: 800;
+              margin: 6px auto 2px auto;
+              color: #000000;
             }
 
-            /* Meta Card */
-            .meta-box {
-              background: #ffffff;
-              border: 1px solid #cbd5e1;
-              border-radius: 9px;
+            /* Dividers */
+            .divider-dashed {
+              border-top: 1px dashed #666666;
               margin: 7px 0;
-              overflow: hidden;
-              box-shadow: 0 1px 2px rgba(0,0,0,0.02);
             }
-            .meta-header-row {
-              background: #f8fafc;
-              padding: 5px 8px;
-              border-bottom: 1px solid #e2e8f0;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
+            .divider-solid {
+              border-top: 1.5px solid #000000;
+              margin: 7px 0;
             }
-            .meta-title-km {
-              font-size: 10px;
-              font-weight: 700;
-              color: #0f172a;
-              display: block;
-              line-height: 1.2;
+
+            /* Info Block */
+            .receipt-meta-block {
+              font-size: 11px;
+              line-height: 1.5;
+              color: #000000;
             }
-            .meta-title-en {
-              font-size: 7.5px;
-              font-weight: 600;
-              color: #64748b;
-              letter-spacing: 0.4px;
-              text-transform: uppercase;
+            .receipt-meta-block div {
+              margin: 1.5px 0;
             }
-            .invoice-pill {
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              background: #0f172a;
-              color: #ffffff;
-              padding: 2px 7px;
-              border-radius: 5px;
+            .meta-bold {
               font-weight: 800;
-              font-size: 10.5px;
-              letter-spacing: 0.5px;
+              letter-spacing: 0.2px;
             }
-            .meta-grid {
-              padding: 3px 8px;
+            .meta-value {
+              font-weight: 600;
             }
-            .meta-row {
+
+            /* Payment & Status Line */
+            .payment-status-row {
               display: flex;
-              justify-content: space-between;
               align-items: center;
-              padding: 3.5px 0;
-              border-bottom: 1px dashed #f1f5f9;
-              font-size: 10px;
-              line-height: 1.3;
+              gap: 8px;
+              margin-top: 5px;
+              flex-wrap: wrap;
             }
-            .meta-row:last-child {
-              border-bottom: none;
+            .payment-method-pill {
+              display: inline-flex;
+              align-items: center;
+              gap: 4px;
+              font-weight: 800;
+              font-size: 11px;
+              color: #000000;
             }
-            .meta-label {
-              display: flex;
-              flex-direction: column;
-              flex-shrink: 0;
-              margin-right: 8px;
+            .payment-icon-symbol {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 15px;
+              height: 15px;
+              background: #1e1b4b;
+              color: #ffffff;
+              border-radius: 4px;
+              font-size: 9px;
+              font-weight: 900;
             }
-            .label-km {
-              font-size: 10px;
-              font-weight: 600;
-              color: #475569;
-              line-height: 1.2;
-            }
-            .label-en {
-              font-size: 7.5px;
-              font-weight: 500;
-              color: #94a3b8;
+            .status-badge-capsule {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 12px;
+              font-size: 9.5px;
+              font-weight: 800;
               letter-spacing: 0.3px;
-              text-transform: uppercase;
             }
-            .meta-val {
-              color: #0f172a;
-              font-weight: 600;
-              text-align: right;
-              word-break: break-word;
+            .status-badge-capsule.paid {
+              background: #22c55e;
+              color: #ffffff;
             }
-            .font-mono {
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+            .status-badge-capsule.pending {
+              background: #22c55e;
+              color: #ffffff;
             }
-            .meta-address-box {
-              background: #f8fafc;
-              border-top: 1px solid #e2e8f0;
-              padding: 5px 8px 6px 8px;
-              text-align: left;
+
+            /* Table Layout */
+            .receipt-table {
+              width: 100%;
+              border-collapse: separate;
+              border-spacing: 2px 0;
+              margin: 8px 0;
             }
-            .address-content {
+            .receipt-table thead th {
+              background: #e2e8f0;
+              color: #000000;
+              padding: 5px 2px;
               font-size: 10px;
-              color: #1e293b;
+              font-weight: 800;
+              text-align: center;
+              border-radius: 4px;
+              line-height: 1.25;
+            }
+            .receipt-table thead th.th-item {
+              text-align: left;
+              padding-left: 5px;
+              width: 44%;
+            }
+            .receipt-table thead th.th-qty {
+              width: 14%;
+            }
+            .receipt-table thead th.th-price {
+              text-align: right;
+              width: 21%;
+            }
+            .receipt-table thead th.th-total {
+              text-align: right;
+              padding-right: 5px;
+              width: 21%;
+            }
+            .kh-sub {
+              font-size: 9px;
               font-weight: 600;
-              line-height: 1.35;
-              word-break: break-word;
+            }
+            .receipt-table tbody td {
+              border-bottom: 1px solid #cbd5e1;
+            }
+
+            /* Calc Section */
+            .calc-section {
+              margin-top: 4px;
+              padding: 2px 0;
+            }
+            .calc-row {
+              display: flex;
+              justify-content: flex-end;
+              align-items: center;
+              gap: 12px;
+              padding: 1.5px 0;
+              font-size: 11px;
+              font-weight: 600;
+              color: #000000;
+            }
+            .calc-label {
+              width: 90px;
+              text-align: right;
+            }
+            .calc-val {
+              min-width: 65px;
+              text-align: right;
+              font-weight: 700;
+            }
+            .calc-row.discount {
+              color: #16a34a;
+            }
+
+            /* Grand Total Section */
+            .grand-total-section {
+              text-align: center;
+              padding: 6px 0 4px 0;
+            }
+            .grand-total-main {
+              font-size: 19px;
+              font-weight: 900;
+              color: #000000;
+              letter-spacing: 0.2px;
+            }
+            .grand-total-khr {
+              font-size: 13px;
+              font-weight: 700;
+              color: #222222;
               margin-top: 2px;
             }
 
-            table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-            th {
-              font-size: 9.5px;
-              font-weight: 700;
-              color: #475569;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-              padding: 4px 0;
-              border-bottom: 1.5px solid #0f172a;
+            /* Footer */
+            .footer-section {
+              text-align: center;
+              padding-top: 4px;
+              line-height: 1.4;
             }
-            td {
-              font-size: 10.5px;
-              padding: 4px 0;
-              border-bottom: 1px dashed #e2e8f0;
-              vertical-align: top;
-            }
-            .summary {
-              margin-top: 6px;
-              padding: 2px 0;
-            }
-            .row {
-              display: flex;
-              justify-content: space-between;
-              font-size: 10.5px;
-              padding: 2px 0;
-              color: #475569;
-            }
-            .row span:last-child {
-              color: #0f172a;
+            .footer-en {
+              font-size: 10px;
               font-weight: 600;
+              color: #222222;
             }
-            .grand-total-box {
-              background: #0f172a;
-              color: #ffffff;
-              padding: 6px 10px;
-              border-radius: 6px;
-              margin: 6px 0 4px 0;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            }
-            .grand-total-box span:first-child {
-              font-weight: 800;
-              font-size: 11px;
-              letter-spacing: 0.5px;
-            }
-            .grand-total-box span:last-child {
-              font-weight: 800;
-              font-size: 14px;
-            }
-            .thanks {
-              margin-top: 8px;
-              font-size: 11px;
+            .footer-km {
+              font-size: 10.5px;
               font-weight: 700;
-              color: #0f172a;
+              color: #000000;
+              margin-top: 1px;
             }
-            .watermark {
-              font-size: 8px;
-              color: #94a3b8;
-              margin-top: 4px;
+            .footer-pos {
+              font-size: 9px;
+              font-weight: 500;
+              color: #666666;
+              margin-top: 3px;
+            }
+            .barcode-box {
+              margin: 7px auto 3px auto;
             }
           </style>
         </head>
         <body>
-          <div class="receipt">
-            <div class="center">
-              <div class="header-badge">SH</div>
-              <div class="shop-name">${t(language, 'brand')} Online Store</div>
-              <div class="sub-tagline">PREMIUM E-COMMERCE & RETAIL</div>
-              <div class="contact-meta">
-                <div>📞 ${escapeHtml(receiptMeta.contactLine)}</div>
-                <div>📍 ${escapeHtml(receiptMeta.shopAddress)}</div>
-              </div>
-              <div>
-                <span class="receipt-type-pill">វិក្កយបត្រ • ${t(language, 'receipt')}</span>
-              </div>
+          <!-- Header -->
+          <div class="shop-header">
+            <div class="shop-title-large">${shopName}</div>
+            
+            <!-- Social Icons -->
+            <div class="social-icons">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </div>
 
-            <!-- Meta Box -->
-            <div class="meta-box">
-              <div class="meta-header-row">
-                <div>
-                  <span class="meta-title-km">${t(language, 'orderLabel')}</span>
-                  <span class="meta-title-en">INVOICE NUMBER</span>
-                </div>
-                <div>
-                  <span class="invoice-pill">${escapeHtml(invoice.orderNumber)}</span>
-                </div>
-              </div>
+            <div class="contact-line">📞 Tel: ${escapeHtml(shopPhone)}</div>
+            <div class="contact-line">📍 ${escapeHtml(shopAddress)}</div>
 
-              <div class="meta-grid">
-                <div class="meta-row">
-                  <div class="meta-label">
-                    <span class="label-km">${t(language, 'dateLabel')}</span>
-                    <span class="label-en">Date / Time</span>
-                  </div>
-                  <div class="meta-val">${escapeHtml(formatDate(invoice.createdAt, language))}</div>
-                </div>
-
-                <div class="meta-row">
-                  <div class="meta-label">
-                    <span class="label-km">${t(language, 'customerLabel')}</span>
-                    <span class="label-en">Customer</span>
-                  </div>
-                  <div class="meta-val" style="font-weight: 700;">${escapeHtml(invoice.customerName)}</div>
-                </div>
-
-                <div class="meta-row">
-                  <div class="meta-label">
-                    <span class="label-km">${t(language, 'phoneLabel')}</span>
-                    <span class="label-en">Contact Phone</span>
-                  </div>
-                  <div class="meta-val font-mono">${escapeHtml(invoice.customerPhone || 'N/A')}</div>
-                </div>
-
-                <div class="meta-row">
-                  <div class="meta-label">
-                    <span class="label-km">${t(language, 'paymentType')}</span>
-                    <span class="label-en">Payment Method</span>
-                  </div>
-                  <div class="meta-val">${escapeHtml(paymentTypeForInvoice(language, invoice.paymentMethod))}</div>
-                </div>
-              </div>
-
-              ${invoice.shippingAddress ? `
-              <div class="meta-address-box">
-                <div class="meta-label">
-                  <span class="label-km">📍 ${t(language, 'addressLabel')}</span>
-                  <span class="label-en">Shipping Address</span>
-                </div>
-                <div class="address-content">${escapeHtml(invoice.shippingAddress)}</div>
-              </div>` : ''}
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th style="text-align:left;">${t(language, 'descriptionLabel')}</th>
-                  <th style="text-align:right;">${t(language, 'priceLabel')}</th>
-                </tr>
-              </thead>
-              <tbody>${itemsHtml}</tbody>
-            </table>
-
-            <div class="summary">
-              <div class="row"><span>${t(language, 'subtotal')}</span><span>${formatPrice(invoice.subtotal, language)}</span></div>
-              ${(invoice.discount ?? 0) > 0 ? `
-              <div class="row" style="color:#16a34a;">
-                <span style="color:#16a34a;">${invoice.couponCode
-                  ? escapeHtml(t(language, 'couponDiscount').replace('{code}', invoice.couponCode))
-                  : escapeHtml(t(language, 'couponDiscountNoCode'))}</span>
-                <span style="color:#16a34a; font-weight: 700;">-${formatPrice(invoice.discount, language)}</span>
-              </div>` : ''}
-              <div class="row"><span>${t(language, 'shipping')}${
-                invoice.shippingCarrierLabel
-                  ? ` (${escapeHtml(invoice.shippingCarrierLabel)})`
-                  : ''
-              }</span><span>${formatPrice(invoice.shippingCost, language)}</span></div>
-              
-              <div class="grand-total-box">
-                <span>${t(language, 'total')} (GRAND TOTAL)</span>
-                <span>${formatPrice(invoice.total, language)}</span>
+            <div>
+              <div class="receipt-pill-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/><path d="m9 8 2 2 4-4"/></svg>
+                <span>RECEIPT / វិក្កយបត្រ</span>
               </div>
             </div>
+          </div>
 
-            <!-- Crisp Vector Barcode -->
-            ${barcodeSvgHtml}
+          <div class="divider-dashed"></div>
 
-            <div class="center thanks">🙏 ${t(language, 'thankYou')}</div>
-            <div class="center watermark">Powered by ${t(language, 'brand')} Cloud POS</div>
+          <!-- Upper Receipt Info -->
+          <div class="receipt-meta-block">
+            <div><span class="meta-bold">RECEIPT #:</span> <span class="meta-value">${escapeHtml(invoice.orderNumber)}</span></div>
+            <div><span class="meta-bold">DATE:</span> <span class="meta-value">${dateStr}</span></div>
+          </div>
+
+          <div class="divider-dashed"></div>
+
+          <!-- Customer & Delivery Info -->
+          <div class="receipt-meta-block">
+            <div><span class="meta-bold">CUSTOMER:</span> <span class="meta-value">${escapeHtml(invoice.customerName || order?.user?.name || 'Customer')}</span></div>
+            <div><span class="meta-bold">TEL:</span> <span class="meta-value">${escapeHtml(invoice.customerPhone || order?.address?.phone || order?.user?.phone || 'N/A')}</span></div>
+            <div><span class="meta-bold">ADDRESS:</span> <span class="meta-value">${escapeHtml(invoice.shippingAddress || 'N/A')}</span></div>
+            
+            <div class="payment-status-row">
+              <div class="payment-method-pill">
+                <span class="payment-icon-symbol">❖</span>
+                <span>${paymentMethodDisplay}</span>
+              </div>
+              <span class="status-badge-capsule ${isPaid ? 'paid' : 'pending'}">
+                ${isPaid ? 'PAID (បានបង់រួច)' : 'PENDING (មិនទាន់បង់)'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th class="th-item">Description<br><span class="kh-sub">(ទំនិញ)</span></th>
+                <th class="th-qty">QTY<br><span class="kh-sub">(ចំនួន)</span></th>
+                <th class="th-price">Unit Price<br><span class="kh-sub">(តម្លៃរាយ)</span></th>
+                <th class="th-total">Total<br><span class="kh-sub">(សរុប)</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <!-- Calculations -->
+          <div class="calc-section">
+            <div class="calc-row">
+              <span class="calc-label">Subtotal:</span>
+              <span class="calc-val">$${Number(invoice.subtotal || invoice.total).toFixed(2)}</span>
+            </div>
+            ${
+              invoice.discount && invoice.discount > 0
+                ? `
+            <div class="calc-row discount">
+              <span class="calc-label">Discount:</span>
+              <span class="calc-val">-$${Number(invoice.discount).toFixed(2)}</span>
+            </div>
+            `
+                : ''
+            }
+            <div class="calc-row">
+              <span class="calc-label">Shipping Fee:</span>
+              <span class="calc-val">$${Number(invoice.shippingCost || 0).toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div class="divider-solid"></div>
+
+          <!-- Grand Total -->
+          <div class="grand-total-section">
+            <div class="grand-total-main">
+              Grand Total: $${Number(invoice.total).toFixed(2)}
+            </div>
+            <div class="grand-total-khr">
+              ${formatKhrPrice(invoice.total)} (KHR)
+            </div>
+          </div>
+
+          <div class="divider-dashed"></div>
+
+          <!-- Footer & Crisp Vector Barcode -->
+          <div class="footer-section">
+            <!-- Authentic Vector Barcode -->
+            <div class="barcode-box">
+              ${barcodeSvgHtml}
+            </div>
+
+            <div class="footer-en">Thank you for shopping with us!</div>
+            <div class="footer-km">សូមអរគុណសម្រាប់ការទិញទំនិញ!</div>
+            <div class="footer-pos">Powered by ${shopName} Cloud POS</div>
           </div>
           <script>
             window.onload = function () { window.print(); window.close(); };

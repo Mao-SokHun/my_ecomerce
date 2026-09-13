@@ -47,12 +47,10 @@ export function generateThermalReceiptHtml(
   const is80 = paperWidth === '80mm';
   const widthPx = is80 ? '72mm' : '48mm';
   const fontSize = is80 ? '11px' : '9.5px';
-  const titleSize = is80 ? '17px' : '14px';
 
-  const shopName = shopInfo?.shopName || 'SH-Shop';
+  const shopName = (shopInfo?.shopName || 'SH-SHOP').toUpperCase();
   const shopPhone = shopInfo?.supportPhone || '097 494 4390 / 088 545 9115';
-  const shopAddress = shopInfo?.shopAddress || 'Phnom Penh, Cambodia';
-  const footerNote = shopInfo?.footerNote || '';
+  const shopAddress = shopInfo?.shopAddress || 'Toul Kork, Phnom Penh';
 
   const dateStr = new Date(order.createdAt).toLocaleString('en-GB', {
     timeZone: 'Asia/Phnom_Penh',
@@ -68,30 +66,32 @@ export function generateThermalReceiptHtml(
     ? [order.address.province, order.address.district, order.address.commune, order.address.village].filter(Boolean).join(', ')
     : 'N/A';
   const road = order.address?.roadNumber || order.address?.street || '';
+  const fullAddress = address !== 'N/A' ? `${address}${road ? ` (${road})` : ''}` : 'N/A';
   const isPaid = order.paymentStatus === 'PAID';
 
   const paymentMethodDisplay = (() => {
     const pm = (order.paymentMethod || '').toUpperCase();
-    if (pm === 'BAKONG' || pm === 'KHQR') return 'BAKONG KHQR (ស្កេនទូទាត់)';
-    if (pm === 'CARD' || pm === 'STRIPE') return 'VISA / MASTER CARD';
-    if (pm === 'ABA' || pm === 'ABA_PAYWAY') return 'ABA PAYWAY';
+    if (pm === 'BAKONG' || pm === 'KHQR') return 'BAKONG';
+    if (pm === 'CARD' || pm === 'STRIPE') return 'VISA / MASTER';
+    if (pm === 'ABA' || pm === 'ABA_PAYWAY') return 'ABA PAY';
     if (pm === 'COD' || pm === 'CASH') return 'CASH ON DELIVERY';
-    return pm || 'BAKONG KHQR';
+    return pm || 'BAKONG';
   })();
 
   const itemsHtml = order.items
     .map(
-      (item, idx) => `
-      <tr style="border-bottom: 1px dashed #e2e8f0;">
-        <td style="padding: 5px 0; vertical-align: top; word-break: break-word;">
-          <div style="font-weight: 600; color: #0f172a; font-size: ${is80 ? '11.5px' : '10px'}; line-height: 1.35;">
-            ${idx + 1}. ${item.name}
-          </div>
-          <div style="font-size: ${is80 ? '10px' : '8.5px'}; color: #64748b; margin-top: 1px;">
-            ${item.quantity} × $${Number(item.price).toFixed(2)}
-          </div>
+      (item) => `
+      <tr>
+        <td style="padding: 6px 2px; text-align: left; vertical-align: middle; font-weight: 600; color: #000; font-size: ${is80 ? '11px' : '9.5px'}; line-height: 1.35; word-break: break-word;">
+          ${item.name}
         </td>
-        <td style="padding: 5px 0 5px 4px; text-align: right; vertical-align: top; font-weight: 700; color: #0f172a; white-space: nowrap; font-size: ${is80 ? '11.5px' : '10px'};">
+        <td style="padding: 6px 2px; text-align: center; vertical-align: middle; font-weight: 600; color: #000; font-size: ${is80 ? '11px' : '9.5px'};">
+          ${item.quantity}
+        </td>
+        <td style="padding: 6px 2px; text-align: right; vertical-align: middle; font-weight: 600; color: #000; font-size: ${is80 ? '11px' : '9.5px'}; white-space: nowrap;">
+          $${Number(item.price).toFixed(2)}
+        </td>
+        <td style="padding: 6px 2px; text-align: right; vertical-align: middle; font-weight: 700; color: #000; font-size: ${is80 ? '11px' : '9.5px'}; white-space: nowrap;">
           $${(Number(item.price) * Number(item.quantity)).toFixed(2)}
         </td>
       </tr>
@@ -113,7 +113,7 @@ export function generateThermalReceiptHtml(
         <title>Receipt-${order.orderNumber}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Kantumruy+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           @page {
             size: ${paperWidth} auto;
@@ -122,7 +122,7 @@ export function generateThermalReceiptHtml(
           @media print {
             body {
               margin: 0;
-              padding: 3mm;
+              padding: 2.5mm;
             }
           }
           * {
@@ -131,404 +131,303 @@ export function generateThermalReceiptHtml(
           body {
             width: ${widthPx};
             margin: 0 auto;
-            padding: 3.5mm 1.5mm;
+            padding: 3mm 1mm;
             font-family: 'Plus Jakarta Sans', 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: ${fontSize};
             line-height: 1.4;
-            color: #0f172a;
+            color: #000000;
             background: #ffffff;
             -webkit-font-smoothing: antialiased;
           }
-          .text-center { text-align: center; }
-          .text-right { text-align: right; }
-          .text-left { text-align: left; }
-          .bold { font-weight: 700; }
-          .font-extrabold { font-weight: 800; }
           
-          /* Header Brand */
-          .header-brand {
+          /* Header */
+          .shop-header {
             text-align: center;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
           }
-          .brand-logo-emblem {
+          .shop-title-large {
+            font-size: ${is80 ? '24px' : '19px'};
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            color: #000000;
+            margin: 0 0 3px 0;
+            text-transform: uppercase;
+          }
+          .social-icons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin: 3px 0 4px 0;
+          }
+          .contact-line {
+            font-size: ${is80 ? '10.5px' : '9px'};
+            font-weight: 600;
+            color: #111111;
+            margin: 1.5px 0;
+            line-height: 1.35;
+          }
+          .receipt-pill-badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
-            background: #0f172a;
-            color: #ffffff;
+            gap: 5px;
+            border: 1px dashed #000000;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: ${is80 ? '11px' : '9.5px'};
             font-weight: 800;
-            font-size: 13px;
-            border-radius: 7px;
-            margin-bottom: 3px;
-            letter-spacing: -0.5px;
-          }
-          .shop-title {
-            font-size: ${titleSize};
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            color: #0f172a;
-            margin: 2px 0 1px 0;
-          }
-          .shop-tagline {
-            font-size: ${is80 ? '9px' : '8px'};
-            color: #64748b;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-          }
-          .contact-details {
-            font-size: ${is80 ? '10px' : '8.5px'};
-            color: #475569;
-            margin-top: 3px;
-            line-height: 1.35;
-          }
-          .receipt-badge {
-            display: inline-block;
-            background: #f1f5f9;
-            color: #0f172a;
-            border: 1px solid #cbd5e1;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: ${is80 ? '9.5px' : '8.5px'};
-            font-weight: 700;
-            letter-spacing: 0.5px;
             margin: 6px auto 2px auto;
-            text-transform: uppercase;
+            color: #000000;
           }
 
           /* Dividers */
-          .divider-solid {
-            border-top: 1.5px solid #0f172a;
-            margin: 6px 0;
-          }
           .divider-dashed {
-            border-top: 1px dashed #94a3b8;
-            margin: 6px 0;
-          }
-          .divider-double {
-            border-top: 2px solid #0f172a;
-            margin: 7px 0 5px 0;
-          }
-
-          /* Meta Card Box - Overhauled for Luxury Readability */
-          .meta-box {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
+            border-top: 1px dashed #666666;
             margin: 7px 0;
-            overflow: hidden;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
           }
-          .meta-header-row {
-            background: #f8fafc;
-            padding: 5px 8px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          }
-          .meta-title-km {
-            font-size: ${is80 ? '10px' : '8.5px'};
-            font-weight: 700;
-            color: #0f172a;
-            display: block;
-            line-height: 1.2;
-          }
-          .meta-title-en {
-            font-size: 7.5px;
-            font-weight: 600;
-            color: #64748b;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-          }
-          .invoice-pill {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            background: #0f172a;
-            color: #ffffff;
-            padding: 2px 7px;
-            border-radius: 5px;
-            font-weight: 800;
-            font-size: ${is80 ? '10.5px' : '9px'};
-            letter-spacing: 0.5px;
-          }
-          .meta-grid {
-            padding: 3px 8px;
-          }
-          .meta-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 3.5px 0;
-            border-bottom: 1px dashed #f1f5f9;
-            font-size: ${is80 ? '10.5px' : '9px'};
-            line-height: 1.3;
-          }
-          .meta-row:last-child {
-            border-bottom: none;
-          }
-          .meta-label {
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            margin-right: 8px;
-          }
-          .label-km {
-            font-size: ${is80 ? '10px' : '8.5px'};
-            font-weight: 600;
-            color: #475569;
-            line-height: 1.2;
-          }
-          .label-en {
-            font-size: 7.5px;
-            font-weight: 500;
-            color: #94a3b8;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-          }
-          .meta-val {
-            color: #0f172a;
-            font-weight: 600;
-            text-align: right;
-            word-break: break-word;
-          }
-          .font-mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-          }
-          .status-pill {
-            display: inline-block;
-            padding: 1.5px 7px;
-            border-radius: 4px;
-            font-size: ${is80 ? '9px' : '8px'};
-            font-weight: 700;
-          }
-          .status-pill.paid {
-            background: #dcfce7;
-            color: #15803d;
-            border: 1px solid #86efac;
-          }
-          .status-pill.pending {
-            background: #fef3c7;
-            color: #b45309;
-            border: 1px solid #fde68a;
-          }
-          .meta-address-box {
-            background: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 5px 8px 6px 8px;
-            text-align: left;
-          }
-          .address-content {
-            font-size: ${is80 ? '10px' : '8.5px'};
-            color: #1e293b;
-            font-weight: 600;
-            line-height: 1.35;
-            word-break: break-word;
-            margin-top: 2px;
+          .divider-solid {
+            border-top: 1.5px solid #000000;
+            margin: 7px 0;
           }
 
-          /* Table */
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          .table-head th {
-            padding: 4px 0;
-            font-size: ${is80 ? '10px' : '8.5px'};
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1.5px solid #0f172a;
-          }
-
-          /* Totals */
-          .totals-section {
-            margin-top: 4px;
-            padding: 3px 0;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2px 0;
+          /* Info Block */
+          .receipt-meta-block {
             font-size: ${is80 ? '11px' : '9.5px'};
+            line-height: 1.5;
+            color: #000000;
           }
-          .total-label {
-            color: #475569;
-            font-weight: 500;
+          .receipt-meta-block div {
+            margin: 1.5px 0;
           }
-          .total-val {
-            color: #0f172a;
+          .meta-bold {
+            font-weight: 800;
+            letter-spacing: 0.2px;
+          }
+          .meta-value {
             font-weight: 600;
           }
-          .grand-total-box {
-            background: #0f172a;
+
+          /* Payment & Status Line */
+          .payment-status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+          }
+          .payment-method-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 800;
+            font-size: ${is80 ? '11px' : '9.5px'};
+            color: #000000;
+          }
+          .payment-icon-symbol {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            background: #1e1b4b;
             color: #ffffff;
-            padding: 6px 10px;
-            border-radius: 6px;
-            margin: 6px 0 4px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 900;
           }
-          .grand-total-box .grand-label {
+          .status-badge-capsule {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: ${is80 ? '9.5px' : '8.5px'};
             font-weight: 800;
-            font-size: ${is80 ? '12px' : '10.5px'};
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
           }
-          .grand-total-box .grand-val {
+          .status-badge-capsule.paid {
+            background: #22c55e;
+            color: #ffffff;
+          }
+          .status-badge-capsule.pending {
+            background: #22c55e;
+            color: #ffffff;
+          }
+
+          /* Table Layout */
+          .receipt-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 2px 0;
+            margin: 8px 0;
+          }
+          .receipt-table thead th {
+            background: #e2e8f0;
+            color: #000000;
+            padding: 5px 2px;
+            font-size: ${is80 ? '10px' : '8.5px'};
             font-weight: 800;
-            font-size: ${is80 ? '15px' : '13px'};
+            text-align: center;
+            border-radius: 4px;
+            line-height: 1.25;
           }
-          .khr-conversion {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2px 2px;
-            font-size: ${is80 ? '10.5px' : '9px'};
-            color: #475569;
+          .receipt-table thead th.th-item {
+            text-align: left;
+            padding-left: 5px;
+            width: 44%;
+          }
+          .receipt-table thead th.th-qty {
+            width: 14%;
+          }
+          .receipt-table thead th.th-price {
+            text-align: right;
+            width: 21%;
+          }
+          .receipt-table thead th.th-total {
+            text-align: right;
+            padding-right: 5px;
+            width: 21%;
+          }
+          .kh-sub {
+            font-size: ${is80 ? '9px' : '7.5px'};
             font-weight: 600;
+          }
+          .receipt-table tbody td {
+            border-bottom: 1px solid #cbd5e1;
+          }
+
+          /* Calc Section */
+          .calc-section {
+            margin-top: 4px;
+            padding: 2px 0;
+          }
+          .calc-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            padding: 1.5px 0;
+            font-size: ${is80 ? '11px' : '9.5px'};
+            font-weight: 600;
+            color: #000000;
+          }
+          .calc-label {
+            width: 90px;
+            text-align: right;
+          }
+          .calc-val {
+            min-width: 65px;
+            text-align: right;
+            font-weight: 700;
+          }
+          .calc-row.discount {
+            color: #16a34a;
+          }
+
+          /* Grand Total Section */
+          .grand-total-section {
+            text-align: center;
+            padding: 6px 0 4px 0;
+          }
+          .grand-total-main {
+            font-size: ${is80 ? '19px' : '16px'};
+            font-weight: 900;
+            color: #000000;
+            letter-spacing: 0.2px;
+          }
+          .grand-total-khr {
+            font-size: ${is80 ? '13px' : '11px'};
+            font-weight: 700;
+            color: #222222;
+            margin-top: 2px;
           }
 
           /* Footer */
           .footer-section {
             text-align: center;
-            margin-top: 8px;
             padding-top: 4px;
+            line-height: 1.4;
           }
-          .thank-you-kh {
-            font-size: ${is80 ? '11px' : '9.5px'};
+          .footer-en {
+            font-size: ${is80 ? '10px' : '8.5px'};
+            font-weight: 600;
+            color: #222222;
+          }
+          .footer-km {
+            font-size: ${is80 ? '10.5px' : '9px'};
             font-weight: 700;
-            color: #0f172a;
-          }
-          .thank-you-en {
-            font-size: ${is80 ? '9.5px' : '8px'};
-            color: #64748b;
-            font-weight: 500;
+            color: #000000;
             margin-top: 1px;
           }
-          .footer-note {
-            font-size: ${is80 ? '9.5px' : '8px'};
-            color: #334155;
-            background: #f1f5f9;
-            padding: 4px 6px;
-            border-radius: 6px;
-            margin-top: 5px;
+          .footer-pos {
+            font-size: ${is80 ? '9px' : '8px'};
             font-weight: 500;
-          }
-          .cut-line {
-            font-size: 8px;
-            color: #94a3b8;
-            margin-top: 6px;
-            letter-spacing: 1px;
-          }
-          .pos-watermark {
-            font-size: 8px;
-            color: #94a3b8;
+            color: #666666;
             margin-top: 3px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
+          }
+          .barcode-box {
+            margin: 7px auto 3px auto;
           }
         </style>
       </head>
       <body>
         <!-- Header -->
-        <div class="header-brand">
-          <div class="brand-logo-emblem">SH</div>
-          <div class="shop-title">${shopName}</div>
-          <div class="shop-tagline">PREMIUM ONLINE SHOP & RETAIL</div>
-          <div class="contact-details">
-            <div>📞 ${shopPhone}</div>
-            <div>📍 ${shopAddress}</div>
+        <div class="shop-header">
+          <div class="shop-title-large">${shopName}</div>
+          
+          <!-- Social Icons -->
+          <div class="social-icons">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
           </div>
+
+          <div class="contact-line">📞 Tel: ${shopPhone}</div>
+          <div class="contact-line">📍 ${shopAddress}</div>
+
           <div>
-            <span class="receipt-badge">វិក្កយបត្រ • OFFICIAL RECEIPT</span>
+            <div class="receipt-pill-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/><path d="m9 8 2 2 4-4"/></svg>
+              <span>RECEIPT / វិក្កយបត្រ</span>
+            </div>
           </div>
         </div>
 
-        <!-- Meta Card -->
-        <div class="meta-box">
-          <div class="meta-header-row">
-            <div>
-              <span class="meta-title-km">លេខវិក្កយបត្រ</span>
-              <span class="meta-title-en">INVOICE NUMBER</span>
+        <div class="divider-dashed"></div>
+
+        <!-- Upper Receipt Info -->
+        <div class="receipt-meta-block">
+          <div><span class="meta-bold">RECEIPT #:</span> <span class="meta-value">${order.orderNumber}</span></div>
+          <div><span class="meta-bold">DATE:</span> <span class="meta-value">${dateStr}</span></div>
+        </div>
+
+        <div class="divider-dashed"></div>
+
+        <!-- Customer & Delivery Info -->
+        <div class="receipt-meta-block">
+          <div><span class="meta-bold">CUSTOMER:</span> <span class="meta-value">${order.user?.name || 'Customer'}</span></div>
+          <div><span class="meta-bold">TEL:</span> <span class="meta-value">${order.address?.phone || order.user?.phone || 'N/A'}</span></div>
+          <div><span class="meta-bold">ADDRESS:</span> <span class="meta-value">${fullAddress}</span></div>
+          
+          <div class="payment-status-row">
+            <div class="payment-method-pill">
+              <span class="payment-icon-symbol">❖</span>
+              <span>${paymentMethodDisplay}</span>
             </div>
-            <div>
-              <span class="invoice-pill">${order.orderNumber}</span>
-            </div>
+            <span class="status-badge-capsule ${isPaid ? 'paid' : 'pending'}">
+              ${isPaid ? 'PAID (បានបង់រួច)' : 'PENDING (មិនទាន់បង់)'}
+            </span>
           </div>
-
-          <div class="meta-grid">
-            <div class="meta-row">
-              <div class="meta-label">
-                <span class="label-km">កាលបរិច្ឆេទ</span>
-                <span class="label-en">Date / Time</span>
-              </div>
-              <div class="meta-val">${dateStr}</div>
-            </div>
-
-            <div class="meta-row">
-              <div class="meta-label">
-                <span class="label-km">អតិថិជន</span>
-                <span class="label-en">Customer</span>
-              </div>
-              <div class="meta-val" style="font-weight: 700;">${order.user?.name || 'Customer'}</div>
-            </div>
-
-            <div class="meta-row">
-              <div class="meta-label">
-                <span class="label-km">លេខទូរស័ព្ទ</span>
-                <span class="label-en">Contact Phone</span>
-              </div>
-              <div class="meta-val font-mono">${order.address?.phone || order.user?.phone || 'N/A'}</div>
-            </div>
-
-            <div class="meta-row">
-              <div class="meta-label">
-                <span class="label-km">ការទូទាត់</span>
-                <span class="label-en">Payment Method</span>
-              </div>
-              <div class="meta-val">${paymentMethodDisplay}</div>
-            </div>
-
-            <div class="meta-row">
-              <div class="meta-label">
-                <span class="label-km">ស្ថានភាព</span>
-                <span class="label-en">Payment Status</span>
-              </div>
-              <div class="meta-val">
-                <span class="status-pill ${isPaid ? 'paid' : 'pending'}">
-                  ${isPaid ? '✓ PAID (បានបង់)' : '⏳ PENDING (មិនទាន់បង់)'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          ${
-            address !== 'N/A'
-              ? `
-          <div class="meta-address-box">
-            <div class="meta-label">
-              <span class="label-km">📍 អាសយដ្ឋានដឹកជញ្ជូន</span>
-              <span class="label-en">Delivery Address</span>
-            </div>
-            <div class="address-content">
-              ${address}${road ? ` • ផ្លូវ/ផ្ទះ: ${road}` : ''}
-            </div>
-          </div>
-          `
-              : ''
-          }
         </div>
 
         <!-- Items Table -->
-        <table>
-          <thead class="table-head">
+        <table class="receipt-table">
+          <thead>
             <tr>
-              <th class="text-left">មុខទំនិញ (DESCRIPTION)</th>
-              <th class="text-right">តម្លៃ (TOTAL)</th>
+              <th class="th-item">Description<br><span class="kh-sub">(ទំនិញ)</span></th>
+              <th class="th-qty">QTY<br><span class="kh-sub">(ចំនួន)</span></th>
+              <th class="th-price">Unit Price<br><span class="kh-sub">(តម្លៃរាយ)</span></th>
+              <th class="th-total">Total<br><span class="kh-sub">(សរុប)</span></th>
             </tr>
           </thead>
           <tbody>
@@ -536,58 +435,52 @@ export function generateThermalReceiptHtml(
           </tbody>
         </table>
 
-        <!-- Totals Calculation -->
-        <div class="totals-section">
-          <div class="total-row">
-            <span class="total-label">តម្លៃដើម (Subtotal):</span>
-            <span class="total-val">$${Number(order.subtotal || order.total).toFixed(2)}</span>
+        <!-- Calculations -->
+        <div class="calc-section">
+          <div class="calc-row">
+            <span class="calc-label">Subtotal:</span>
+            <span class="calc-val">$${Number(order.subtotal || order.total).toFixed(2)}</span>
           </div>
           ${
             order.discount && order.discount > 0
               ? `
-          <div class="total-row" style="color: #16a34a;">
-            <span class="total-label" style="color: #16a34a;">បញ្ចុះតម្លៃ (Discount):</span>
-            <span class="total-val" style="color: #16a34a; font-weight: 700;">-$${Number(order.discount).toFixed(2)}</span>
+          <div class="calc-row discount">
+            <span class="calc-label">Discount:</span>
+            <span class="calc-val">-$${Number(order.discount).toFixed(2)}</span>
           </div>
           `
               : ''
           }
-          ${
-            order.shippingCost
-              ? `
-          <div class="total-row">
-            <span class="total-label">ដឹកជញ្ជូន (Shipping):</span>
-            <span class="total-val">+$${Number(order.shippingCost).toFixed(2)}</span>
+          <div class="calc-row">
+            <span class="calc-label">Shipping Fee:</span>
+            <span class="calc-val">$${Number(order.shippingCost || 0).toFixed(2)}</span>
           </div>
-          `
-              : ''
-          }
+        </div>
 
-          <!-- Grand Total Standout Box -->
-          <div class="grand-total-box">
-            <span class="grand-label">សរុប (GRAND TOTAL):</span>
-            <span class="grand-val">$${Number(order.total).toFixed(2)}</span>
+        <div class="divider-solid"></div>
+
+        <!-- Grand Total -->
+        <div class="grand-total-section">
+          <div class="grand-total-main">
+            Grand Total: $${Number(order.total).toFixed(2)}
           </div>
-
-          <div class="khr-conversion">
-            <span>គិតជាប្រាក់រៀល (KHR):</span>
-            <span style="font-weight: 700; color: #0f172a;">${formatKhrPrice(order.total)}</span>
+          <div class="grand-total-khr">
+            ${formatKhrPrice(order.total)} (KHR)
           </div>
         </div>
 
         <div class="divider-dashed"></div>
 
-        <!-- Footer Note & Vector Barcode -->
+        <!-- Footer & Crisp Vector Barcode -->
         <div class="footer-section">
-          <div class="thank-you-kh">🙏 សូមអរគុណសម្រាប់ការទិញទំនិញ!</div>
-          <div class="thank-you-en">Thank you for your business & trust</div>
-          ${footerNote ? `<div class="footer-note">${footerNote}</div>` : ''}
+          <!-- Authentic Vector Barcode -->
+          <div class="barcode-box">
+            ${barcodeSvgHtml}
+          </div>
 
-          <!-- Crisp Vector SVG Barcode -->
-          ${barcodeSvgHtml}
-
-          <div class="cut-line">✂ - - - - - - - - - - - - - - - - - - - - ✂</div>
-          <div class="pos-watermark">Powered by ${shopName} Cloud POS</div>
+          <div class="footer-en">Thank you for shopping with us!</div>
+          <div class="footer-km">សូមអរគុណសម្រាប់ការទិញទំនិញ!</div>
+          <div class="footer-pos">Powered by ${shopName} Cloud POS</div>
         </div>
       </body>
     </html>
