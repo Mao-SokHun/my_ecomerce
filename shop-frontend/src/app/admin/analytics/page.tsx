@@ -50,6 +50,12 @@ export default function FinancialAccountingPage() {
   const [simPrice, setSimPrice] = useState<string>('45.00');
   const [simQty, setSimQty] = useState<string>('50');
 
+  // General Purpose Digital Calculator state
+  const [calcDisplay, setCalcDisplay] = useState<string>('0');
+  const [calcPrev, setCalcPrev] = useState<string>('');
+  const [calcOp, setCalcOp] = useState<string>('');
+  const [calcExpression, setCalcExpression] = useState<string>('');
+  const [calcJustEvaled, setCalcJustEvaled] = useState<boolean>(false);
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -588,6 +594,229 @@ export default function FinancialAccountingPage() {
               <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl font-black">
                 +${simResult.totalProfit.toFixed(2)}
               </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* General Purpose Calculator Card */}
+      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-surface-850">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm font-bold">
+            <Calculator className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="font-bold text-sm text-slate-900 dark:text-white">
+              {isKhmer ? 'ម៉ាស៊ីនគណនាទូទៅ' : 'General Purpose Calculator'}
+            </h2>
+            <p className="text-[11px] text-slate-400">
+              {isKhmer ? 'គណនាទូទៅសម្រាប់ថ្លៃដើម ប្រាក់ចំណេញ និងភាគរយ' : 'Quick calculations for cost, profit and business margins'}
+            </p>
+          </div>
+          {calcExpression && (
+            <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono truncate max-w-xs text-right">
+              {calcExpression}
+            </span>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            {/* Calculator Interface */}
+            <div className="w-full sm:max-w-[320px] shrink-0">
+              {/* Display */}
+              <div className="w-full h-16 px-4 flex flex-col justify-center items-end rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 mb-3 overflow-hidden shadow-inner">
+                {calcExpression && (
+                  <span className="text-[10px] text-slate-400 font-mono truncate max-w-full">
+                    {calcExpression}
+                  </span>
+                )}
+                <span className="font-mono font-black text-2xl text-slate-900 dark:text-white truncate text-right">
+                  {calcDisplay}
+                </span>
+              </div>
+
+              {/* Calculator Buttons Grid */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {/* Row 1 */}
+                {[
+                  { label: 'AC', val: 'ac', cls: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100' },
+                  { label: '+/-', val: 'sign', cls: 'bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70' },
+                  { label: '%', val: 'pct', cls: 'bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70' },
+                  { label: '÷', val: '/', cls: 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base' },
+                ].map((btn) => (
+                  <button
+                    key={btn.val}
+                    type="button"
+                    onClick={() => {
+                      if (btn.val === 'ac') {
+                        setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
+                      } else if (btn.val === 'sign') {
+                        setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
+                      } else if (btn.val === 'pct') {
+                        setCalcDisplay((d) => String(parseFloat(d) / 100));
+                      } else {
+                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
+                        setCalcExpression(calcDisplay + ' ' + btn.label + ' ');
+                        setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${btn.cls}`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+
+                {/* Row 2 */}
+                {[
+                  { label: '7', val: '7' }, { label: '8', val: '8' }, { label: '9', val: '9' },
+                  { label: '×', val: '*', isOp: true }
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    type="button"
+                    onClick={() => {
+                      if (btn.isOp) {
+                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
+                        setCalcExpression(calcDisplay + ' ' + btn.label + ' ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                      btn.isOp
+                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+
+                {/* Row 3 */}
+                {[
+                  { label: '4', val: '4' }, { label: '5', val: '5' }, { label: '6', val: '6' },
+                  { label: '-', val: '-', isOp: true }
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    type="button"
+                    onClick={() => {
+                      if (btn.isOp) {
+                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
+                        setCalcExpression(calcDisplay + ' - ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                      btn.isOp
+                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+
+                {/* Row 4 */}
+                {[
+                  { label: '1', val: '1' }, { label: '2', val: '2' }, { label: '3', val: '3' },
+                  { label: '+', val: '+', isOp: true }
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    type="button"
+                    onClick={() => {
+                      if (btn.isOp) {
+                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
+                        setCalcExpression(calcDisplay + ' + ');
+                        setCalcJustEvaled(false);
+                      } else {
+                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
+                        setCalcDisplay(next); setCalcJustEvaled(false);
+                      }
+                    }}
+                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                      btn.isOp
+                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
+                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
+                    }`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+
+                {/* Row 5: 0, ., = */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = calcJustEvaled || calcDisplay === '0' ? '0' : calcDisplay + '0';
+                    setCalcDisplay(next === '00' ? '0' : next); setCalcJustEvaled(false);
+                  }}
+                  className="col-span-2 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!calcDisplay.includes('.')) setCalcDisplay((d) => d + '.');
+                  }}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                >
+                  .
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const a = parseFloat(calcPrev);
+                    const b = parseFloat(calcDisplay);
+                    if (!calcOp || isNaN(a) || isNaN(b)) return;
+                    let res = 0;
+                    if (calcOp === '+') res = a + b;
+                    else if (calcOp === '-') res = a - b;
+                    else if (calcOp === '*') res = a * b;
+                    else if (calcOp === '/') res = b !== 0 ? a / b : 0;
+                    const rounded = Math.round(res * 1e10) / 1e10;
+                    setCalcExpression(`${calcPrev} ${calcOp === '*' ? '×' : calcOp === '/' ? '÷' : calcOp} ${b} =`);
+                    setCalcDisplay(String(rounded));
+                    setCalcPrev(''); setCalcOp('');
+                    setCalcJustEvaled(true);
+                  }}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-black text-base"
+                >
+                  =
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Reference Commerce Formulas */}
+            <div className="flex-1 w-full space-y-2.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <span>💡</span>
+                <span>{isKhmer ? 'រូបមន្តគណនាហិរញ្ញវត្ថុរហ័ស (Quick Formulas)' : 'Financial Reference Formulas'}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 text-xs">
+                {[
+                  { label: isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit', formula: 'Selling Price - Cost Price', desc: isKhmer ? 'ថ្លៃលក់ - ថ្លៃដើម' : 'Price minus cost' },
+                  { label: isKhmer ? 'ភាគរយចំណេញ (Margin %)' : 'Margin %', formula: '(Profit ÷ Price) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃលក់) × 100' : 'Profit ratio over price' },
+                  { label: isKhmer ? 'ដើមទុនសរុប' : 'Total Capital', formula: 'Cost Price × Stock Qty', desc: isKhmer ? 'ថ្លៃដើម × ចំនួនស្តុក' : 'Capital locked in inventory' },
+                  { label: isKhmer ? 'ចំណូលលក់សរុប' : 'Total Revenue', formula: 'Selling Price × Stock Qty', desc: isKhmer ? 'ថ្លៃលក់ × ចំនួនស្តុក' : 'Total revenue potential' },
+                  { label: isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Profit', formula: '(Profit / Unit) × Stock Qty', desc: isKhmer ? 'ចំណេញក្នុង១គ្រឿង × ស្តុក' : 'Net expected gross profit' },
+                  { label: isKhmer ? 'Markup % (ចំណេញលើដើម)' : 'Markup %', formula: '(Profit ÷ Cost) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃដើម) × 100' : 'Profit ratio over cost' },
+                ].map((item) => (
+                  <div key={item.label} className="p-3 rounded-xl bg-slate-50 dark:bg-surface-800/60 border border-slate-100 dark:border-slate-800 space-y-1 hover:border-indigo-300 dark:hover:border-indigo-700 transition">
+                    <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.label}</p>
+                    <p className="font-mono text-[11px] text-primary-600 dark:text-primary-400 font-semibold">{item.formula}</p>
+                    <p className="text-[10px] text-slate-400">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
