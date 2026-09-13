@@ -29,7 +29,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import { notificationApi, adminApi } from '@/lib/api';
+import { notificationApi, adminApi, productApi } from '@/lib/api';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import toast from 'react-hot-toast';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
@@ -77,19 +77,64 @@ export default function AdminNotificationsPage() {
   const [isSending, setIsSending] = useState(false);
 
   // Quick Link Picker States
-  const [availableProducts, setAvailableProducts] = useState<{ id: string; name: string; slug: string; price: number; thumbnail?: string }[]>([]);
-  const [availableCoupons, setAvailableCoupons] = useState<{ id: string; code: string; discount: number; discountType: string; description?: string | null }[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<{ id: string; name: string; slug: string; price: number; thumbnail?: string }[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_products');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
+  const [availableCoupons, setAvailableCoupons] = useState<{ id: string; code: string; discount: number; discountType: string; description?: string | null }[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem('admin_cached_coupons');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return [];
+  });
   const [linkPickerMode, setLinkPickerMode] = useState<'NONE' | 'PRODUCT' | 'COUPON'>('NONE');
   const [productSearch, setProductSearch] = useState('');
 
   // Fetch available Products & Coupons for Quick Action Linking
   useEffect(() => {
-    adminApi.getProducts({ limit: 100 })
-      .then(({ data }) => setAvailableProducts(data?.data || []))
-      .catch(() => {});
-    adminApi.getCoupons()
-      .then(({ data }) => setAvailableCoupons(data?.data || []))
-      .catch(() => {});
+    const loadLinkables = async () => {
+      // 1. Fetch Products
+      try {
+        const { data } = await adminApi.getProducts({ limit: 100 });
+        if (data?.data && data.data.length > 0) {
+          setAvailableProducts(data.data);
+          try {
+            sessionStorage.setItem('admin_cached_products', JSON.stringify(data.data));
+          } catch {}
+        }
+      } catch {
+        try {
+          const { data } = await productApi.getAll({ limit: 100 });
+          if (data?.data && data.data.length > 0) {
+            setAvailableProducts(data.data);
+            try {
+              sessionStorage.setItem('admin_cached_products', JSON.stringify(data.data));
+            } catch {}
+          }
+        } catch {}
+      }
+
+      // 2. Fetch Coupons
+      try {
+        const { data } = await adminApi.getCoupons();
+        if (data?.data && data.data.length > 0) {
+          setAvailableCoupons(data.data);
+          try {
+            sessionStorage.setItem('admin_cached_coupons', JSON.stringify(data.data));
+          } catch {}
+        }
+      } catch {}
+    };
+
+    loadLinkables();
   }, []);
 
   // User Autocomplete Search States
