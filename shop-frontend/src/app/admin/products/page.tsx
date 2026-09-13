@@ -798,47 +798,89 @@ export default function AdminProductsPage() {
               <Tag className="w-3 h-3" />
               <span>{isKhmer ? 'តម្រង៖' : 'Filter:'}</span>
             </span>
-            {(['all', 'featured', 'low_stock', 'out_of_stock', 'active', 'inactive'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setFilterMode(mode)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 flex items-center gap-1.5 ${filterMode === mode
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs ring-1 ring-slate-900/10'
-                    : 'bg-slate-100/80 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-surface-700'
+            {[
+              {
+                mode: 'all' as const,
+                label: isKhmer ? 'ទាំងអស់' : 'All',
+                count: totalCount,
+                dot: 'bg-slate-500',
+                activeCls: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm',
+                activeBadge: 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white',
+                inactiveBadge: 'bg-slate-200/90 dark:bg-surface-700 text-slate-800 dark:text-slate-100 border border-slate-300/80 dark:border-slate-600',
+              },
+              {
+                mode: 'featured' as const,
+                label: '⭐ Featured',
+                count: featuredCount,
+                dot: 'bg-amber-500',
+                activeCls: 'bg-amber-600 text-white shadow-sm shadow-amber-600/20',
+                activeBadge: 'bg-white text-amber-700',
+                inactiveBadge: 'bg-amber-100/90 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300/80 dark:border-amber-800/80',
+              },
+              {
+                mode: 'low_stock' as const,
+                label: `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}`,
+                count: lowStockCount,
+                dot: 'bg-amber-500',
+                activeCls: 'bg-amber-600 text-white shadow-sm shadow-amber-600/20',
+                activeBadge: 'bg-white text-amber-700',
+                inactiveBadge: 'bg-amber-100/90 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300/80 dark:border-amber-800/80',
+              },
+              {
+                mode: 'out_of_stock' as const,
+                label: `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}`,
+                count: outOfStockCount,
+                dot: 'bg-rose-500',
+                activeCls: 'bg-rose-600 text-white shadow-sm shadow-rose-600/20',
+                activeBadge: 'bg-white text-rose-700',
+                inactiveBadge: 'bg-rose-100/90 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border border-rose-300/80 dark:border-rose-800/80',
+              },
+              {
+                mode: 'active' as const,
+                label: isKhmer ? 'សកម្ម' : 'Active',
+                count: activeCount,
+                dot: 'bg-emerald-500',
+                activeCls: 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20',
+                activeBadge: 'bg-white text-emerald-700',
+                inactiveBadge: 'bg-emerald-100/90 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border border-emerald-300/80 dark:border-emerald-800/80',
+              },
+              {
+                mode: 'inactive' as const,
+                label: isKhmer ? 'អសកម្ម' : 'Inactive',
+                count: totalCount - activeCount,
+                dot: 'bg-slate-400',
+                activeCls: 'bg-slate-700 text-white shadow-sm',
+                activeBadge: 'bg-white text-slate-800',
+                inactiveBadge: 'bg-slate-100 dark:bg-surface-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600',
+              },
+            ].map((tab) => {
+              const isActive = filterMode === tab.mode;
+              return (
+                <button
+                  key={tab.mode}
+                  type="button"
+                  onClick={() => setFilterMode(tab.mode)}
+                  className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-2 border ${
+                    isActive
+                      ? `${tab.activeCls} border-transparent ring-2 ring-offset-1 ring-slate-900/10 dark:ring-offset-surface-900`
+                      : 'bg-white dark:bg-surface-850 border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-surface-800 hover:border-slate-300'
                   }`}
-              >
-                <span>
-                  {mode === 'all'
-                    ? isKhmer ? 'ទាំងអស់' : 'All'
-                    : mode === 'featured'
-                      ? '⭐ Featured'
-                      : mode === 'low_stock'
-                        ? `⚠️ ${isKhmer ? 'សល់ស្តុកតិច' : 'Low Stock'}`
-                        : mode === 'out_of_stock'
-                          ? `🔴 ${isKhmer ? 'អស់ស្តុក' : 'Out of Stock'}`
-                          : mode === 'active'
-                            ? isKhmer ? 'សកម្ម' : 'Active'
-                            : isKhmer ? 'អសកម្ម' : 'Inactive'}
-                </span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${filterMode === mode
-                    ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
-                    : 'bg-slate-200 dark:bg-surface-700 text-slate-600 dark:text-slate-300'
-                  }`}>
-                  {mode === 'all'
-                    ? totalCount
-                    : mode === 'featured'
-                      ? featuredCount
-                      : mode === 'low_stock'
-                        ? lowStockCount
-                        : mode === 'out_of_stock'
-                          ? outOfStockCount
-                          : mode === 'active'
-                            ? activeCount
-                            : totalCount - activeCount}
-                </span>
-              </button>
-            ))}
+                >
+                  <span>{tab.label}</span>
+                  <span
+                    className={`min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full text-xs font-mono font-black shadow-2xs ${
+                      isActive
+                        ? tab.activeBadge
+                        : tab.count === 0
+                          ? 'bg-slate-100 dark:bg-surface-700 text-slate-400 dark:text-slate-500 font-medium'
+                          : tab.inactiveBadge
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="text-[11px] text-slate-400 font-medium">

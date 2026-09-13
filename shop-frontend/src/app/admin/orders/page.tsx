@@ -398,13 +398,69 @@ export default function AdminOrdersPage() {
             </span>
 
             {[
-              { key: '', label: isKhmer ? 'ទាំងអស់' : 'All', count: statusCounts.all, dot: 'bg-slate-400' },
-              { key: 'PENDING', label: isKhmer ? 'រង់ចាំទូទាត់' : 'Pending', count: statusCounts.PENDING, dot: 'bg-amber-500' },
-              { key: 'CONFIRMED', label: isKhmer ? 'បានបញ្ជាក់' : 'Confirmed', count: statusCounts.CONFIRMED, dot: 'bg-sky-500' },
-              { key: 'PROCESSING', label: isKhmer ? 'កំពុងដំណើរការ' : 'Processing', count: statusCounts.PROCESSING, dot: 'bg-violet-500' },
-              { key: 'SHIPPED', label: isKhmer ? 'បានផ្ញើ' : 'Shipped', count: statusCounts.SHIPPED, dot: 'bg-indigo-500' },
-              { key: 'DELIVERED', label: isKhmer ? 'បានដឹកជញ្ជូន' : 'Delivered', count: statusCounts.DELIVERED, dot: 'bg-emerald-500' },
-              { key: 'CANCELLED', label: isKhmer ? 'បានបោះបង់' : 'Cancelled', count: statusCounts.CANCELLED, dot: 'bg-rose-500' },
+              {
+                key: '',
+                label: isKhmer ? 'ទាំងអស់' : 'All',
+                count: statusCounts.all,
+                dot: 'bg-slate-500',
+                activeCls: 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm',
+                activeBadge: 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white',
+                inactiveBadge: 'bg-slate-200/90 dark:bg-surface-700 text-slate-800 dark:text-slate-100 border border-slate-300/80 dark:border-slate-600',
+              },
+              {
+                key: 'PENDING',
+                label: isKhmer ? 'រង់ចាំទូទាត់' : 'Pending',
+                count: statusCounts.PENDING,
+                dot: 'bg-amber-500',
+                activeCls: 'bg-amber-600 text-white shadow-sm shadow-amber-600/20',
+                activeBadge: 'bg-white text-amber-700',
+                inactiveBadge: 'bg-amber-100/90 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border border-amber-300/80 dark:border-amber-800/80',
+              },
+              {
+                key: 'CONFIRMED',
+                label: isKhmer ? 'បានបញ្ជាក់' : 'Confirmed',
+                count: statusCounts.CONFIRMED,
+                dot: 'bg-sky-500',
+                activeCls: 'bg-sky-600 text-white shadow-sm shadow-sky-600/20',
+                activeBadge: 'bg-white text-sky-700',
+                inactiveBadge: 'bg-sky-100/90 dark:bg-sky-950/70 text-sky-800 dark:text-sky-200 border border-sky-300/80 dark:border-sky-800/80',
+              },
+              {
+                key: 'PROCESSING',
+                label: isKhmer ? 'កំពុងដំណើរការ' : 'Processing',
+                count: statusCounts.PROCESSING,
+                dot: 'bg-violet-500',
+                activeCls: 'bg-violet-600 text-white shadow-sm shadow-violet-600/20',
+                activeBadge: 'bg-white text-violet-700',
+                inactiveBadge: 'bg-violet-100/90 dark:bg-violet-950/70 text-violet-800 dark:text-violet-200 border border-violet-300/80 dark:border-violet-800/80',
+              },
+              {
+                key: 'SHIPPED',
+                label: isKhmer ? 'បានផ្ញើ' : 'Shipped',
+                count: statusCounts.SHIPPED,
+                dot: 'bg-indigo-500',
+                activeCls: 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20',
+                activeBadge: 'bg-white text-indigo-700',
+                inactiveBadge: 'bg-indigo-100/90 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-200 border border-indigo-300/80 dark:border-indigo-800/80',
+              },
+              {
+                key: 'DELIVERED',
+                label: isKhmer ? 'បានដឹកជញ្ជូន' : 'Delivered',
+                count: statusCounts.DELIVERED,
+                dot: 'bg-emerald-600',
+                activeCls: 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20',
+                activeBadge: 'bg-white text-emerald-700',
+                inactiveBadge: 'bg-emerald-100/90 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border border-emerald-300/80 dark:border-emerald-800/80',
+              },
+              {
+                key: 'CANCELLED',
+                label: isKhmer ? 'បានបោះបង់' : 'Cancelled',
+                count: statusCounts.CANCELLED,
+                dot: 'bg-rose-500',
+                activeCls: 'bg-rose-600 text-white shadow-sm shadow-rose-600/20',
+                activeBadge: 'bg-white text-rose-700',
+                inactiveBadge: 'bg-rose-100/90 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border border-rose-300/80 dark:border-rose-800/80',
+              },
             ].map((tab) => {
               const isActive = statusFilter === tab.key;
               return (
@@ -412,17 +468,23 @@ export default function AdminOrdersPage() {
                   key={`order-tab-${tab.key}`}
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
-                  className={`text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-150 flex items-center gap-1.5 ${isActive
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs ring-1 ring-slate-900/10'
-                      : 'bg-slate-100/90 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-surface-700'
-                    }`}
+                  className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-2 border ${
+                    isActive
+                      ? `${tab.activeCls} border-transparent ring-2 ring-offset-1 ring-slate-900/10 dark:ring-offset-surface-900`
+                      : 'bg-white dark:bg-surface-850 border-slate-200/90 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-surface-800 hover:border-slate-300'
+                  }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${tab.dot}`} />
+                  <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-white' : tab.dot}`} />
                   <span>{tab.label}</span>
-                  <span className={`text-[10.5px] px-1.5 py-0.2 rounded-full font-mono font-bold ${isActive
-                      ? 'bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900'
-                      : 'bg-slate-200/80 dark:bg-surface-700 text-slate-500 dark:text-slate-400'
-                    }`}>
+                  <span
+                    className={`min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full text-xs font-mono font-black shadow-2xs ${
+                      isActive
+                        ? tab.activeBadge
+                        : tab.count === 0
+                          ? 'bg-slate-100 dark:bg-surface-700 text-slate-400 dark:text-slate-500 font-medium'
+                          : tab.inactiveBadge
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 </button>
