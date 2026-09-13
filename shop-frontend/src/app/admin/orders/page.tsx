@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { orderApi, adminApi } from '@/lib/api';
 import { Order, Product, Category } from '@/types';
 import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
-import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter, FileSpreadsheet } from 'lucide-react';
+import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter, FileSpreadsheet, Scan } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -13,6 +13,7 @@ import Image from 'next/image';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
+import { BarcodeVerifyModal } from '@/components/admin/BarcodeVerifyModal';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -49,6 +50,7 @@ export default function AdminOrdersPage() {
 
   // Excel Export State
   const [excelModalOpen, setExcelModalOpen] = useState(false);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -353,11 +355,22 @@ export default function AdminOrdersPage() {
             <Volume2 className="w-4 h-4 text-amber-500" />
           </button>
 
+          {/* Scan Barcode / Verify Receipt Button */}
+          <button
+            type="button"
+            onClick={() => setVerifyModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs shadow-primary-500/20 transition active:scale-95 cursor-pointer"
+            title={isKhmer ? 'ស្កេនផ្ទៀងផ្ទាត់វិក្កយបត្រ (Scan Barcode)' : 'Scan Receipt Barcode'}
+          >
+            <Scan className="w-3.5 h-3.5" />
+            <span>{isKhmer ? 'ស្កេន Barcode វិក្កយបត្រ' : 'Scan Barcode'}</span>
+          </button>
+
           {/* Export Excel Button */}
           <button
             type="button"
             onClick={() => setExcelModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95 cursor-pointer"
             title={isKhmer ? 'ទាញយករបាយការណ៍ Excel' : 'Export Excel'}
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-100" />
@@ -889,6 +902,13 @@ export default function AdminOrdersPage() {
         orders={orders}
         products={products}
         categories={categories}
+        language={language}
+      />
+
+      {/* Barcode & Receipt Verification Modal */}
+      <BarcodeVerifyModal
+        isOpen={verifyModalOpen}
+        onClose={() => setVerifyModalOpen(false)}
         language={language}
       />
     </div>

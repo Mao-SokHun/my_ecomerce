@@ -8,6 +8,7 @@ import {
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
   Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2, BellRing, CircleDollarSign, TrendingUp,
+  Scan,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -17,6 +18,7 @@ import { adminT } from '@/lib/admin-i18n';
 import { adminApi } from '@/lib/api';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { playMessageAlertChime } from '@/lib/soundAlert';
+import { BarcodeVerifyModal } from '@/components/admin/BarcodeVerifyModal';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -48,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [verifyReceiptOpen, setVerifyReceiptOpen] = useState(false);
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
@@ -627,6 +630,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
           <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-50/80 dark:bg-surface-800/70 border border-slate-200/70 dark:border-gray-700/70">
+            {/* Quick Barcode / Receipt Verifier Button */}
+            <button
+              type="button"
+              onClick={() => setVerifyReceiptOpen(true)}
+              className="px-2.5 py-1.5 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-surface-700 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title={isKhmer ? 'ស្កេនផ្ទៀងផ្ទាត់វិក្កយបត្រ (Scan Barcode / QR)' : 'Verify Receipt Barcode / QR'}
+            >
+              <Scan className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span className="hidden sm:inline">{isKhmer ? 'ផ្ទៀងផ្ទាត់វិក្កយបត្រ' : 'Verify Receipt'}</span>
+            </button>
+
             {/* Notification Bell with Dynamic Low Stock & Orders Badge */}
             <div className="relative">
               <button
@@ -807,6 +821,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
         <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">{children}</main>
       </div>
+
+      {/* Barcode & Receipt Verification Modal */}
+      <BarcodeVerifyModal
+        isOpen={verifyReceiptOpen}
+        onClose={() => setVerifyReceiptOpen(false)}
+        language={language}
+      />
     </div>
   );
 }

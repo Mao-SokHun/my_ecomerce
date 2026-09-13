@@ -2,7 +2,7 @@
 
 import { Order } from '@/types';
 import { formatPrice, formatKhrPrice } from '@/lib/utils';
-import { generateBarcodeSvg } from '@/lib/barcodeGenerator';
+import { generateBarcodeSvg, generateQrCodeSvg } from '@/lib/barcodeGenerator';
 
 // Synthesize pleasant POS sound alert using Web Audio API
 export function playNewOrderChime() {
@@ -100,11 +100,13 @@ export function generateThermalReceiptHtml(
     .join('');
 
   const barcodeSvgHtml = generateBarcodeSvg(order.orderNumber, {
-    height: is80 ? 42 : 35,
-    width: is80 ? 1.6 : 1.3,
-    maxWidth: is80 ? '240px' : '180px',
+    height: is80 ? 48 : 38,
+    width: is80 ? 1.7 : 1.35,
+    maxWidth: is80 ? '250px' : '190px',
     showText: true,
   });
+
+  const qrCodeSvgHtml = generateQrCodeSvg(order.orderNumber, is80 ? 80 : 68);
 
   return `
     <!DOCTYPE html>
@@ -472,12 +474,26 @@ export function generateThermalReceiptHtml(
 
         <div class="divider-dashed"></div>
 
-        <!-- Footer & Crisp Vector Barcode -->
+        <!-- Footer & Dual Barcode / QR Code for Instant Scanning -->
         <div class="footer-section">
-          <!-- Authentic Vector Barcode -->
+          <!-- 1D Linear Barcode for Laser Guns -->
           <div class="barcode-box">
             ${barcodeSvgHtml}
           </div>
+
+          <!-- 2D High-Speed QR Code for Google Lens & Mobile Cameras -->
+          ${
+            qrCodeSvgHtml
+              ? `
+          <div style="margin: 4px auto 6px auto; text-align: center;">
+            <div style="font-size: ${is80 ? '9px' : '8px'}; font-weight: 700; color: #444444; margin-bottom: 2px;">
+              📱 SCAN TO VERIFY / ស្កេនផ្ទៀងផ្ទាត់
+            </div>
+            ${qrCodeSvgHtml}
+          </div>
+          `
+              : ''
+          }
 
           <div class="footer-en">Thank you for shopping with us!</div>
           <div class="footer-km">សូមអរគុណសម្រាប់ការទិញទំនិញ!</div>
