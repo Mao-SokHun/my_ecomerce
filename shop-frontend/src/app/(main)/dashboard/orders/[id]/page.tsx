@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck, Copy, X, CheckCircle } from 'lucide-react';
+import { ChevronRight, Download, FileText, Package, Printer, QrCode, CreditCard, XCircle, Landmark, ExternalLink, ShieldCheck, Copy, X, CheckCircle, Truck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Invoice, Order } from '@/types';
 import { orderApi, paymentApi, settingApi } from '@/lib/api';
@@ -20,6 +20,7 @@ import { useRealtime } from '@/providers/RealtimeProvider';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { generateBarcodeSvg } from '@/lib/barcodeGenerator';
 import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
+import { getCarrierInfo, getCarrierTrackingUrl } from '@/components/admin/ShippingLabelPrinter';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -1075,6 +1076,77 @@ export default function OrderDetailsPage() {
         )}
         </div>
       </div>
+
+      {/* Logistics & Carrier Tracking Card */}
+      {(order.shippingCarrier || order.trackingNumber || order.address) && (
+        <div className="card p-4 sm:p-5 border-blue-100 dark:border-blue-900/40 bg-gradient-to-br from-white via-white to-blue-50/30 dark:from-surface-900 dark:to-blue-950/20">
+          <div className="flex items-center justify-between gap-3 mb-3.5 pb-3 border-b border-gray-100 dark:border-surface-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                <Truck className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
+                  {language === 'km' ? 'ព័ត៌មានដឹកជញ្ជូន & តាមដានទំនិញ (Logistics)' : 'Shipping & Tracking'}
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {order.shippingCarrier ? getCarrierInfo(order.shippingCarrier).name : (language === 'km' ? 'សេវាដឹកជញ្ជូនទូទៅ' : 'Standard Delivery')}
+                </p>
+              </div>
+            </div>
+
+            {order.shippingCarrier && (
+              <span
+                className="px-2.5 py-1 rounded-lg text-xs font-black text-white shadow-xs"
+                style={{ backgroundColor: getCarrierInfo(order.shippingCarrier).badgeBg }}
+              >
+                {getCarrierInfo(order.shippingCarrier).logoText || getCarrierInfo(order.shippingCarrier).name}
+              </span>
+            )}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3 text-xs">
+            <div className="space-y-1 p-3 rounded-xl bg-gray-50/80 dark:bg-surface-800/60">
+              <p className="text-gray-500 dark:text-gray-400 font-medium">{language === 'km' ? 'អាសយដ្ឋានទទួលទំនិញ' : 'Recipient Address'}</p>
+              <p className="font-semibold text-gray-900 dark:text-white text-xs">
+                {order.address
+                  ? [order.address.village, order.address.commune, order.address.district, order.address.province].filter(Boolean).join(', ')
+                  : 'N/A'}
+              </p>
+              <p className="text-gray-600 dark:text-gray-300 font-medium">
+                📞 {order.address?.phone || order.user?.phone || 'N/A'}
+              </p>
+            </div>
+
+            <div className="space-y-1.5 p-3 rounded-xl bg-gray-50/80 dark:bg-surface-800/60 flex flex-col justify-between">
+              <div>
+                <p className="text-gray-500 dark:text-gray-400 font-medium">{language === 'km' ? 'លេខកូដតាមដានកញ្ចប់ទំនិញ (Tracking #)' : 'Tracking Number'}</p>
+                {order.trackingNumber ? (
+                  <div className="mt-1">
+                    <CopyableOrderCode code={order.trackingNumber} size="md" variant="badge" showCopyAlways={true} />
+                  </div>
+                ) : (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mt-1">
+                    {language === 'km' ? 'កំពុងរៀបចំចេញលេខ Waybill...' : 'Awaiting Waybill code...'}
+                  </p>
+                )}
+              </div>
+
+              {order.trackingNumber && getCarrierTrackingUrl(order.shippingCarrier, order.trackingNumber) && (
+                <a
+                  href={getCarrierTrackingUrl(order.shippingCarrier, order.trackingNumber)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary py-2 px-3 text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs w-full mt-2"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {language === 'km' ? 'តាមដានលើគេហទំព័រក្រុមហ៊ុនដឹក' : 'Live Carrier Tracking'}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card p-4 sm:p-5">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t(language, 'purchasedProducts')}</h2>

@@ -48,6 +48,7 @@ export interface Product {
   costPrice?: number;
   sku?: string;
   stock: number;
+  lowStockAlert?: number;
   images: string[];
   thumbnail?: string;
   categoryId: string;

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { authApi, uploadApi } from '@/lib/api';
-import { User, Package, Heart, MapPin, Lock, MessageSquare, Pencil } from 'lucide-react';
+import { User, Package, Heart, MapPin, Lock, MessageSquare, Pencil, Award, Sparkles, Gift, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import {
@@ -16,6 +16,7 @@ import {
 import { UserAvatar } from '@/components/common/UserAvatar';
 import { t } from '@/lib/i18n';
 import { useLanguageStore } from '@/store/languageStore';
+import { getUserPoints, getUserLifetimeSpend, calculateTierProgress, pointsToUsd } from '@/lib/loyaltyEngine';
 
 export default function DashboardPage() {
   const { user, updateUser, fetchUser, isAuthenticated, isAuthChecked } = useAuthStore();
@@ -28,6 +29,23 @@ export default function DashboardPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+
+  // Loyalty & VIP Points State
+  const [userPoints, setUserPointsState] = useState<number>(0);
+  const [userLifetime, setUserLifetimeState] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const sync = () => {
+      setUserPointsState(getUserPoints(user?.id));
+      setUserLifetimeState(getUserLifetimeSpend(user?.id));
+    };
+    sync();
+    window.addEventListener('points_updated', sync);
+    return () => window.removeEventListener('points_updated', sync);
+  }, [user?.id]);
+
+  const tierInfo = useMemo(() => calculateTierProgress(userLifetime), [userLifetime]);
 
   useEffect(() => {
     if (!isAuthChecked) return;
@@ -211,6 +229,75 @@ export default function DashboardPage() {
 
         {/* Main content */}
         <div className="lg:col-span-3 space-y-4">
+          {/* VIP Membership Loyalty Card */}
+          <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30">
+            {/* Background glowing decorations */}
+            <div className="absolute -top-16 -right-16 w-48 h-48 bg-primary-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl sm:text-3xl">{tierInfo.currentTier.icon}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-black tracking-tight">
+                        {language === 'km' ? tierInfo.currentTier.labelKm : tierInfo.currentTier.labelEn}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white backdrop-blur-xs">
+                        {tierInfo.currentTier.pointsMultiplier}x Points
+                      </span>
+                    </div>
+                    <p className="text-xs text-indigo-200/90 font-medium">
+                      {language === 'km'
+                        ? `បញ្ចុះតម្លៃ ${tierInfo.currentTier.discountPercentage}% លើរាល់ការទិញ • ពិន្ទុរង្វាន់ ${tierInfo.currentTier.pointsMultiplier}x`
+                        : `${tierInfo.currentTier.discountPercentage}% Discount on orders • ${tierInfo.currentTier.pointsMultiplier}x Reward Points`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Points Balance Pill */}
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/15 shrink-0 self-start sm:self-auto">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/90 text-white flex items-center justify-center shadow-md">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider">
+                    {language === 'km' ? 'ពិន្ទុរង្វាន់ (Rewards)' : 'Reward Points'}
+                  </p>
+                  <p className="text-xl font-black text-amber-400 leading-none mt-0.5">
+                    {userPoints.toLocaleString()}{' '}
+                    <span className="text-xs font-semibold text-white/80">
+                      (${pointsToUsd(userPoints).toFixed(2)})
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Progress to Next Tier */}
+            {tierInfo.nextTier && (
+              <div className="relative z-10 mt-5 pt-4 border-t border-white/10 space-y-2">
+                <div className="flex justify-between items-center text-xs font-semibold">
+                  <span className="text-indigo-200 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    {language === 'km'
+                      ? `ទិញថែម $${tierInfo.spendNeeded.toFixed(2)} ទៀត ដើម្បីឡើង ${tierInfo.nextTier.labelKm}`
+                      : `Spend $${tierInfo.spendNeeded.toFixed(2)} more to unlock ${tierInfo.nextTier.labelEn}`}
+                  </span>
+                  <span className="text-white font-mono">{tierInfo.progressPercent}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-white/15 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-400 via-emerald-400 to-primary-400 rounded-full transition-all duration-500"
+                    style={{ width: `${tierInfo.progressPercent}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {stats.map(({ icon: Icon, label, value, href, color }) => (

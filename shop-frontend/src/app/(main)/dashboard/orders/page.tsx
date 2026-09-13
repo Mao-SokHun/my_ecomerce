@@ -32,6 +32,8 @@ import toast from 'react-hot-toast';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
+import { getCarrierInfo, getCarrierTrackingUrl } from '@/components/admin/ShippingLabelPrinter';
+import { ExternalLink } from 'lucide-react';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -537,7 +539,25 @@ export default function OrdersPage() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                      {(() => {
+                        const trackingUrl = getCarrierTrackingUrl(order.shippingCarrier, order.trackingNumber || order.orderNumber);
+                        if (!trackingUrl) return null;
+                        return (
+                          <a
+                            href={trackingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-surface-800 dark:hover:bg-surface-750 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
+                            title="Live Carrier Tracking"
+                          >
+                            <Truck className="w-3.5 h-3.5 text-primary-500" />
+                            <span>{isKhmer ? 'តាមដាន' : 'Track'}</span>
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </a>
+                        );
+                      })()}
+
                       {canCancel && (
                         <button
                           type="button"

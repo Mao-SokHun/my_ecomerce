@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark, ExternalLink, ShieldCheck, Copy, Check, X } from 'lucide-react';
+import { CheckCircle, ChevronRight, ShoppingBag, CreditCard, MapPin, Package, QrCode, Landmark, ExternalLink, ShieldCheck, Copy, Check, X, Gift, Sparkles } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -19,6 +19,7 @@ import axios from 'axios';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
+import { getUserPoints, setUserPoints, pointsToUsd, usdToPoints, calculateMembershipTier, getUserLifetimeSpend, addUserLifetimeSpend } from '@/lib/loyaltyEngine';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -86,9 +87,28 @@ export default function CheckoutPage() {
     clientSecret: string | null;
   } | null>(null);
 
+  // Loyalty & VIP Reward Points
+  const [userPoints, setLoyaltyPoints] = useState<number>(0);
+  const [usePoints, setUsePoints] = useState<boolean>(false);
+  const [userLifetime, setUserLifetime] = useState<number>(0);
+
   const { cart, fetchCart } = useCartStore();
   const { isAuthenticated, user, isAuthChecked } = useAuthStore();
   const { language } = useLanguageStore();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncPoints = () => {
+      setLoyaltyPoints(getUserPoints(user?.id));
+      setUserLifetime(getUserLifetimeSpend(user?.id));
+    };
+    syncPoints();
+    window.addEventListener('points_updated', syncPoints);
+    return () => window.removeEventListener('points_updated', syncPoints);
+  }, [user?.id]);
+
+  const userTier = useMemo(() => calculateMembershipTier(userLifetime), [userLifetime]);
+
   const steps = [t(language, 'address'), t(language, 'review'), t(language, 'payment'), t(language, 'confirmation')];
   const checkoutText = useMemo(() => ({
     addPhoneBeforeCheckout: language === 'zh' ? '请先在个人资料中添加电话号码再结账' : language === 'en' ? 'Please add your phone number in profile before checkout' : 'សូមបន្ថែមលេខទូរស័ព្ទក្នុងប្រវត្តិរូបមុនពេលទូទាត់',
@@ -199,7 +219,10 @@ export default function CheckoutPage() {
   const subtotal = cart?.cartTotal || 0;
   const shipping = shippingCarrier === 'JNT' ? shippingFees.jnt : shippingFees.vet;
   const discount = appliedCoupon?.discount || 0;
-  const total = Math.max(0, subtotal + shipping - discount);
+  const maxRedeemablePoints = Math.min(userPoints, Math.floor(subtotal) * 100);
+  const pointsDiscount = usePoints ? pointsToUsd(maxRedeemablePoints) : 0;
+  const total = Math.max(0, subtotal + shipping - discount - pointsDiscount);
+  const earnedPoints = usdToPoints(subtotal, userTier.pointsMultiplier);
 
   const carrierLabels = useMemo(
     () => ({
@@ -443,6 +466,15 @@ export default function CheckoutPage() {
     };
   }, [router, fetchCart, language]);
 
+  const handleOrderCompletedRewards = (orderTotal: number) => {
+    if (usePoints && maxRedeemablePoints > 0) {
+      setUserPoints(Math.max(0, userPoints - maxRedeemablePoints), user?.id);
+    }
+    addUserLifetimeSpend(orderTotal, user?.id);
+    const earned = usdToPoints(orderTotal, userTier.pointsMultiplier);
+    setUserPoints(getUserPoints(user?.id) + earned, user?.id);
+  };
+
   const handleCardPaymentSuccess = async (paymentIntentId: string = 'mock_card_payment') => {
     if (!cardPaymentOrder) return;
     try {
@@ -452,6 +484,7 @@ export default function CheckoutPage() {
         orderNumber: cardPaymentOrder.orderNumber,
         total: cardPaymentOrder.amount,
       });
+      handleOrderCompletedRewards(cardPaymentOrder.amount);
       setStep(3);
       await fetchCart();
       setCardPaymentOrder(null);
@@ -483,6 +516,7 @@ export default function CheckoutPage() {
             orderNumber: data.data.orderNumber,
             total: data.data.total,
           });
+          handleOrderCompletedRewards(data.data.total);
           setKhqrPayment(null);
           setStep(3);
           await fetchCart();
@@ -493,7 +527,7 @@ export default function CheckoutPage() {
       }
     }, 3000);
     return () => clearInterval(poll);
-  }, [khqrPayment, fetchCart]);
+  }, [khqrPayment, fetchCart, userPoints, usePoints, maxRedeemablePoints, userTier.pointsMultiplier, user?.id]);
 
   useEffect(() => {
     if (!abaPayment) return;
@@ -504,6 +538,7 @@ export default function CheckoutPage() {
           const { data: orderData } = await orderApi.getById(abaPayment.orderId);
           const o = orderData.data as { id: string; orderNumber: string; total: number };
           setCompletedOrder({ id: o.id, orderNumber: o.orderNumber, total: o.total });
+          handleOrderCompletedRewards(o.total);
           setAbaPayment(null);
           setStep(3);
           await fetchCart();
@@ -514,7 +549,7 @@ export default function CheckoutPage() {
       }
     }, 4000);
     return () => clearInterval(poll);
-  }, [abaPayment, fetchCart]);
+  }, [abaPayment, fetchCart, userPoints, usePoints, maxRedeemablePoints, userTier.pointsMultiplier, user?.id]);
 
   if (!isAuthChecked) {
     return (
@@ -1012,6 +1047,46 @@ export default function CheckoutPage() {
               </div>
               {couponError && <p className="text-xs text-red-500 mt-1">{couponError}</p>}
             </div>
+            {/* Loyalty Points Redemption Box */}
+            <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/60 dark:border-amber-700/50">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">{userTier.icon}</span>
+                  <span className="text-xs font-bold text-gray-900 dark:text-white">
+                    {language === 'km' ? userTier.labelKm : userTier.labelEn}
+                  </span>
+                </div>
+                <span className="text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-full">
+                  {userPoints} Pts
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <span>{language === 'km' ? 'តម្លៃស្មើ ($1 = 100 Pts):' : 'Equivalent Value ($1 = 100 Pts):'}</span>
+                <span className="font-bold text-gray-900 dark:text-white">${pointsToUsd(userPoints).toFixed(2)}</span>
+              </div>
+
+              {userPoints >= 100 ? (
+                <label className="mt-2.5 flex items-center gap-2 cursor-pointer select-none pt-2 border-t border-amber-200/60 dark:border-amber-800/40">
+                  <input
+                    type="checkbox"
+                    checked={usePoints}
+                    onChange={(e) => setUsePoints(e.target.checked)}
+                    className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                    {language === 'km'
+                      ? `ប្រើ ${maxRedeemablePoints} ពិន្ទុ (បញ្ចុះតម្លៃ -$${pointsToUsd(maxRedeemablePoints).toFixed(2)})`
+                      : `Redeem ${maxRedeemablePoints} pts (-$${pointsToUsd(maxRedeemablePoints).toFixed(2)})`}
+                  </span>
+                </label>
+              ) : (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1.5 italic">
+                  {language === 'km' ? 'ត្រូវការយ៉ាងតិច 100 ពិន្ទុដើម្បីប្រើ' : 'Minimum 100 points required to redeem'}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
               {cart?.items.map((item) => (
                 <div key={item.id} className="flex justify-between">
@@ -1040,6 +1115,15 @@ export default function CheckoutPage() {
                     <span>-{formatPrice(appliedCoupon.discount)}</span>
                   </div>
                 )}
+                {usePoints && pointsDiscount > 0 && (
+                  <div className="flex justify-between text-amber-600 dark:text-amber-400 font-semibold">
+                    <span className="flex items-center gap-1">
+                      <Gift className="w-3.5 h-3.5" />
+                      {language === 'km' ? 'ពិន្ទុរង្វាន់' : 'Loyalty Points'} ({maxRedeemablePoints} Pts)
+                    </span>
+                    <span>-{formatPrice(pointsDiscount)}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -1066,6 +1150,15 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-base font-bold text-gray-900 dark:text-white border-t dark:border-gray-700 pt-2">
                   <span>{t(language, 'total')}</span><span>{formatPrice(total)}</span>
+                </div>
+
+                {/* Points to earn badge */}
+                <div className="mt-2.5 p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    {language === 'km' ? 'ពិន្ទុនឹងទទួលបាន' : 'Points earned'}:
+                  </span>
+                  <span className="font-bold">+{earnedPoints} Pts ({userTier.pointsMultiplier}x)</span>
                 </div>
               </div>
             </div>

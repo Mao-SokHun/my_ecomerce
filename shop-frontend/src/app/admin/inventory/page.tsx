@@ -29,8 +29,12 @@ import {
   SlidersHorizontal,
   ChevronRight,
   Barcode,
+  TrendingDown,
+  Hourglass,
+  ShoppingCart,
+  FileText,
 } from 'lucide-react';
-import type { Product } from '@/types';
+import type { Product, Order } from '@/types';
 import toast from 'react-hot-toast';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
@@ -41,12 +45,14 @@ import {
   removeStockAdjustment,
   calculateInventoryMovementSummary,
 } from '@/lib/stockLossStorage';
+import { calculateStockForecasting, ProductStockForecast } from '@/lib/stockForecasting';
+import { PurchaseOrderModal } from '@/components/admin/PurchaseOrderModal';
 
 export default function AdminInventoryPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
 
-  // Products and movement logs
+  // Products, orders and movement logs
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -56,6 +62,7 @@ export default function AdminInventoryPage() {
     }
     return [];
   });
+  const [orders, setOrders] = useState<Order[]>([]);
   const [adjustments, setAdjustments] = useState<StockAdjustmentItem[]>([]);
   const [loading, setLoading] = useState(products.length === 0);
   const [search, setSearch] = useState('');
@@ -69,6 +76,11 @@ export default function AdminInventoryPage() {
   const [auditModalOpen, setAuditModalOpen] = useState(false);
   const [viewDetailModalOpen, setViewDetailModalOpen] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<StockAdjustmentItem | null>(null);
+
+  // Purchase Order & Supplier Modal State
+  const [poModalOpen, setPoModalOpen] = useState(false);
+  const [poPrefillProduct, setPoPrefillProduct] = useState<Product | null>(null);
+  const [poPrefillQty, setPoPrefillQty] = useState<number>(10);
 
   // Common Form States
   const [formProductId, setFormProductId] = useState<string>('');
@@ -84,14 +96,20 @@ export default function AdminInventoryPage() {
   const [formActualCount, setFormActualCount] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load Products & Movement history
+  // Load Products & Orders history
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await adminApi.getProducts({ page: 1, limit: 300 });
+      const [res, ordRes] = await Promise.all([
+        adminApi.getProducts({ page: 1, limit: 300 }),
+        adminApi.getOrders({ page: 1, limit: 300 }).catch(() => ({ data: { data: [] } })),
+      ]);
       if (res.data?.success && Array.isArray(res.data?.data)) {
         setProducts(res.data.data);
         sessionStorage.setItem('admin_cached_products', JSON.stringify(res.data.data));
+      }
+      if (ordRes.data?.data && Array.isArray(ordRes.data.data)) {
+        setOrders(ordRes.data.data);
       }
     } catch {
       if (!silent) toast.error(isKhmer ? 'បរាជ័យក្នុងការទាញទិន្នន័យទំនិញ' : 'Failed to load products');
@@ -107,6 +125,17 @@ export default function AdminInventoryPage() {
     window.addEventListener('stock_adjustments_updated', syncLogs);
     return () => window.removeEventListener('stock_adjustments_updated', syncLogs);
   }, []);
+
+  // Stock Forecasting based on 30-day velocity & current stock
+  const forecasts = useMemo(() => {
+    return calculateStockForecasting(products, orders);
+  }, [products, orders]);
+
+  const criticalForecasts = useMemo(() => {
+    return forecasts.filter(
+      (f) => f.status === 'CRITICAL' || f.status === 'OUT_OF_STOCK' || f.status === 'WARNING'
+    );
+  }, [forecasts]);
 
   // Summary Metrics calculation across all 4 pillars
   const summary = useMemo(() => {
@@ -485,6 +514,19 @@ export default function AdminInventoryPage() {
 
         {/* Action Buttons Hub */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Purchase Orders Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setPoPrefillProduct(null);
+              setPoModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-bold shadow-xs shadow-indigo-500/25 transition active:scale-95 cursor-pointer"
+          >
+            <FileText className="w-4 h-4" />
+            <span>{isKhmer ? 'បញ្ជាទិញ PO & Suppliers' : 'Purchase Orders (PO)'}</span>
+          </button>
+
           {/* Restock Button */}
           <button
             type="button"
@@ -558,6 +600,102 @@ export default function AdminInventoryPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SMART STOCK RUNOUT FORECASTING & REORDER WIDGET */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold">
+              <Hourglass className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span>{isKhmer ? 'ការព្យាករណ៍ស្តុកជិតអស់ & ណែនាំបញ្ជាទិញ (AI Stock Forecasting)' : 'Smart Stock Runout Forecast'}</span>
+                <span className="px-2 py-0.2 rounded-full text-[10px] font-black uppercase bg-amber-500 text-slate-950">
+                  {criticalForecasts.length} Alerts
+                </span>
+              </h3>
+              <p className="text-xs text-indigo-200">
+                {isKhmer
+                  ? 'គណនាដោយស្វ័យប្រវត្តិតាមល្បឿនលក់ (Velocity 30 ថ្ងៃ) ដើម្បីកុំឱ្យដាច់ស្តុក'
+                  : 'Automated 30-day velocity forecast to prevent stockouts'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPoPrefillProduct(null);
+              setPoModalOpen(true);
+            }}
+            className="btn-secondary text-xs px-3.5 py-1.5 font-bold text-white border-white/20 hover:bg-white/10 self-start sm:self-auto inline-flex items-center gap-1.5"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+            {isKhmer ? 'គ្រប់គ្រង PO & អ្នកផ្គត់ផ្គង់' : 'Manage POs & Suppliers'}
+          </button>
+        </div>
+
+        {/* Critical Forecast Cards Grid */}
+        {criticalForecasts.length === 0 ? (
+          <div className="py-4 text-center text-xs text-indigo-200 flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{isKhmer ? 'ស្តុកទំនិញទាំងអស់ស្ថិតក្នុងកម្រិតល្អប្រសើរ (Healthy Stock Levels)' : 'All products have healthy inventory buffers.'}</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {criticalForecasts.slice(0, 6).map((fc) => (
+              <div
+                key={fc.product.id}
+                className="p-3.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs flex flex-col justify-between space-y-2 hover:bg-white/10 transition"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-xs text-white truncate">{fc.product.name}</h4>
+                    <p className="text-[11px] text-indigo-300 font-mono">
+                      {isKhmer ? 'ស្តុកសល់:' : 'Stock:'} <span className="font-bold text-white">{fc.currentStock}</span> • {isKhmer ? 'លក់:' : 'Sold:'} {fc.unitsSold30Days}/30d
+                    </p>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0 ${
+                      fc.status === 'OUT_OF_STOCK'
+                        ? 'bg-rose-500/90 text-white'
+                        : fc.status === 'CRITICAL'
+                        ? 'bg-rose-500/30 text-rose-300 border border-rose-500/40'
+                        : 'bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                    }`}
+                  >
+                    {fc.daysRemaining !== null
+                      ? (isKhmer ? `~${fc.daysRemaining} ថ្ងៃទៀតអស់` : `~${fc.daysRemaining}d left`)
+                      : (isKhmer ? 'ស្តុកទាប' : 'Low Stock')}
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                  <div className="text-[11px] text-indigo-200">
+                    <span>{isKhmer ? 'ណែនាំកុម្ម៉ង់:' : 'Reorder:'} </span>
+                    <strong className="text-amber-400 font-mono">+{fc.suggestedReorderUnits} pcs</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPoPrefillProduct(fc.product);
+                      setPoPrefillQty(fc.suggestedReorderUnits || 15);
+                      setPoModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-xs transition"
+                  >
+                    <Plus className="w-3 h-3" />
+                    {isKhmer ? 'ចេញ PO' : 'PO'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -1678,6 +1816,21 @@ export default function AdminInventoryPage() {
         products={products}
         orders={[]}
         language={language}
+      />
+
+      {/* ========================================================================= */}
+      {/* PURCHASE ORDER & SUPPLIERS MODAL */}
+      {/* ========================================================================= */}
+      <PurchaseOrderModal
+        isOpen={poModalOpen}
+        onClose={() => {
+          setPoModalOpen(false);
+          setPoPrefillProduct(null);
+        }}
+        products={products}
+        initialProduct={poPrefillProduct}
+        initialQuantity={poPrefillQty}
+        isKhmer={isKhmer}
       />
     </div>
   );

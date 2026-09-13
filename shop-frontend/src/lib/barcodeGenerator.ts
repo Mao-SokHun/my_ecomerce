@@ -9,6 +9,7 @@ export interface BarcodeOptions {
   maxWidth?: string;
   showText?: boolean;
   fontSize?: number;
+  margin?: number;
 }
 
 /**

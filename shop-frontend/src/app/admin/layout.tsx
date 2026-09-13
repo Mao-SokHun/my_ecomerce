@@ -8,7 +8,7 @@ import {
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
   Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2, BellRing, CircleDollarSign, TrendingUp,
-  Scan,
+  Scan, ShieldCheck, ShieldAlert, UserCog,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
@@ -19,6 +19,14 @@ import { adminApi } from '@/lib/api';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { playMessageAlertChime } from '@/lib/soundAlert';
 import { BarcodeVerifyModal } from '@/components/admin/BarcodeVerifyModal';
+import {
+  StaffRole,
+  STAFF_ROLES,
+  getActiveStaffRole,
+  setActiveStaffRole,
+  canAccessNav,
+  logAuditEvent,
+} from '@/lib/rbac';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -33,6 +41,7 @@ const navItems = [
   { href: '/admin/support-inbox', icon: MessageSquare, key: 'navSupportInbox' },
   { href: '/admin/notifications', icon: BellRing, key: 'navNotifications' },
   { href: '/admin/coupons', icon: Tag, key: 'navCoupons' },
+  { href: '/admin/audit', icon: ShieldCheck, key: 'navAudit' },
   { href: '/admin/settings', icon: Settings, key: 'navSettings' },
 ];
 
@@ -53,6 +62,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [verifyReceiptOpen, setVerifyReceiptOpen] = useState(false);
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [activeStaffRole, setActiveStaffRoleState] = useState<StaffRole>('SUPER_ADMIN');
+  const [roleSelectorOpen, setRoleSelectorOpen] = useState(false);
   const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
     orders: null,
     users: null,
@@ -68,6 +79,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   });
   /** Bumped when visiting a section (mark-seen) so in-flight poll responses cannot overwrite fresh counts. */
   const unreadPullGenerationRef = useRef(0);
+
+  useEffect(() => {
+    setActiveStaffRoleState(getActiveStaffRole());
+    const onRoleChange = () => {
+      setActiveStaffRoleState(getActiveStaffRole());
+    };
+    window.addEventListener('staff_role_changed', onRoleChange);
+    return () => window.removeEventListener('staff_role_changed', onRoleChange);
+  }, []);
+
+  const handleSwitchRole = (newRole: StaffRole) => {
+    setActiveStaffRole(newRole);
+    setActiveStaffRoleState(newRole);
+    setRoleSelectorOpen(false);
+    logAuditEvent({
+      action: 'ROLE_SWITCH',
+      actionCategory: 'AUTH',
+      descriptionKm: `បានប្តូរទៅកាន់តួនាទីសាកល្បង៖ ${STAFF_ROLES[newRole].titleKm}`,
+      descriptionEn: `Switched staff role to ${STAFF_ROLES[newRole].titleEn}`,
+      actorName: activeUser?.name || 'Admin',
+      actorRole: newRole,
+      previousValue: activeStaffRole,
+      newValue: newRole,
+    });
+    toast.success(
+      language === 'km'
+        ? `ប្តូរសិទ្ធិបុគ្គលិកជា៖ ${STAFF_ROLES[newRole].titleKm}`
+        : `Switched role to: ${STAFF_ROLES[newRole].titleEn}`,
+      { icon: '🛡️' }
+    );
+    if (!canAccessNav(newRole, pathname)) {
+      const fallback = STAFF_ROLES[newRole].allowedNavHrefs[0] || '/admin/orders';
+      router.push(fallback);
+    }
+  };
 
   useEffect(() => {
     // Hydrate from localStorage on client mount
@@ -364,15 +410,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Navigation Links */}
           <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 space-y-1.5 overscroll-contain">
             {!compactSidebar && (
-              <div className="px-2.5 pt-1 pb-2">
+              <div className="px-2.5 pt-1 pb-2 flex items-center justify-between">
                 <span className="text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-400/90">
                   {isKhmer ? 'មុខងារសំខាន់' : 'Main Menu'}
                 </span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-500">
+                  {STAFF_ROLES[activeStaffRole]?.titleEn}
+                </span>
               </div>
             )}
-            {navItems.map(({ href, icon: Icon, key }) => {
-              const label = adminT(language, key);
-              const isActive = pathname === href;
+            {navItems
+              .filter(({ href }) => canAccessNav(activeStaffRole, href))
+              .map(({ href, icon: Icon, key }) => {
+                const label = adminT(language, key);
+                const isActive = pathname === href;
               const badgeCount =
                 href === '/admin/orders'
                   ? (liveCounts.orders ?? 0)
@@ -553,12 +604,65 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             })}
           </nav>
 
-          {/* User Profile & Logout Area */}
-          <div className="p-3 border-t border-slate-200/80 dark:border-white/[0.08] space-y-2 bg-slate-50/50 dark:bg-black/20">
+          {/* User Profile & Role Switcher Area */}
+          <div className="p-3 border-t border-slate-200/80 dark:border-white/[0.08] space-y-2 bg-slate-50/50 dark:bg-black/20 relative">
+            {/* Staff Role Selector Menu Popover */}
+            {roleSelectorOpen && (
+              <div className="absolute bottom-full left-3 right-3 mb-2 p-2.5 rounded-2xl bg-white dark:bg-[#1a1f2c] border border-slate-200 dark:border-white/[0.1] shadow-2xl z-50 space-y-1.5">
+                <div className="px-2 py-1 flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-1.5">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary-500" />
+                    {isKhmer ? 'ប្តូរសិទ្ធិបុគ្គលិក (RBAC Role)' : 'Staff Role Permissions'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRoleSelectorOpen(false)}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {(Object.keys(STAFF_ROLES) as StaffRole[]).map((r) => {
+                  const cfg = STAFF_ROLES[r];
+                  const isSelected = activeStaffRole === r;
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handleSwitchRole(r)}
+                      className={`w-full text-left p-2 rounded-xl transition-all flex flex-col gap-0.5 ${
+                        isSelected
+                          ? 'bg-primary-50 dark:bg-primary-950/60 border border-primary-200 dark:border-primary-800'
+                          : 'hover:bg-slate-100 dark:hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          {r === 'SUPER_ADMIN' && '👑'}
+                          {r === 'MANAGER' && '💼'}
+                          {r === 'CASHIER' && '💳'}
+                          {r === 'WAREHOUSE' && '📦'}
+                          {isKhmer ? cfg.titleKm : cfg.titleEn}
+                        </span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                        {cfg.descriptionKm}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <div
               className={`flex items-center ${
                 compactSidebar ? 'justify-center p-1.5' : 'gap-3 p-2'
-              } rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06] shadow-sm`}
+              } rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06] shadow-sm cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition`}
+              onClick={() => setRoleSelectorOpen((v) => !v)}
+              title={isKhmer ? 'ចុចដើម្បីប្តូរសិទ្ធិបុគ្គលិក' : 'Click to switch staff role'}
             >
               <div className="relative shrink-0">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-sm">
@@ -568,15 +672,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               {!compactSidebar && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold text-slate-800 dark:text-white truncate leading-tight">
-                    {activeUser?.name || 'Admin'}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    {adminT(language, 'administrator')}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-bold text-slate-800 dark:text-white truncate leading-tight">
+                      {activeUser?.name || 'Admin'}
+                    </p>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className={`inline-flex items-center text-[10px] font-bold px-1.5 py-0.2 rounded-md border ${STAFF_ROLES[activeStaffRole].badgeBg} ${STAFF_ROLES[activeStaffRole].badgeText} ${STAFF_ROLES[activeStaffRole].badgeBorder}`}>
+                      {STAFF_ROLES[activeStaffRole].titleEn}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
+
             <button
               onClick={() => { logout(); router.push('/'); }}
               className={`flex items-center ${
@@ -819,6 +929,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <Link href="/" className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 bg-white dark:bg-surface-800 border border-slate-200 dark:border-gray-700 px-3 py-1.5 rounded-xl transition">← {adminT(language, 'backToStore')}</Link>
         </header>
+
+        {/* Staff Role Simulation Alert Banner */}
+        {activeStaffRole !== 'SUPER_ADMIN' && (
+          <div className="bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-300/80 dark:border-amber-800/60 px-5 py-2.5 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="truncate">
+                {isKhmer
+                  ? `របៀបសាកល្បងសិទ្ធិបុគ្គលិក៖ ${STAFF_ROLES[activeStaffRole].titleKm} — ${STAFF_ROLES[activeStaffRole].descriptionKm}`
+                  : `Active Role Simulation: ${STAFF_ROLES[activeStaffRole].titleEn} — ${STAFF_ROLES[activeStaffRole].descriptionKm}`}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSwitchRole('SUPER_ADMIN')}
+              className="shrink-0 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold transition shadow-sm"
+            >
+              {isKhmer ? 'ប្តូរទៅ Super Admin វិញ' : 'Reset to Super Admin'}
+            </button>
+          </div>
+        )}
+
         <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">{children}</main>
       </div>
 

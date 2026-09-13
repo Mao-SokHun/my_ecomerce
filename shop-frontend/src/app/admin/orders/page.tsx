@@ -14,6 +14,8 @@ import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
 import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
+import { printThermalShippingLabel, getCarrierInfo, getCarrierTrackingUrl } from '@/components/admin/ShippingLabelPrinter';
+import { ExternalLink } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -621,6 +623,16 @@ export default function AdminOrdersPage() {
                         >
                           <Printer className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* Thermal Shipping Label (A6) Print Button */}
+                        <button
+                          type="button"
+                          onClick={() => printThermalShippingLabel(order)}
+                          title={isKhmer ? 'ព្រីនផ្លាកបិទកញ្ចប់ដឹកជញ្ជូន (Waybill A6 4x6")' : 'Print Shipping Label (A6)'}
+                          className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition flex items-center gap-1 text-xs font-semibold shadow-xs"
+                        >
+                          <Tag className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -663,7 +675,7 @@ export default function AdminOrdersPage() {
                     <span
                       className={`badge text-[11px] ${getPaymentStatusColor(selectedOrder.paymentStatus)}`}
                     >
-                      {selectedOrder.paymentStatus === 'PAID' ? 'PAID' : 'UNPAID'}
+                      {selectedOrder.paymentStatus === 'PAID' ? 'PAID' : 'UNPAID (COD)'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
@@ -673,160 +685,139 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePrintClick(selectedOrder)}
-                  className="px-3 py-1.5 bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-700 hover:border-primary-500 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-1.5 transition shadow-xs"
-                  title="Print Thermal Receipt"
-                >
-                  <Printer className="w-3.5 h-3.5 text-primary-600" />
-                  <span className="hidden sm:inline">{isKhmer ? 'ព្រីន' : 'Print'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrder(null)}
-                  className="w-8 h-8 rounded-full bg-gray-100 dark:bg-surface-800 text-gray-500 hover:text-gray-900 dark:hover:text-white flex items-center justify-center transition"
-                  aria-label="Close modal"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-surface-800 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            {/* Modal Body (Scrollable) */}
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-sm">
-              {/* Customer & Shipping Summary Grid */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                {/* Customer Information */}
-                <div className="p-4 bg-gray-50/80 dark:bg-surface-800/60 rounded-2xl border border-gray-100 dark:border-surface-750">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <User className="w-4 h-4 text-primary-600" />
+            {/* Modal Content */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 custom-scrollbar">
+              {/* Customer & Address Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                {/* Customer Info */}
+                <div className="p-4 bg-gray-50 dark:bg-surface-850 rounded-2xl border border-gray-100 dark:border-surface-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-white pb-2 border-b border-gray-200/60 dark:border-surface-750">
+                    <User className="w-4 h-4 text-primary-500" />
                     <span>{isKhmer ? 'ព័ត៌មានអតិថិជន' : 'Customer Info'}</span>
-                  </h3>
-                  <div className="space-y-1.5 text-xs sm:text-sm">
-                    <p className="font-semibold text-gray-900 dark:text-white">
+                  </div>
+                  <div className="space-y-1.5 text-gray-600 dark:text-gray-300">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm">
                       {selectedOrder.user?.name || selectedOrder.address?.name || 'Customer'}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="font-mono font-medium">{selectedOrder.address?.phone || selectedOrder.user?.phone || 'N/A'}</span>
+                    <p className="flex items-center gap-1.5 font-mono">
+                      <Phone className="w-3.5 h-3.5 text-primary-500" />
+                      <span>{selectedOrder.address?.phone || selectedOrder.user?.phone || 'N/A'}</span>
                     </p>
-                    {selectedOrder.user?.email && (
-                      <p className="text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span>{selectedOrder.user.email}</span>
-                      </p>
-                    )}
+                    <p className="flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-gray-400" />
+                      <span>{selectedOrder.user?.email || 'N/A'}</span>
+                    </p>
                   </div>
                 </div>
 
-                {/* Delivery Address & Carrier */}
-                <div className="p-4 bg-gray-50/80 dark:bg-surface-800/60 rounded-2xl border border-gray-100 dark:border-surface-750">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-primary-600" />
-                    <span>{isKhmer ? 'អាសយដ្ឋានដឹកជញ្ជូន' : 'Shipping Address'}</span>
-                  </h3>
-                  <div className="space-y-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {selectedOrder.address
-                        ? [selectedOrder.address.province, selectedOrder.address.district, selectedOrder.address.commune, selectedOrder.address.village].filter(Boolean).join(', ')
-                        : 'មិនមានបញ្ជាក់'}
-                    </p>
-                    {selectedOrder.address?.roadNumber && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {isKhmer ? 'ផ្ទះ/ផ្លូវ' : 'Road/House'}: {selectedOrder.address.roadNumber}
-                      </p>
-                    )}
-                    {selectedOrder.notes && (
-                      <p className="text-xs italic text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 p-1.5 rounded-lg mt-1 border border-amber-200/50 dark:border-amber-900/40">
-                        Note: {selectedOrder.notes}
-                      </p>
-                    )}
-                    <div className="pt-2 flex items-center gap-2 text-xs">
-                      <span className="text-gray-400">{isKhmer ? 'ដឹកតាម' : 'Carrier'}:</span>
-                      <span className="px-2 py-0.5 rounded-md font-bold bg-primary-100 text-primary-800 dark:bg-primary-950/60 dark:text-primary-300 flex items-center gap-1">
-                        <Truck className="w-3 h-3" />
-                        {selectedOrder.shippingCarrier === 'JNT' ? 'J&T Express' : 'VET (វីរៈប៊ុនថាំ)'}
-                      </span>
+                {/* Shipping & Carrier Info */}
+                <div className="p-4 bg-gray-50 dark:bg-surface-850 rounded-2xl border border-gray-100 dark:border-surface-800 space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-gray-200/60 dark:border-surface-750">
+                    <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-white">
+                      <Truck className="w-4 h-4 text-primary-500" />
+                      <span>{isKhmer ? 'ការដឹកជញ្ជូន & ក្រុមហ៊ុន' : 'Shipping & Logistics'}</span>
                     </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300">
+                      {getCarrierInfo(selectedOrder.shippingCarrier).name}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 text-gray-600 dark:text-gray-300">
+                    <p className="flex items-start gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                      <span>
+                        {[
+                          selectedOrder.address?.province,
+                          selectedOrder.address?.district,
+                          selectedOrder.address?.commune,
+                          selectedOrder.address?.village,
+                        ].filter(Boolean).join(', ') || 'Phnom Penh, Cambodia'}
+                        {selectedOrder.address?.roadNumber && ` (${selectedOrder.address.roadNumber})`}
+                      </span>
+                    </p>
+
+                    {/* Live Carrier Tracking Link */}
+                    {(() => {
+                      const trackingUrl = getCarrierTrackingUrl(
+                        selectedOrder.shippingCarrier,
+                        selectedOrder.trackingNumber || selectedOrder.orderNumber
+                      );
+                      return (
+                        <div className="pt-1.5 flex items-center justify-between gap-2 border-t border-gray-200/60 dark:border-surface-750 text-[11px]">
+                          <span className="text-gray-400 font-mono">
+                            Ref: {selectedOrder.trackingNumber || selectedOrder.orderNumber}
+                          </span>
+                          {trackingUrl ? (
+                            <a
+                              href={trackingUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-bold text-primary-600 hover:text-primary-700 hover:underline"
+                            >
+                              <span>{isKhmer ? 'តាមដានកញ្ចប់' : 'Live Tracking'}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 italic text-[10px]">Standard Delivery</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
 
-              {/* Ordered Items List */}
-              <div className="border border-gray-100 dark:border-surface-750 rounded-2xl overflow-hidden">
-                <div className="p-3 bg-gray-50 dark:bg-surface-800 border-b border-gray-100 dark:border-surface-750 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-primary-600" />
-                    <span>{isKhmer ? 'មុខទំនិញដែលបានកុម្ម៉ង់' : 'Ordered Products'} ({selectedOrder.items.length})</span>
-                  </h3>
-                  <span className="text-xs text-gray-500 font-medium">
-                    {selectedOrder.items.reduce((s, i) => s + (i.quantity || 0), 0)} {isKhmer ? 'ចំនួនសរុប' : 'total items'}
+              {/* Order Items Table */}
+              <div className="rounded-2xl border border-gray-200/80 dark:border-surface-800 overflow-hidden">
+                <div className="p-3 bg-gray-50 dark:bg-surface-850 border-b border-gray-200/80 dark:border-surface-800 flex items-center justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
+                  <span className="flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-primary-500" />
+                    <span>{isKhmer ? 'មុខទំនិញបញ្ជាទិញ' : 'Order Items'} ({selectedOrder.items.length})</span>
                   </span>
+                  <span>{isKhmer ? 'តម្លៃសរុប' : 'Subtotal'}</span>
                 </div>
-
-                <div className="divide-y divide-gray-100 dark:divide-surface-800">
+                <div className="divide-y divide-gray-100 dark:divide-surface-800 max-h-60 overflow-y-auto custom-scrollbar">
                   {selectedOrder.items.map((item, idx) => (
-                    <div key={item.id || idx} className="p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 dark:hover:bg-surface-800/30 transition">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tabular-nums w-5 text-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-surface-800 relative overflow-hidden shrink-0 border border-gray-100 dark:border-surface-700">
-                          {item.image ? (
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <Package className="w-5 h-5" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatPrice(item.price)} × <span className="font-bold text-gray-800 dark:text-gray-200">{item.quantity}</span>
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-bold text-gray-900 dark:text-white text-sm">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                        <p className="text-[11px] text-gray-400 font-medium">
-                          ≈ {formatKhrPrice(item.price * item.quantity)}
+                    <div key={idx} className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-gray-50/50 dark:hover:bg-surface-850/50">
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 dark:text-white truncate">{item.name}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+                          {item.quantity} × {formatPrice(item.price)}
                         </p>
                       </div>
+                      <span className="font-bold font-mono text-gray-900 dark:text-white shrink-0">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Financial Calculation Breakdown */}
-              <div className="p-4 bg-slate-50 dark:bg-surface-800/50 rounded-2xl border border-gray-100 dark:border-surface-750 space-y-2 text-xs sm:text-sm">
-                <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>{isKhmer ? 'តម្លៃដើម (Subtotal)' : 'Subtotal'}:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatPrice(selectedOrder.subtotal)}</span>
+              {/* Order Financial Totals */}
+              <div className="p-4 bg-gray-50 dark:bg-surface-850 rounded-2xl border border-gray-100 dark:border-surface-800 space-y-2 text-xs">
+                <div className="flex justify-between text-gray-500">
+                  <span>{isKhmer ? 'តម្លៃទំនិញរាយ' : 'Subtotal'}:</span>
+                  <span className="font-mono font-medium text-gray-900 dark:text-white">{formatPrice(selectedOrder.subtotal || selectedOrder.total)}</span>
                 </div>
                 {selectedOrder.discount > 0 && (
-                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
-                    <span>
-                      {isKhmer ? 'បញ្ចុះតម្លៃ' : 'Discount'} {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ''}:
-                    </span>
-                    <span className="font-medium">-{formatPrice(selectedOrder.discount)}</span>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>{isKhmer ? 'បញ្ចុះតម្លៃ' : 'Discount'}:</span>
+                    <span className="font-mono font-medium">-{formatPrice(selectedOrder.discount)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                  <span>{isKhmer ? 'ថ្លៃដឹកជញ្ជូន (Shipping)' : 'Shipping Fee'}:</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatPrice(selectedOrder.shippingCost)}</span>
+                <div className="flex justify-between text-gray-500">
+                  <span>{isKhmer ? 'ថ្លៃសេវាដឹកជញ្ជូន' : 'Shipping Fee'}:</span>
+                  <span className="font-mono font-medium text-gray-900 dark:text-white">
+                    {selectedOrder.shippingCost ? formatPrice(selectedOrder.shippingCost) : '$0.00'}
+                  </span>
                 </div>
                 <div className="pt-2 border-t border-gray-200/80 dark:border-surface-700 flex justify-between items-baseline">
                   <div>
@@ -871,12 +862,34 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 dark:border-surface-800 bg-gray-50 dark:bg-surface-850 flex justify-end gap-2">
+            {/* Modal Footer with Actions */}
+            <div className="p-4 border-t border-gray-100 dark:border-surface-800 bg-gray-50 dark:bg-surface-850 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Thermal Receipt Print */}
+                <button
+                  type="button"
+                  onClick={() => handlePrintClick(selectedOrder)}
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-surface-750 border border-gray-200 dark:border-surface-700 text-gray-800 dark:text-white text-xs font-bold hover:bg-gray-100 dark:hover:bg-surface-700 transition flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Printer className="w-3.5 h-3.5 text-primary-600" />
+                  <span>{isKhmer ? 'ព្រីនវិក្កយបត្រ POS' : 'Print POS Receipt'}</span>
+                </button>
+
+                {/* Thermal Shipping Label Print (A6 4x6") */}
+                <button
+                  type="button"
+                  onClick={() => printThermalShippingLabel(selectedOrder)}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs shadow-rose-500/20 active:scale-95 cursor-pointer"
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>{isKhmer ? 'ព្រីនផ្លាកដឹកជញ្ជូន (Waybill A6)' : 'Print Shipping Label'}</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => setSelectedOrder(null)}
-                className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-surface-750 dark:hover:bg-surface-700 text-gray-800 dark:text-white rounded-xl text-xs font-bold transition"
+                className="px-5 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-surface-750 dark:hover:bg-surface-700 text-gray-800 dark:text-white rounded-xl text-xs font-bold transition"
               >
                 {isKhmer ? 'បិទ' : 'Close'}
               </button>
