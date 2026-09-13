@@ -17,6 +17,7 @@ import {
   resetPasswordByEmailCode,
   resetPasswordByInfo,
   refreshTokenHandler,
+  logoutHandler,
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 
@@ -24,6 +25,7 @@ const router = Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/logout', logoutHandler);
 router.post('/refresh', refreshTokenHandler);
 router.post('/google', googleLogin);
 router.post('/facebook', facebookLogin);

@@ -94,6 +94,7 @@ model User {
   auditLogs        AuditLog[]
   notifications    Notification[]
   couponUsages     CouponUsage[]
+  refreshSession   RefreshTokenSession?
   lastSeenOrdersAt  DateTime?
   lastSeenUsersAt   DateTime?
   lastSeenLeadsAt   DateTime?
@@ -569,4 +570,23 @@ model Notification {
   @@index([target])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ── Secure Refresh Token Session ──────────────────────────────────────────────
+// One row per user. Stores a SHA-256 hash of the refresh token so we can
+// detect token-reuse attacks without storing the raw token in the DB.
+model RefreshTokenSession {
+  id           String   @id @default(cuid())
+  userId       String   @unique  // UNIQUE: one active session per user
+  tokenHash    String   @db.Text // SHA-256(refreshToken)
+  expiresAt    DateTime
+  userAgent    String?  @db.VarChar(512)
+  ip           String?  @db.VarChar(45)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("refresh_token_sessions")
 }

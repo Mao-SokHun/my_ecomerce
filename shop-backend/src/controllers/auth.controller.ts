@@ -108,6 +108,45 @@ const buildTokenPair = (user: { id: string; email?: string | null; role: string;
   return { token: accessToken, refreshToken };
 };
 
+// ── Secure Refresh Token Helpers ────────────────────────────────────────────
+
+/** SHA-256 hash of the raw refresh token — what we store in the DB. */
+const hashToken = (raw: string): string =>
+  crypto.createHash('sha256').update(raw).digest('hex');
+
+/** Upsert the RefreshTokenSession row for this user (single session). */
+const persistRefreshSession = async (
+  userId: string,
+  refreshToken: string,
+  userAgent?: string,
+  ip?: string
+): Promise<void> => {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const tokenHash = hashToken(refreshToken);
+  await prisma.refreshTokenSession.upsert({
+    where: { userId },
+    create: { userId, tokenHash, expiresAt, userAgent, ip },
+    update: { tokenHash, expiresAt, userAgent: userAgent ?? null, ip: ip ?? null },
+  });
+};
+
+/** Set the refresh token as an HttpOnly, Secure, SameSite=lax cookie. */
+const setRefreshCookie = (res: Response, refreshToken: string): void => {
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    path: '/',
+  });
+};
+
+/** Clear the refresh token cookie and delete the DB session row. */
+const clearRefreshSession = async (userId: string, res: Response): Promise<void> => {
+  res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+  await prisma.refreshTokenSession.deleteMany({ where: { userId } }).catch(() => {});
+};
+
 const logAudit = async (userId: string, action: string, detail: string | null, ip: string) => {
   try {
     await prisma.auditLog.create({ data: { userId, action, detail, ip } });
@@ -564,6 +603,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     await prisma.cart.create({ data: { id: await allocateCartId(), userId: user.id } });
 
     const tokens = buildTokenPair(user);
+    await persistRefreshSession(user.id, tokens.refreshToken, req.get('user-agent'), getRequestIp(req));
+    setRefreshCookie(res, tokens.refreshToken);
     logAudit(user.id, 'REGISTER', 'Local registration', getRequestIp(req));
     notifyTelegramAuthEvent(req, user, 'REGISTER').catch((error) => {
       console.error('[Auth Notify] Register Telegram notification failed:', error);
@@ -615,6 +656,16 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     clearLoginAttempts(lockoutKey);
 
     const tokens = buildTokenPair(user);
+
+    // ── Persist refresh session (HttpOnly cookie + DB hash) ──────────────────────
+    await persistRefreshSession(
+      user.id,
+      tokens.refreshToken,
+      req.get('user-agent'),
+      getRequestIp(req)
+    );
+    setRefreshCookie(res, tokens.refreshToken);
+
     logAudit(user.id, 'LOGIN', `Login via ${isEmail ? 'email' : 'phone'}`, getRequestIp(req));
     notifyTelegramAuthEvent(req, user, 'LOGIN').catch((error) => {
       console.error('[Auth Notify] Login Telegram notification failed:', error);
@@ -623,10 +674,11 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const { password: _, ...userWithoutPassword } = user;
     void _;
 
+    // Return only the accessToken in the JSON body; refreshToken travels via HttpOnly cookie
     res.json({
       success: true,
       message: 'Login successful',
-      data: { user: userWithoutPassword, ...tokens },
+      data: { user: userWithoutPassword, token: tokens.token, refreshToken: tokens.refreshToken },
     });
   } catch (error) {
     next(error);
@@ -694,6 +746,8 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
     }
 
     const tokens = buildTokenPair(user);
+    await persistRefreshSession(user.id, tokens.refreshToken, req.get('user-agent'), getRequestIp(req));
+    setRefreshCookie(res, tokens.refreshToken);
     logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Google OAuth', getRequestIp(req));
     notifyTelegramAuthEvent(
       req,
@@ -765,6 +819,8 @@ export const facebookLogin = async (req: Request, res: Response, next: NextFunct
     }
 
     const tokens = buildTokenPair(user);
+    await persistRefreshSession(user.id, tokens.refreshToken, req.get('user-agent'), getRequestIp(req));
+    setRefreshCookie(res, tokens.refreshToken);
     logAudit(user.id, isNew ? 'REGISTER' : 'LOGIN', 'Facebook OAuth', getRequestIp(req));
     notifyTelegramAuthEvent(
       req,
@@ -1414,24 +1470,71 @@ export const resetPasswordByEmailCode = async (req: Request, res: Response, next
 
 export const refreshTokenHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { refreshToken } = req.body as { refreshToken?: string };
-    if (!refreshToken) throw new AppError('Refresh token is required', 400);
+    // Read refresh token from HttpOnly cookie (primary) or body (legacy fallback)
+    const cookieToken: string | undefined = (req as any).cookies?.refreshToken;
+    const bodyToken: string | undefined = (req.body as any)?.refreshToken;
+    const incomingToken = cookieToken || bodyToken;
 
+    if (!incomingToken) {
+      throw new AppError('Refresh token is required', 400);
+    }
+
+    // 1. Verify JWT signature & expiry
     let decoded: { id: string; tokenVersion: number };
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET! + '_refresh') as typeof decoded;
+      decoded = jwt.verify(incomingToken, process.env.JWT_SECRET! + '_refresh') as typeof decoded;
     } catch {
       throw new AppError('Invalid or expired refresh token', 401);
     }
 
+    // 2. Verify hash against DB session row (reuse detection)
+    const incomingHash = hashToken(incomingToken);
+    const session = await prisma.refreshTokenSession.findFirst({
+      where: { userId: decoded.id, expiresAt: { gt: new Date() } },
+    });
+
+    if (!session || session.tokenHash !== incomingHash) {
+      // Token presented is not the latest one → possible reuse attack
+      // Nuke ALL sessions for this user and force re-login
+      await prisma.refreshTokenSession.deleteMany({ where: { userId: decoded.id } });
+      res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+      throw new AppError('Session compromised — please log in again', 403);
+    }
+
+    // 3. Load user and check tokenVersion
     const user = await prisma.user.findFirst({ where: { id: decoded.id, isActive: true } });
     if (!user) throw new AppError('User not found or inactive', 401);
     if (user.tokenVersion !== decoded.tokenVersion) {
-      throw new AppError('Token has been revoked', 401);
+      await clearRefreshSession(user.id, res);
+      throw new AppError('Token has been revoked — please log in again', 401);
     }
 
+    // 4. Token Rotation: issue brand-new token pair, replace DB row
     const tokens = buildTokenPair(user);
-    res.json({ success: true, data: tokens });
+    await persistRefreshSession(
+      user.id,
+      tokens.refreshToken,
+      req.get('user-agent'),
+      getRequestIp(req)
+    );
+    setRefreshCookie(res, tokens.refreshToken);
+
+    res.json({ success: true, data: { token: tokens.token, refreshToken: tokens.refreshToken } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Logout: clear cookie + invalidate DB session. */
+export const logoutHandler = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (userId) {
+      await clearRefreshSession(userId, res);
+    } else {
+      res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    }
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     next(error);
   }

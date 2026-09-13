@@ -288,6 +288,14 @@ export const previewCoupon = async (req: AuthRequest, res: Response, next: NextF
       if (!coupon) throw new AppError('Invalid coupon code', 400);
       if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new AppError('Coupon has expired', 400);
       if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) throw new AppError('Coupon usage limit reached', 400);
+      if (req.user?.id) {
+        const alreadyUsed = await prisma.couponUsage.findUnique({
+          where: { userId_couponId: { userId: req.user.id, couponId: coupon.id } },
+        });
+        if (alreadyUsed) {
+          throw new AppError('You have already used this coupon. Each coupon can only be used once per customer.', 400);
+        }
+      }
       if (coupon.minOrder && subtotal < coupon.minOrder) {
         throw new AppError(`Minimum order is ${coupon.minOrder} for this coupon`, 400);
       }
@@ -325,7 +333,7 @@ export const getUserOrders = async (req: AuthRequest, res: Response, next: NextF
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          items: { select: { id: true, name: true, image: true, price: true, quantity: true } },
+          items: { select: { id: true, productId: true, name: true, image: true, price: true, quantity: true, variant: true } },
           address: true,
         },
       }),
@@ -620,7 +628,7 @@ export const adminGetOrders = async (req: AuthRequest, res: Response, next: Next
         orderBy: { createdAt: 'desc' },
         include: {
           user: { select: { id: true, name: true, email: true } },
-          items: { select: { id: true, name: true, quantity: true, price: true } },
+          items: { select: { id: true, productId: true, name: true, quantity: true, price: true, variant: true, image: true } },
           address: true,
         },
       }),

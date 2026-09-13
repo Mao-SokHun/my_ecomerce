@@ -13,6 +13,7 @@ export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
   timeout: 45000,
+  withCredentials: true,
 });
 
 // Attach token automatically
@@ -34,9 +35,12 @@ let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknow
 async function tryRefreshToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
   const rt = localStorage.getItem('refreshToken');
-  if (!rt) return null;
   try {
-    const { data } = await axios.post(`${resolveApiBaseUrl()}/auth/refresh`, { refreshToken: rt });
+    const { data } = await axios.post(
+      `${resolveApiBaseUrl()}/auth/refresh`,
+      { refreshToken: rt || undefined },
+      { withCredentials: true }
+    );
     const { token, refreshToken: newRt } = data.data;
     localStorage.setItem('token', token);
     if (newRt) localStorage.setItem('refreshToken', newRt);
