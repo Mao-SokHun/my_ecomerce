@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Category } from '@/types';
 import { adminApi, categoryApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 export default function AdminCategoriesPage() {
   const { language } = useAdminLanguageStore();
@@ -39,6 +40,16 @@ export default function AdminCategoriesPage() {
     parentId: '',
     isActive: true,
   });
+
+  const parentCategoryOptions: DropdownOption[] = useMemo(() => [
+    { value: '', label: adminT(language, 'noParent') },
+    ...categories
+      .filter((x) => x.id !== editing?.id)
+      .map((x) => ({
+        value: x.id,
+        label: x.parent ? `${x.parent.name} › ${x.name}` : x.name,
+      })),
+  ], [categories, editing, language]);
   const [saving, setSaving] = useState(false);
 
   const load = (silent = false) => {
@@ -296,20 +307,14 @@ export default function AdminCategoriesPage() {
                   <label className="block text-sm font-medium mb-1 dark:text-gray-300">
                     {adminT(language, 'parentCategory')}
                   </label>
-                  <select
+                  <CustomDropdown
                     value={form.parentId}
-                    onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value }))}
-                    className="input text-sm"
-                  >
-                    <option value="">{adminT(language, 'noParent')}</option>
-                    {categories
-                      .filter((x) => x.id !== editing?.id)
-                      .map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.parent ? `${x.parent.name} › ${x.name}` : x.name}
-                        </option>
-                      ))}
-                  </select>
+                    onChange={(val) => setForm((p) => ({ ...p, parentId: val }))}
+                    options={parentCategoryOptions}
+                    size="md"
+                    variant="luxury"
+                    className="w-full"
+                  />
                 </div>
               </div>
               {editing && (

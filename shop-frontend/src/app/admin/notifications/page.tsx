@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -32,6 +32,7 @@ import {
 import { notificationApi, adminApi } from '@/lib/api';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import toast from 'react-hot-toast';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 type NotificationItem = {
   id: string;
@@ -102,6 +103,14 @@ export default function AdminNotificationsPage() {
   const [filterType, setFilterType] = useState('ALL');
   const [searchHistory, setSearchHistory] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const notificationFilterOptions: DropdownOption[] = useMemo(() => [
+    { value: 'ALL', label: isKhmer ? 'គ្រប់ប្រភេទ' : 'All Types' },
+    { value: 'ANNOUNCEMENT', label: '📢 Announcement' },
+    { value: 'PROMOTION', label: '🎁 Promotion' },
+    { value: 'ORDER_UPDATE', label: '📦 Order' },
+    { value: 'URGENT', label: '🚨 Urgent' },
+  ], [isKhmer]);
 
   // Load Broadcast History
   const loadHistory = useCallback(async () => {
@@ -940,17 +949,14 @@ export default function AdminNotificationsPage() {
                   onChange={(e) => setSearchHistory(e.target.value)}
                   className="input h-8 text-xs flex-1"
                 />
-                <select
+                <CustomDropdown
                   value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="input h-8 text-[11px] py-0 px-2"
-                >
-                  <option value="ALL">{isKhmer ? 'គ្រប់ប្រភេទ' : 'All Types'}</option>
-                  <option value="ANNOUNCEMENT">📢 Announcement</option>
-                  <option value="PROMOTION">🎁 Promotion</option>
-                  <option value="ORDER_UPDATE">📦 Order</option>
-                  <option value="URGENT">🚨 Urgent</option>
-                </select>
+                  onChange={setFilterType}
+                  options={notificationFilterOptions}
+                  size="xs"
+                  variant="luxury"
+                  className="min-w-[130px]"
+                />
               </div>
 
               {/* History List */}

@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 interface ExcelExportModalProps {
   isOpen: boolean;
@@ -44,6 +45,28 @@ export function ExcelExportModal({
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth()); // 0-indexed
+
+  const monthOptions: DropdownOption[] = useMemo(() => [
+    { value: '0', label: 'មករា (January)' },
+    { value: '1', label: 'កុម្ភៈ (February)' },
+    { value: '2', label: 'មីនា (March)' },
+    { value: '3', label: 'មេសា (April)' },
+    { value: '4', label: 'ឧសភា (May)' },
+    { value: '5', label: 'មិថុនា (June)' },
+    { value: '6', label: 'កក្កដា (July)' },
+    { value: '7', label: 'សីហា (August)' },
+    { value: '8', label: 'កញ្ញា (September)' },
+    { value: '9', label: 'តុលា (October)' },
+    { value: '10', label: 'វិច្ឆិកា (November)' },
+    { value: '11', label: 'ធ្នូ (December)' },
+  ], []);
+
+  const yearOptions: DropdownOption[] = useMemo(() => [
+    { value: '2026', label: '2026' },
+    { value: '2025', label: '2025' },
+    { value: '2024', label: '2024' },
+    { value: '2023', label: '2023' },
+  ], []);
 
   // Weekly Sub-option: 'current' (Mon-Sun of this week) or 'last7' (last 7 days)
   const [weeklyMode, setWeeklyMode] = useState<'current' | 'last7'>('current');
@@ -342,37 +365,27 @@ export function ExcelExportModal({
                   <label className="block text-[11px] font-semibold text-slate-500 mb-1">
                     {isKhmer ? 'ជ្រើសរើសខែ' : 'Select Month'}
                   </label>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="w-full text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-800 px-3 py-2 text-slate-900 dark:text-white"
-                  >
-                    {[
-                      'មករា (January)', 'កុម្ភៈ (February)', 'មីនា (March)', 'មេសា (April)',
-                      'ឧសភា (May)', 'មិថុនា (June)', 'កក្កដា (July)', 'សីហា (August)',
-                      'កញ្ញា (September)', 'តុលា (October)', 'វិច្ឆិកា (November)', 'ធ្នូ (December)'
-                    ].map((name, i) => (
-                      <option key={name} value={i}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomDropdown
+                    value={String(selectedMonth)}
+                    onChange={(val) => setSelectedMonth(Number(val))}
+                    options={monthOptions}
+                    size="sm"
+                    variant="emerald"
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-500 mb-1">
                     {isKhmer ? 'ជ្រើសរើសឆ្នាំ' : 'Select Year'}
                   </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="w-full text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-800 px-3 py-2 text-slate-900 dark:text-white"
-                  >
-                    {[2026, 2025, 2024, 2023].map((y) => (
-                      <option key={y} value={y}>
-                        {y}
-                      </option>
-                    ))}
-                  </select>
+                  <CustomDropdown
+                    value={String(selectedYear)}
+                    onChange={(val) => setSelectedYear(Number(val))}
+                    options={yearOptions}
+                    size="sm"
+                    variant="emerald"
+                    className="w-full"
+                  />
                 </div>
               </div>
             )}
@@ -382,17 +395,14 @@ export function ExcelExportModal({
                 <label className="block text-[11px] font-semibold text-slate-500 mb-1">
                   {isKhmer ? 'ជ្រើសរើសឆ្នាំ' : 'Select Year'}
                 </label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="w-full text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-800 px-3 py-2 text-slate-900 dark:text-white"
-                >
-                  {[2026, 2025, 2024, 2023].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                <CustomDropdown
+                  value={String(selectedYear)}
+                  onChange={(val) => setSelectedYear(Number(val))}
+                  options={yearOptions}
+                  size="sm"
+                  variant="emerald"
+                  className="w-full"
+                />
               </div>
             )}
 

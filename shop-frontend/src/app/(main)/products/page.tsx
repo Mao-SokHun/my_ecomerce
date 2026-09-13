@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -13,6 +13,7 @@ import { CategoryScrollBar } from '@/components/home/CategoryScrollBar';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { getLocalCache, PRELOADED_CATEGORIES } from '@/lib/clientCache';
+import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -55,6 +56,25 @@ function ProductsContent() {
   const SORT_OPTIONS = filters.search
     ? SORT_BASE
     : SORT_BASE.filter((o) => o.value !== 'relevance-desc');
+
+  const sortDropdownOptions: DropdownOption[] = useMemo(() => {
+    return SORT_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+  }, [SORT_OPTIONS]);
+
+  const categoryOptions: DropdownOption[] = useMemo(() => [
+    { value: '', label: t(language, 'productsAllCategories') },
+    ...categories.map((c) => ({ value: c.slug, label: c.name })),
+  ], [categories, language]);
+
+  const ratingOptions: DropdownOption[] = useMemo(() => [
+    { value: '', label: t(language, 'productsAnyRating') },
+    ...[4, 3, 2, 1].map((r) => ({ value: String(r), label: `${r}+ ${t(language, 'productsStars')}` })),
+  ], [language]);
+
+  const featuredOptions: DropdownOption[] = useMemo(() => [
+    { value: '', label: t(language, 'productsAllProducts') },
+    { value: 'true', label: t(language, 'productsFeaturedOnlyLabel') },
+  ], [language]);
 
   const skipScrollOnMount = useRef(true);
 
@@ -203,17 +223,15 @@ function ProductsContent() {
           </div>
 
           {/* Sort */}
-          <div className="relative flex-1 sm:flex-none min-w-0">
-            <select
+          <div className="flex-1 sm:flex-none min-w-[170px] sm:min-w-[190px]">
+            <CustomDropdown
               value={filters.sort}
-              onChange={(e) => updateFilter('sort', e.target.value)}
-              className="w-full sm:w-auto pl-3 pr-8 py-2.5 sm:py-2 text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-white cursor-pointer min-h-[44px] sm:min-h-0"
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              onChange={(val) => updateFilter('sort', val)}
+              options={sortDropdownOptions}
+              size="sm"
+              variant="luxury"
+              className="w-full"
+            />
           </div>
 
           {/* Filters toggle */}
@@ -272,16 +290,14 @@ function ProductsContent() {
             {/* Category */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5">{t(language, 'productsCategory')}</label>
-              <select
+              <CustomDropdown
                 value={filters.category}
-                onChange={(e) => updateFilter('category', e.target.value)}
-                className="input text-sm"
-              >
-                <option value="">{t(language, 'productsAllCategories')}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.slug}>{c.name}</option>
-                ))}
-              </select>
+                onChange={(val) => updateFilter('category', val)}
+                options={categoryOptions}
+                size="sm"
+                variant="luxury"
+                className="w-full"
+              />
             </div>
 
             {/* Min Price */}
@@ -311,29 +327,27 @@ function ProductsContent() {
             {/* Rating */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5">{t(language, 'productsMinRating')}</label>
-              <select
+              <CustomDropdown
                 value={filters.rating}
-                onChange={(e) => updateFilter('rating', e.target.value)}
-                className="input text-sm"
-              >
-                <option value="">{t(language, 'productsAnyRating')}</option>
-                {[4, 3, 2, 1].map((r) => (
-                  <option key={r} value={r}>{r}+ {t(language, 'productsStars')}</option>
-                ))}
-              </select>
+                onChange={(val) => updateFilter('rating', val)}
+                options={ratingOptions}
+                size="sm"
+                variant="luxury"
+                className="w-full"
+              />
             </div>
 
             {/* Featured */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5">{t(language, 'productsShow')}</label>
-              <select
+              <CustomDropdown
                 value={filters.featured}
-                onChange={(e) => updateFilter('featured', e.target.value)}
-                className="input text-sm"
-              >
-                <option value="">{t(language, 'productsAllProducts')}</option>
-                <option value="true">{t(language, 'productsFeaturedOnlyLabel')}</option>
-              </select>
+                onChange={(val) => updateFilter('featured', val)}
+                options={featuredOptions}
+                size="sm"
+                variant="luxury"
+                className="w-full"
+              />
             </div>
           </div>
         </motion.div>

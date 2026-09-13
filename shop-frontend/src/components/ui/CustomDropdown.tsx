@@ -30,7 +30,7 @@ interface CustomDropdownProps {
   minMenuWidth?: number;
   searchable?: boolean;
   searchPlaceholder?: string;
-  variant?: 'default' | 'luxury';
+  variant?: 'default' | 'luxury' | 'emerald';
 }
 
 export function CustomDropdown({
@@ -202,6 +202,7 @@ export function CustomDropdown({
   }[size];
 
   const isLuxury = variant === 'luxury';
+  const isEmerald = variant === 'emerald';
 
   return (
     <div className={`relative inline-block text-left ${className}`}>
@@ -214,9 +215,13 @@ export function CustomDropdown({
           disabled
             ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-400'
             : isOpen
-            ? isLuxury
+            ? isEmerald
+              ? 'bg-gradient-to-b from-white via-emerald-50/25 to-white dark:from-[#11221b] dark:via-[#0e1d17] dark:to-[#0a1510] border-emerald-500/90 dark:border-emerald-400/90 ring-2 ring-emerald-500/20 dark:ring-emerald-400/20 text-slate-900 dark:text-white shadow-lg shadow-emerald-500/10'
+              : isLuxury
               ? 'bg-gradient-to-b from-white via-amber-50/20 to-white dark:from-[#18202d] dark:via-[#151c27] dark:to-[#121722] border-amber-500/90 dark:border-amber-400/90 ring-2 ring-amber-500/20 dark:ring-amber-400/20 text-slate-900 dark:text-white shadow-lg shadow-amber-500/10'
               : 'bg-white dark:bg-[#161c28] border-primary-500/80 ring-2 ring-primary-500/25 text-slate-900 dark:text-white shadow-md shadow-primary-500/10'
+            : isEmerald
+            ? 'bg-gradient-to-b from-white/95 via-slate-50/90 to-emerald-50/20 dark:from-[#131b17]/95 dark:via-[#101713]/95 dark:to-[#0d1310]/95 border-slate-200/90 dark:border-slate-700/70 hover:border-emerald-500/50 dark:hover:border-emerald-400/50 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-[#15201b] shadow-2xs hover:shadow-sm'
             : isLuxury
             ? 'bg-gradient-to-b from-white/95 via-slate-50/90 to-slate-100/70 dark:from-[#151c28]/95 dark:via-[#131823]/95 dark:to-[#0f141d]/95 border-slate-200/90 dark:border-slate-700/70 hover:border-amber-500/50 dark:hover:border-amber-400/50 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-[#18202d] shadow-2xs hover:shadow-sm'
             : 'bg-white/90 dark:bg-[#131822]/90 border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#18202d] shadow-2xs hover:shadow-sm'
@@ -244,7 +249,9 @@ export function CustomDropdown({
         <ChevronDown
           className={`${chevronSize} text-slate-400 dark:text-slate-500 shrink-0 transition-transform duration-200 ${
             isOpen
-              ? isLuxury
+              ? isEmerald
+                ? 'rotate-180 text-emerald-600 dark:text-emerald-400'
+                : isLuxury
                 ? 'rotate-180 text-amber-600 dark:text-amber-400'
                 : 'rotate-180 text-primary-600 dark:text-primary-400'
               : ''
@@ -294,7 +301,7 @@ export function CustomDropdown({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={searchPlaceholder}
-                        className="w-full h-8 pl-8 pr-7 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 focus:border-amber-500/50 dark:focus:border-amber-400/50 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none transition"
+                        className="w-full h-8 pl-8 pr-7 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/60 dark:border-slate-700/60 focus:border-primary-500/50 dark:focus:border-primary-400/50 focus:bg-white dark:focus:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none transition"
                       />
                       {searchQuery && (
                         <button
@@ -327,7 +334,9 @@ export function CustomDropdown({
                           }}
                           className={`w-full flex items-center justify-between ${itemPadding} transition-all duration-150 text-left rounded-xl ${
                             isSelected
-                              ? isLuxury
+                              ? isEmerald
+                                ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/8 to-transparent dark:from-emerald-400/20 dark:via-emerald-400/10 dark:to-transparent text-emerald-950 dark:text-emerald-100 font-bold shadow-2xs border border-emerald-500/30 dark:border-emerald-400/35'
+                                : isLuxury
                                 ? 'bg-gradient-to-r from-amber-500/12 via-amber-500/6 to-transparent dark:from-amber-400/18 dark:via-amber-400/8 dark:to-transparent text-amber-950 dark:text-amber-100 font-bold shadow-2xs border border-amber-500/25 dark:border-amber-400/30'
                                 : 'bg-primary-500/10 dark:bg-primary-500/15 text-primary-600 dark:text-primary-400 font-bold shadow-2xs border border-primary-500/20'
                               : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/90 dark:hover:bg-[#18202d] hover:text-slate-900 dark:hover:text-white border border-transparent'
@@ -360,7 +369,9 @@ export function CustomDropdown({
                           {isSelected && (
                             <span
                               className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ml-2 shadow-2xs ${
-                                isLuxury
+                                isEmerald
+                                  ? 'bg-emerald-500/20 dark:bg-emerald-400/25 text-emerald-700 dark:text-emerald-300'
+                                  : isLuxury
                                   ? 'bg-amber-500/15 dark:bg-amber-400/20 text-amber-700 dark:text-amber-300'
                                   : 'bg-primary-100 dark:bg-primary-900/60 text-primary-600 dark:text-primary-400'
                               }`}

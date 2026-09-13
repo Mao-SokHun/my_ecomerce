@@ -614,6 +614,14 @@ export default function AdminProductsPage() {
     })),
   ], [categories, isKhmer]);
 
+  const modalCategoryOptions: DropdownOption[] = useMemo(() => [
+    { value: '', label: isKhmer ? 'ជ្រើសរើសប្រភេទ (Select Category)' : 'Select Category' },
+    ...categories.map((c) => ({
+      value: c.id,
+      label: c.parent ? `${c.parent.name} › ${c.name}` : c.name,
+    })),
+  ], [categories, isKhmer]);
+
   return (
     <div
       className="space-y-4"
@@ -1983,19 +1991,14 @@ export default function AdminProductsPage() {
                   )}
                   <div>
                     <label className={modalLabelCls}>Category *</label>
-                    <select
+                    <CustomDropdown
                       value={form.categoryId}
-                      onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-                      required
-                      className={modalInputCls}
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.parent ? `${c.parent.name} › ${c.name}` : c.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setForm((p) => ({ ...p, categoryId: val }))}
+                      options={modalCategoryOptions}
+                      size="md"
+                      variant="luxury"
+                      className="w-full"
+                    />
                   </div>
                   <div>
                     <label className={modalLabelCls}>Brand</label>
