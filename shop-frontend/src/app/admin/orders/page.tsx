@@ -13,7 +13,6 @@ import Image from 'next/image';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
-import { BarcodeVerifyModal } from '@/components/admin/BarcodeVerifyModal';
 import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 
 export default function AdminOrdersPage() {
@@ -51,7 +50,6 @@ export default function AdminOrdersPage() {
 
   // Excel Export State
   const [excelModalOpen, setExcelModalOpen] = useState(false);
-  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -354,17 +352,6 @@ export default function AdminOrdersPage() {
             className="p-1.5 text-gray-500 hover:text-amber-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-lg transition"
           >
             <Volume2 className="w-4 h-4 text-amber-500" />
-          </button>
-
-          {/* Scan Barcode / Verify Receipt Button */}
-          <button
-            type="button"
-            onClick={() => setVerifyModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs shadow-primary-500/20 transition active:scale-95 cursor-pointer"
-            title={isKhmer ? 'ស្កេនផ្ទៀងផ្ទាត់វិក្កយបត្រ (Scan Barcode)' : 'Scan Receipt Barcode'}
-          >
-            <Scan className="w-3.5 h-3.5" />
-            <span>{isKhmer ? 'ស្កេន Barcode វិក្កយបត្រ' : 'Scan Barcode'}</span>
           </button>
 
           {/* Export Excel Button */}
@@ -905,13 +892,6 @@ export default function AdminOrdersPage() {
         orders={orders}
         products={products}
         categories={categories}
-        language={language}
-      />
-
-      {/* Barcode & Receipt Verification Modal */}
-      <BarcodeVerifyModal
-        isOpen={verifyModalOpen}
-        onClose={() => setVerifyModalOpen(false)}
         language={language}
       />
     </div>
