@@ -33,6 +33,7 @@ import { notificationApi, adminApi } from '@/lib/api';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import toast from 'react-hot-toast';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 type NotificationItem = {
   id: string;
@@ -63,6 +64,7 @@ type UserCandidate = {
 export default function AdminNotificationsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { confirm } = useConfirm();
 
   // Composer Form States
   const [title, setTitle] = useState('');
@@ -199,7 +201,14 @@ export default function AdminNotificationsPage() {
 
   // Handle Delete Broadcast
   const handleDelete = async (id: string) => {
-    if (!confirm(isKhmer ? 'តើអ្នកពិតជាចង់លុបសេចក្តីជូនដំណឹងនេះមែនទេ?' : 'Are you sure you want to delete this notification?')) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបសេចក្តីជូនដំណឹង' : 'Delete Notification',
+      message: isKhmer ? 'តើអ្នកពិតជាចង់លុបសេចក្តីជូនដំណឹងនេះមែនទេ?' : 'Are you sure you want to delete this notification?',
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     setDeletingId(id);
     try {
       await notificationApi.deleteBroadcast(id);

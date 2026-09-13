@@ -38,10 +38,12 @@ import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { saveStockAdjustment } from '@/lib/stockLossStorage';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function AdminProductsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { confirm } = useConfirm();
   const modalLabelCls = `block mb-1.5 text-slate-600 dark:text-slate-300 ${isKhmer ? 'text-[13px] font-medium' : 'text-[11px] font-semibold uppercase tracking-[0.06em]'
     }`;
   const modalInputCls = 'input text-sm min-h-[44px]';
@@ -626,7 +628,14 @@ export default function AdminProductsPage() {
 
   const handleDelete = async (id: string, name: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (!window.confirm(isKhmer ? `តើអ្នកពិតជាចង់លុបទំនិញ "${name}" មែនទេ?` : `Delete "${name}"?`)) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបទំនិញ' : 'Delete Product',
+      message: isKhmer ? `តើអ្នកពិតជាចង់លុបទំនិញ «${name}» មែនទេ?` : `Are you sure you want to delete "${name}"?`,
+      confirmText: isKhmer ? 'លុបទំនិញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await productApi.delete(id);
       updateProductsStateAndCache((prev) => prev.filter((p) => p.id !== id));

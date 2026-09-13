@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useLanguageStore } from '@/store/languageStore';
 import { reviewApi } from '@/lib/api';
 import { t } from '@/lib/i18n';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 type ReviewRow = {
   id: string;
@@ -22,7 +23,9 @@ type ReviewRow = {
 export default function DashboardReviewsPage() {
   const router = useRouter();
   const { language } = useLanguageStore();
+  const isKhmer = language === 'km';
   const { isAuthenticated, isAuthChecked, fetchUser } = useAuthStore();
+  const { confirm } = useConfirm();
   const [items, setItems] = useState<ReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +44,14 @@ export default function DashboardReviewsPage() {
   }, [isAuthChecked, isAuthenticated, language, router]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t(language, 'remove') + '?')) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបការវាយតម្លៃ' : 'Delete Review',
+      message: isKhmer ? 'តើអ្នកពិតជាចង់លុបការវាយតម្លៃនេះមែនទេ?' : 'Are you sure you want to delete this review?',
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await reviewApi.delete(id);
       setItems((prev) => prev.filter((r) => r.id !== id));

@@ -17,12 +17,14 @@ import { CardPaymentModal } from '@/components/payment/CardPaymentModal';
 import { StripePaymentModal } from '@/components/payment/StripePaymentModal';
 import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopContact';
 import { useRealtime } from '@/providers/RealtimeProvider';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { isAuthenticated, isAuthChecked } = useAuthStore();
   const { language } = useLanguageStore();
+  const { confirm } = useConfirm();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -514,13 +516,18 @@ export default function OrderDetailsPage() {
 
   const handleCancelOrder = async () => {
     if (!order) return;
-    const ok = window.confirm(
-      language === 'km'
-        ? 'តើអ្នកចង់បោះបង់ការបញ្ជាទិញនេះមែនទេ?'
-        : language === 'zh'
+    const ok = await confirm({
+      title: language === 'km' ? 'បញ្ជាក់ការបោះបង់ការបញ្ជាទិញ' : language === 'zh' ? '确认取消订单' : 'Cancel Order',
+      message:
+        language === 'km'
+          ? 'តើអ្នកចង់បោះបង់ការបញ្ជាទិញនេះមែនទេ?'
+          : language === 'zh'
           ? '确定要取消此订单吗？'
-          : 'Are you sure you want to cancel this order?'
-    );
+          : 'Are you sure you want to cancel this order?',
+      confirmText: language === 'km' ? 'បោះបង់ការកម្ម៉ង់' : language === 'zh' ? '确认取消' : 'Cancel Order',
+      cancelText: language === 'km' ? 'រក្សាទុក' : language === 'zh' ? '保留订单' : 'Keep Order',
+      variant: 'danger',
+    });
     if (!ok) return;
     try {
       await orderApi.cancel(order.id);

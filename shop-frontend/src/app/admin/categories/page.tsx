@@ -8,10 +8,12 @@ import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function AdminCategoriesPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { confirm } = useConfirm();
   const [categories, setCategories] = useState<Category[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -133,7 +135,14 @@ export default function AdminCategoriesPage() {
       );
       return;
     }
-    if (!window.confirm(isKhmer ? `តើអ្នកចង់លុបប្រភេទ «${c.name}» មែនទេ?` : `Delete category "${c.name}"?`)) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបប្រភេទ' : 'Delete Category',
+      message: isKhmer ? `តើអ្នកចង់លុបប្រភេទ «${c.name}» មែនទេ?` : `Are you sure you want to delete category "${c.name}"?`,
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await categoryApi.delete(c.id);
       toast.success(adminT(language, 'categoryRemoved'));

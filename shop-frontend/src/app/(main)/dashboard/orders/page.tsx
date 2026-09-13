@@ -30,6 +30,7 @@ import { t } from '@/lib/i18n';
 import { formatPrice, formatDate, getOrderStatusColor, getPaymentStatusColor, cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useRealtime } from '@/providers/RealtimeProvider';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -37,6 +38,7 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'DELIVERED' | 'CANCELLED'>('ALL');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { confirm } = useConfirm();
 
   const { isAuthenticated, isAuthChecked } = useAuthStore();
   const { language } = useLanguageStore();
@@ -93,9 +95,14 @@ export default function OrdersPage() {
   };
 
   const handleCancel = async (orderId: string) => {
-    if (!window.confirm(isKhmer ? 'តើអ្នកពិតជាចង់បោះបង់ការកម្ម៉ង់នេះមែនទេ?' : 'Are you sure you want to cancel this order?')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការបោះបង់ការបញ្ជាទិញ' : 'Cancel Order',
+      message: isKhmer ? 'តើអ្នកពិតជាចង់បោះបង់ការកម្ម៉ង់នេះមែនទេ?' : 'Are you sure you want to cancel this order?',
+      confirmText: isKhmer ? 'បោះបង់ការកម្ម៉ង់' : 'Cancel Order',
+      cancelText: isKhmer ? 'រក្សាទុក' : 'Keep Order',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await orderApi.cancel(orderId);
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'CANCELLED' } : o)));

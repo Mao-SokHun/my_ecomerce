@@ -46,10 +46,12 @@ import {
   calculateStockLossSummary,
   StockAdjustmentItem,
 } from '@/lib/stockLossStorage';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function FinancialAccountingPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { confirm } = useConfirm();
   const [excelModalOpen, setExcelModalOpen] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -192,16 +194,17 @@ export default function FinancialAccountingPage() {
     }
   };
 
-  const handleDeleteLoss = (id: string, name: string) => {
-    if (
-      !window.confirm(
-        isKhmer
-          ? `តើអ្នកពិតជាចង់លុបកំណត់ត្រា "${name}" នេះមែនទេ?`
-          : `Delete this record for "${name}"?`
-      )
-    ) {
-      return;
-    }
+  const handleDeleteLoss = async (id: string, name: string) => {
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបកំណត់ត្រា' : 'Delete Loss Record',
+      message: isKhmer
+        ? `តើអ្នកពិតជាចង់លុបកំណត់ត្រា «${name}» នេះចេញពីបញ្ជីមែនទេ?`
+        : `Are you sure you want to delete this loss record for "${name}"?`,
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     removeStockAdjustment(id);
     toast.success(isKhmer ? 'បានលុបកំណត់ត្រាជោគជ័យ' : 'Record deleted');
   };
@@ -385,18 +388,26 @@ export default function FinancialAccountingPage() {
     });
   };
 
-  const handleClearCalcHistory = () => {
-    if (window.confirm(isKhmer ? 'តើអ្នកពិតជាចង់សម្អាតប្រវត្តិគណនាទាំងអស់មែនទេ?' : 'Clear all calculation history?')) {
-      setCalcHistory([]);
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sh_admin_calc_history');
-        }
-      } catch {
-        // ignore
+  const handleClearCalcHistory = async () => {
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការសម្អាតប្រវត្តិគណនា' : 'Clear Calculator History',
+      message: isKhmer
+        ? 'តើអ្នកពិតជាចង់សម្អាតប្រវត្តិគណនាទាំងអស់ចេញពីឧបករណ៍មែនទេ?'
+        : 'Are you sure you want to clear all calculation history from this device?',
+      confirmText: isKhmer ? 'សម្អាតទាំងអស់' : 'Clear All',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+    setCalcHistory([]);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('sh_admin_calc_history');
       }
-      toast.success(isKhmer ? 'បានសម្អាតប្រវត្តិគណនាជោគជ័យ' : 'Calculation history cleared');
+    } catch {
+      // ignore
     }
+    toast.success(isKhmer ? 'បានសម្អាតប្រវត្តិគណនាជោគជ័យ' : 'Calculation history cleared');
   };
 
   const handleDeleteCalcHistoryItem = (id: string) => {

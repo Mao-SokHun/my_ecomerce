@@ -10,6 +10,8 @@ import { CartDrawer } from './cart/CartDrawer';
 import SupportChatWidget from './chat/SupportChatWidget';
 import { RealtimeProvider } from '@/providers/RealtimeProvider';
 
+import { ConfirmProvider } from './ui/ConfirmModal';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isDark } = useThemeStore();
@@ -90,24 +92,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <RealtimeProvider>
-      {children}
-      <CartDrawer />
-      <SupportChatWidget />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: isDark ? '#1c1c1e' : '#fff',
-            color: isDark ? '#f4f4f5' : '#111',
-            borderRadius: '12px',
-            border: `1px solid ${isDark ? '#3f3f46' : '#e4e4e7'}`,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            fontSize: '14px',
-            transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          },
-        }}
-      />
+      <ConfirmProvider>
+        {children}
+        <CartDrawer />
+        <SupportChatWidget />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: isDark ? '#1c1c1e' : '#fff',
+              color: isDark ? '#f4f4f5' : '#111',
+              borderRadius: '12px',
+              border: `1px solid ${isDark ? '#3f3f46' : '#e4e4e7'}`,
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+              fontSize: '14px',
+              transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            },
+          }}
+        />
+      </ConfirmProvider>
     </RealtimeProvider>
   );
 }

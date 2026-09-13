@@ -11,11 +11,14 @@ import { useLanguageStore } from '@/store/languageStore';
 import { userApi } from '@/lib/api';
 import { Address } from '@/types';
 import { t } from '@/lib/i18n';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function DashboardAddressesPage() {
   const router = useRouter();
   const { language } = useLanguageStore();
+  const isKhmer = language === 'km';
   const { isAuthenticated, isAuthChecked, fetchUser } = useAuthStore();
+  const { confirm } = useConfirm();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +41,14 @@ export default function DashboardAddressesPage() {
   }, [isAuthChecked, isAuthenticated, router, load]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(t(language, 'remove') + '?')) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបអាសយដ្ឋាន' : 'Delete Address',
+      message: isKhmer ? 'តើអ្នកពិតជាចង់លុបអាសយដ្ឋាននេះមែនទេ?' : 'Are you sure you want to delete this address?',
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await userApi.deleteAddress(id, language);
       setAddresses((prev) => prev.filter((a) => a.id !== id));

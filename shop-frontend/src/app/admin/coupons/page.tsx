@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
+import { useConfirm } from '@/components/ui/ConfirmModal';
 
 type Coupon = {
   id: string;
@@ -39,14 +40,17 @@ type Coupon = {
   maxDiscount?: number | null;
   usageLimit?: number | null;
   usedCount: number;
-  isActive: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
   expiresAt?: string | null;
+  isActive: boolean;
   createdAt: string;
 };
 
 export default function AdminCouponsPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { confirm } = useConfirm();
   const isZh = language === 'zh';
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     if (typeof window !== 'undefined') {
@@ -263,7 +267,14 @@ export default function AdminCouponsPage() {
   };
 
   const removeCoupon = async (id: string) => {
-    if (!window.confirm(adminT(language, 'deleteCouponConfirm'))) return;
+    const confirmed = await confirm({
+      title: isKhmer ? 'បញ្ជាក់ការលុបប័ណ្ណបញ្ចុះតម្លៃ' : 'Delete Coupon',
+      message: adminT(language, 'deleteCouponConfirm'),
+      confirmText: isKhmer ? 'លុបចេញ' : 'Delete',
+      cancelText: isKhmer ? 'បោះបង់' : 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await adminApi.deleteCoupon(id);
       toast.success(adminT(language, 'couponDeleted'));
