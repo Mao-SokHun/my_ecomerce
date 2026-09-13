@@ -301,7 +301,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div
-      className="min-h-screen bg-slate-100 dark:bg-surface-950 flex relative overflow-x-hidden font-sans"
+      className="min-h-screen bg-slate-100 dark:bg-surface-950 relative overflow-x-hidden font-sans"
       style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}
     >
       <div className="pointer-events-none absolute -top-20 -right-16 w-80 h-80 rounded-full bg-primary-200/40 dark:bg-primary-900/20 blur-3xl" />
@@ -593,7 +593,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Main */}
-      <div className={`flex-1 min-w-0 max-w-full ${compactSidebar ? 'lg:ml-[92px]' : 'lg:ml-[280px]'} flex flex-col relative z-10 transition-all duration-300 overflow-x-hidden`}>
+      <div className={`w-full min-w-0 ${compactSidebar ? 'lg:pl-[92px]' : 'lg:pl-[280px]'} flex flex-col min-h-screen relative z-10 transition-all duration-300`}>
         <header
           className={`sticky top-0 z-30 px-5 h-[68px] flex items-center gap-4 transition-all duration-200 ${
             isScrolled
