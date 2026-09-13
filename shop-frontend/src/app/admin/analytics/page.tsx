@@ -28,6 +28,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   HelpCircle,
+  History,
+  Trash2,
+  Delete as DeleteIcon,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -51,11 +54,137 @@ export default function FinancialAccountingPage() {
   const [simQty, setSimQty] = useState<string>('50');
 
   // General Purpose Digital Calculator state
+  interface CalcHistoryItem {
+    id: string;
+    expression: string;
+    result: string;
+    timestamp: number;
+  }
+
   const [calcDisplay, setCalcDisplay] = useState<string>('0');
   const [calcPrev, setCalcPrev] = useState<string>('');
   const [calcOp, setCalcOp] = useState<string>('');
   const [calcExpression, setCalcExpression] = useState<string>('');
   const [calcJustEvaled, setCalcJustEvaled] = useState<boolean>(false);
+  const [calcHistory, setCalcHistory] = useState<CalcHistoryItem[]>([]);
+  const [calcRightTab, setCalcRightTab] = useState<'formulas' | 'history'>('formulas');
+
+  // Load calculator history from LocalStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sh_admin_calc_history');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setCalcHistory(parsed);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse calc history:', e);
+      }
+    }
+  }, []);
+
+  // Backspace: deletes only the last digit typed
+  const handleCalcBackspace = () => {
+    if (calcJustEvaled) {
+      setCalcDisplay('0');
+      setCalcJustEvaled(false);
+      return;
+    }
+    setCalcDisplay((prev) => {
+      if (prev.length <= 1) return '0';
+      if (prev.length === 2 && prev.startsWith('-')) return '0';
+      return prev.slice(0, -1);
+    });
+  };
+
+  // Evaluate & save to localStorage history
+  const handleCalcEval = () => {
+    const a = parseFloat(calcPrev);
+    const b = parseFloat(calcDisplay);
+    if (!calcOp || isNaN(a) || isNaN(b)) return;
+    let res = 0;
+    if (calcOp === '+') res = a + b;
+    else if (calcOp === '-') res = a - b;
+    else if (calcOp === '*') res = a * b;
+    else if (calcOp === '/') res = b !== 0 ? a / b : 0;
+    const rounded = Math.round(res * 1e10) / 1e10;
+    const opSymbol = calcOp === '*' ? '×' : calcOp === '/' ? '÷' : calcOp;
+    const expr = `${calcPrev} ${opSymbol} ${b} =`;
+    const resStr = String(rounded);
+
+    setCalcExpression(expr);
+    setCalcDisplay(resStr);
+    setCalcPrev('');
+    setCalcOp('');
+    setCalcJustEvaled(true);
+
+    const newItem: CalcHistoryItem = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      expression: expr,
+      result: resStr,
+      timestamp: Date.now(),
+    };
+
+    setCalcHistory((prev) => {
+      const updated = [newItem, ...prev.filter((i) => i.expression !== expr || i.result !== resStr)].slice(0, 30);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sh_admin_calc_history', JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const handleClearCalcHistory = () => {
+    if (window.confirm(isKhmer ? 'តើអ្នកពិតជាចង់សម្អាតប្រវត្តិគណនាទាំងអស់មែនទេ?' : 'Clear all calculation history?')) {
+      setCalcHistory([]);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sh_admin_calc_history');
+        }
+      } catch {
+        // ignore
+      }
+      toast.success(isKhmer ? 'បានសម្អាតប្រវត្តិគណនាជោគជ័យ' : 'Calculation history cleared');
+    }
+  };
+
+  const handleDeleteCalcHistoryItem = (id: string) => {
+    setCalcHistory((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sh_admin_calc_history', JSON.stringify(updated));
+        }
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const handleUseCalcHistoryResult = (val: string) => {
+    setCalcDisplay(val);
+    setCalcJustEvaled(true);
+    toast.success(isKhmer ? `បានយកលេខ ${val} មកប្រើ` : `Loaded ${val}`);
+  };
+
+  const formatCalcTime = (ts: number) => {
+    const diffSec = Math.floor((Date.now() - ts) / 1000);
+    if (diffSec < 60) return isKhmer ? 'មុននេះបន្តិច' : 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return isKhmer ? `${diffMin} នាទីមុន` : `${diffMin}m ago`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return isKhmer ? `${diffHours} ម៉ោងមុន` : `${diffHours}h ago`;
+    const d = new Date(ts);
+    return `${d.toLocaleDateString(isKhmer ? 'km-KH' : 'en-US', { month: 'short', day: 'numeric' })}`;
+  };
 
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -636,129 +765,133 @@ export default function FinancialAccountingPage() {
                 </span>
               </div>
 
-              {/* Calculator Buttons Grid */}
+              {/* Calculator Buttons Grid (4 columns x 5 rows) */}
               <div className="grid grid-cols-4 gap-1.5">
-                {/* Row 1 */}
-                {[
-                  { label: 'AC', val: 'ac', cls: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100' },
-                  { label: '+/-', val: 'sign', cls: 'bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70' },
-                  { label: '%', val: 'pct', cls: 'bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70' },
-                  { label: '÷', val: '/', cls: 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base' },
-                ].map((btn) => (
+                {/* Row 1: AC, Backspace ⌫, %, ÷ */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
+                  }}
+                  title={isKhmer ? 'លុបទាំងអស់ (All Clear)' : 'All Clear'}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100"
+                >
+                  AC
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcBackspace}
+                  title={isKhmer ? 'លុបមួយខ្ទង់ក្រោយ (Backspace)' : 'Backspace'}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 flex items-center justify-center"
+                >
+                  <DeleteIcon className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalcDisplay((d) => String(parseFloat(d) / 100))}
+                  title={isKhmer ? 'ភាគរយ (%)' : 'Percentage'}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70"
+                >
+                  %
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalcPrev(calcDisplay); setCalcOp('/');
+                    setCalcExpression(calcDisplay + ' ÷ ');
+                    setCalcJustEvaled(false);
+                  }}
+                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                >
+                  ÷
+                </button>
+
+                {/* Row 2: 7, 8, 9, × */}
+                {['7', '8', '9'].map((digit) => (
                   <button
-                    key={btn.val}
+                    key={digit}
                     type="button"
                     onClick={() => {
-                      if (btn.val === 'ac') {
-                        setCalcDisplay('0'); setCalcPrev(''); setCalcOp(''); setCalcExpression(''); setCalcJustEvaled(false);
-                      } else if (btn.val === 'sign') {
-                        setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
-                      } else if (btn.val === 'pct') {
-                        setCalcDisplay((d) => String(parseFloat(d) / 100));
-                      } else {
-                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
-                        setCalcExpression(calcDisplay + ' ' + btn.label + ' ');
-                        setCalcJustEvaled(false);
-                      }
+                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
+                      setCalcDisplay(next); setCalcJustEvaled(false);
                     }}
-                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${btn.cls}`}
+                    className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
-                    {btn.label}
+                    {digit}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalcPrev(calcDisplay); setCalcOp('*');
+                    setCalcExpression(calcDisplay + ' × ');
+                    setCalcJustEvaled(false);
+                  }}
+                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                >
+                  ×
+                </button>
 
-                {/* Row 2 */}
-                {[
-                  { label: '7', val: '7' }, { label: '8', val: '8' }, { label: '9', val: '9' },
-                  { label: '×', val: '*', isOp: true }
-                ].map((btn) => (
+                {/* Row 3: 4, 5, 6, - */}
+                {['4', '5', '6'].map((digit) => (
                   <button
-                    key={btn.label}
+                    key={digit}
                     type="button"
                     onClick={() => {
-                      if (btn.isOp) {
-                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
-                        setCalcExpression(calcDisplay + ' ' + btn.label + ' ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
+                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
+                      setCalcDisplay(next); setCalcJustEvaled(false);
                     }}
-                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
-                      btn.isOp
-                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
+                    className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
-                    {btn.label}
+                    {digit}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalcPrev(calcDisplay); setCalcOp('-');
+                    setCalcExpression(calcDisplay + ' - ');
+                    setCalcJustEvaled(false);
+                  }}
+                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                >
+                  -
+                </button>
 
-                {/* Row 3 */}
-                {[
-                  { label: '4', val: '4' }, { label: '5', val: '5' }, { label: '6', val: '6' },
-                  { label: '-', val: '-', isOp: true }
-                ].map((btn) => (
+                {/* Row 4: 1, 2, 3, + */}
+                {['1', '2', '3'].map((digit) => (
                   <button
-                    key={btn.label}
+                    key={digit}
                     type="button"
                     onClick={() => {
-                      if (btn.isOp) {
-                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
-                        setCalcExpression(calcDisplay + ' - ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
+                      const next = calcJustEvaled || calcDisplay === '0' ? digit : calcDisplay + digit;
+                      setCalcDisplay(next); setCalcJustEvaled(false);
                     }}
-                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
-                      btn.isOp
-                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
+                    className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                   >
-                    {btn.label}
+                    {digit}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCalcPrev(calcDisplay); setCalcOp('+');
+                    setCalcExpression(calcDisplay + ' + ');
+                    setCalcJustEvaled(false);
+                  }}
+                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 border bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs"
+                >
+                  +
+                </button>
 
-                {/* Row 4 */}
-                {[
-                  { label: '1', val: '1' }, { label: '2', val: '2' }, { label: '3', val: '3' },
-                  { label: '+', val: '+', isOp: true }
-                ].map((btn) => (
-                  <button
-                    key={btn.label}
-                    type="button"
-                    onClick={() => {
-                      if (btn.isOp) {
-                        setCalcPrev(calcDisplay); setCalcOp(btn.val);
-                        setCalcExpression(calcDisplay + ' + ');
-                        setCalcJustEvaled(false);
-                      } else {
-                        const next = calcJustEvaled || calcDisplay === '0' ? btn.val : calcDisplay + btn.val;
-                        setCalcDisplay(next); setCalcJustEvaled(false);
-                      }
-                    }}
-                    className={`h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
-                      btn.isOp
-                        ? 'bg-primary-600 text-white hover:bg-primary-700 border-transparent shadow-xs font-black text-base'
-                        : 'bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700'
-                    }`}
-                  >
-                    {btn.label}
-                  </button>
-                ))}
-
-                {/* Row 5: 0, ., = */}
+                {/* Row 5: 0, ., +/-, = */}
                 <button
                   type="button"
                   onClick={() => {
                     const next = calcJustEvaled || calcDisplay === '0' ? '0' : calcDisplay + '0';
                     setCalcDisplay(next === '00' ? '0' : next); setCalcJustEvaled(false);
                   }}
-                  className="col-span-2 h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                 >
                   0
                 </button>
@@ -767,56 +900,160 @@ export default function FinancialAccountingPage() {
                   onClick={() => {
                     if (!calcDisplay.includes('.')) setCalcDisplay((d) => d + '.');
                   }}
-                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-white dark:bg-surface-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-white dark:bg-surface-800 text-slate-800 dark:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-surface-700"
                 >
                   .
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    const a = parseFloat(calcPrev);
-                    const b = parseFloat(calcDisplay);
-                    if (!calcOp || isNaN(a) || isNaN(b)) return;
-                    let res = 0;
-                    if (calcOp === '+') res = a + b;
-                    else if (calcOp === '-') res = a - b;
-                    else if (calcOp === '*') res = a * b;
-                    else if (calcOp === '/') res = b !== 0 ? a / b : 0;
-                    const rounded = Math.round(res * 1e10) / 1e10;
-                    setCalcExpression(`${calcPrev} ${calcOp === '*' ? '×' : calcOp === '/' ? '÷' : calcOp} ${b} =`);
-                    setCalcDisplay(String(rounded));
-                    setCalcPrev(''); setCalcOp('');
-                    setCalcJustEvaled(true);
+                    setCalcDisplay((d) => d.startsWith('-') ? d.slice(1) : d === '0' ? '0' : '-' + d);
                   }}
-                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-black text-base"
+                  title={isKhmer ? 'ប្តូរសញ្ញា (+/-)' : 'Toggle sign'}
+                  className="h-10 rounded-xl text-xs font-bold transition-all active:scale-95 border bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 font-semibold"
+                >
+                  +/-
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCalcEval}
+                  title={isKhmer ? 'គណនា (=)' : 'Calculate'}
+                  className="h-10 rounded-xl text-base font-black transition-all active:scale-95 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
                   =
                 </button>
               </div>
             </div>
 
-            {/* Quick Reference Commerce Formulas */}
-            <div className="flex-1 w-full space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
-                <span>💡</span>
-                <span>{isKhmer ? 'រូបមន្តគណនាហិរញ្ញវត្ថុរហ័ស' : 'Financial Reference Formulas'}</span>
+            {/* Right Column: Tabbed Formulas & Calculation History */}
+            <div className="flex-1 w-full space-y-3">
+              {/* Tab Selector Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-surface-800 rounded-xl text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setCalcRightTab('formulas')}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                      calcRightTab === 'formulas'
+                        ? 'bg-white dark:bg-surface-700 text-slate-900 dark:text-white shadow-xs font-bold'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <span>💡</span>
+                    <span>{isKhmer ? 'រូបមន្តជំនួយ' : 'Formulas'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalcRightTab('history')}
+                    className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                      calcRightTab === 'history'
+                        ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-xs font-bold'
+                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    <History className="w-3.5 h-3.5" />
+                    <span>{isKhmer ? 'ប្រវត្តិគណនា' : 'History'}</span>
+                    {calcHistory.length > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-300 text-[10px] font-bold">
+                        {calcHistory.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {calcRightTab === 'history' && calcHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearCalcHistory}
+                    className="text-[11px] text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+                    title={isKhmer ? 'សម្អាតប្រវត្តិគណនាទាំងអស់' : 'Clear all history'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{isKhmer ? 'សម្អាតប្រវត្តិ' : 'Clear History'}</span>
+                  </button>
+                )}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 text-xs">
-                {[
-                  { label: isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit', formula: 'Selling Price - Cost Price', desc: isKhmer ? 'ថ្លៃលក់ - ថ្លៃដើម' : 'Price minus cost' },
-                  { label: isKhmer ? 'ភាគរយចំណេញ (Margin %)' : 'Margin %', formula: '(Profit ÷ Price) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃលក់) × 100' : 'Profit ratio over price' },
-                  { label: isKhmer ? 'ដើមទុនសរុប' : 'Total Capital', formula: 'Cost Price × Stock Qty', desc: isKhmer ? 'ថ្លៃដើម × ចំនួនស្តុក' : 'Capital locked in inventory' },
-                  { label: isKhmer ? 'ចំណូលលក់សរុប' : 'Total Revenue', formula: 'Selling Price × Stock Qty', desc: isKhmer ? 'ថ្លៃលក់ × ចំនួនស្តុក' : 'Total revenue potential' },
-                  { label: isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Profit', formula: '(Profit / Unit) × Stock Qty', desc: isKhmer ? 'ចំណេញក្នុង១គ្រឿង × ស្តុក' : 'Net expected gross profit' },
-                  { label: isKhmer ? 'Markup % (ចំណេញលើដើម)' : 'Markup %', formula: '(Profit ÷ Cost) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃដើម) × 100' : 'Profit ratio over cost' },
-                ].map((item) => (
-                  <div key={item.label} className="p-3 rounded-xl bg-slate-50 dark:bg-surface-800/60 border border-slate-100 dark:border-slate-800 space-y-1 hover:border-indigo-300 dark:hover:border-indigo-700 transition">
-                    <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.label}</p>
-                    <p className="font-mono text-[11px] text-primary-600 dark:text-primary-400 font-semibold">{item.formula}</p>
-                    <p className="text-[10px] text-slate-400">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
+
+              {/* Tab Content 1: Formulas */}
+              {calcRightTab === 'formulas' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 text-xs">
+                  {[
+                    { label: isKhmer ? 'ចំណេញ / ១គ្រឿង' : 'Profit / Unit', formula: 'Selling Price - Cost Price', desc: isKhmer ? 'ថ្លៃលក់ - ថ្លៃដើម' : 'Price minus cost' },
+                    { label: isKhmer ? 'ភាគរយចំណេញ (Margin %)' : 'Margin %', formula: '(Profit ÷ Price) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃលក់) × 100' : 'Profit ratio over price' },
+                    { label: isKhmer ? 'ដើមទុនសរុប' : 'Total Capital', formula: 'Cost Price × Stock Qty', desc: isKhmer ? 'ថ្លៃដើម × ចំនួនស្តុក' : 'Capital locked in inventory' },
+                    { label: isKhmer ? 'ចំណូលលក់សរុប' : 'Total Revenue', formula: 'Selling Price × Stock Qty', desc: isKhmer ? 'ថ្លៃលក់ × ចំនួនស្តុក' : 'Total revenue potential' },
+                    { label: isKhmer ? 'ប្រាក់ចំណេញសរុប' : 'Total Profit', formula: '(Profit / Unit) × Stock Qty', desc: isKhmer ? 'ចំណេញក្នុង១គ្រឿង × ស្តុក' : 'Net expected gross profit' },
+                    { label: isKhmer ? 'Markup % (ចំណេញលើដើម)' : 'Markup %', formula: '(Profit ÷ Cost) × 100', desc: isKhmer ? '(ចំណេញ ÷ ថ្លៃដើម) × 100' : 'Profit ratio over cost' },
+                  ].map((item) => (
+                    <div key={item.label} className="p-3 rounded-xl bg-slate-50 dark:bg-surface-800/60 border border-slate-100 dark:border-slate-800 space-y-1 hover:border-indigo-300 dark:hover:border-indigo-700 transition">
+                      <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.label}</p>
+                      <p className="font-mono text-[11px] text-primary-600 dark:text-primary-400 font-semibold">{item.formula}</p>
+                      <p className="text-[10px] text-slate-400">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Tab Content 2: History (saved to LocalStorage) */}
+              {calcRightTab === 'history' && (
+                <div className="space-y-2">
+                  {calcHistory.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-surface-850">
+                      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-surface-800 flex items-center justify-center text-slate-400">
+                        <History className="w-4 h-4" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        {isKhmer ? 'មិនទាន់មានប្រវត្តិគណនានៅឡើយទេ' : 'No calculation history yet'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 max-w-sm">
+                        {isKhmer
+                          ? 'រាល់ពេលចុច «=» ការគណនានឹងត្រូវបានរក្សាទុកក្នុង LocalStorage ដោយស្វ័យប្រវត្តិ'
+                          : 'Calculations will be saved automatically to localStorage when you press "="'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-[220px] overflow-y-auto space-y-1.5 pr-1">
+                      {calcHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50 dark:bg-surface-800/60 border border-slate-100 dark:border-slate-800/80 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-indigo-50/20 transition group"
+                        >
+                          <div className="flex flex-col min-w-0 pr-2">
+                            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 truncate">
+                              {item.expression}
+                            </span>
+                            <span className="text-sm font-mono font-black text-slate-900 dark:text-white truncate">
+                              {item.result}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-slate-400 mr-1 hidden sm:inline font-mono">
+                              {formatCalcTime(item.timestamp)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleUseCalcHistoryResult(item.result)}
+                              className="px-2 py-1 text-[11px] font-bold rounded-lg bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 border border-slate-200 dark:border-slate-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 shadow-2xs transition active:scale-95"
+                              title={isKhmer ? 'យកមកប្រើក្នុងម៉ាស៊ីនគណនា' : 'Use in calculator'}
+                            >
+                              {isKhmer ? 'យកមកប្រើ' : 'Use'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCalcHistoryItem(item.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition active:scale-95"
+                              title={isKhmer ? 'លុប' : 'Delete'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
