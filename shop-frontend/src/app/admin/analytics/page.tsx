@@ -799,7 +799,7 @@ export default function FinancialAccountingPage() {
             <div className="flex-1 w-full space-y-2.5">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
                 <span>💡</span>
-                <span>{isKhmer ? 'រូបមន្តគណនាហិរញ្ញវត្ថុរហ័ស (Quick Formulas)' : 'Financial Reference Formulas'}</span>
+                <span>{isKhmer ? 'រូបមន្តគណនាហិរញ្ញវត្ថុរហ័ស' : 'Financial Reference Formulas'}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 text-xs">
                 {[
