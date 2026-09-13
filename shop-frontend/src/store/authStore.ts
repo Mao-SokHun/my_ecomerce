@@ -268,12 +268,23 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({
-        user: state.user,
         token: state.token,
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('auth-storage');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed?.state?.user) {
+                delete parsed.state.user;
+                localStorage.setItem('auth-storage', JSON.stringify(parsed));
+              }
+            }
+          } catch {}
+        }
         if (state) {
           useAuthStore.setState({ isAuthChecked: true });
         }
