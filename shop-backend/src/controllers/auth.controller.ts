@@ -144,57 +144,220 @@ const formatDateTime24 = (value: Date): string =>
     hour12: false,
   });
 
-const buildPasswordResetEmail = (code: string): { subject: string; text: string; html: string } => {
-  const subject = 'Your SH Shop verification code';
+const buildPasswordResetEmail = (
+  code: string,
+  customerName?: string,
+  email?: string
+): { subject: string; text: string; html: string } => {
+  const subject = `SH-Shop — Verification Code: ${code} (Expires in 15 mins)`;
+  const digits = code.split('');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const resetLink = email
+    ? `${frontendUrl}/login?email=${encodeURIComponent(email)}&code=${code}`
+    : `${frontendUrl}/login`;
+
   const text = [
-    'SH Shop password reset verification',
+    'SH-Shop — Verification Code',
     '',
-    `Your verification code is: ${code}`,
-    'This code expires in 10 minutes.',
+    `Hello ${customerName || 'Valued Customer'},`,
+    `We received an authorization request to reset the password for your account (${email || 'your email'}).`,
     '',
-    'For your security, do not share this code with anyone.',
-    'If you did not request this, you can ignore this email.',
+    `YOUR VERIFICATION CODE: ${code}`,
+    '',
+    `Reset Link: ${resetLink}`,
+    '',
+    '• Valid for 15 minutes (Single-use security token).',
+    '• Never share this code with anyone, including SH-Shop staff.',
+    '• If you did not make this request, you can safely disregard this email.',
+    '',
+    '© 2026 SH-Shop E-Commerce Co., Ltd. All rights reserved.',
   ].join('\n');
+
+  const digitBoxesHtml = digits
+    .map(
+      (d) => `
+      <td align="center" style="width: 42px; height: 48px; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border: 1.5px solid #6366f1; border-radius: 10px; font-size: 22px; font-weight: 800; color: #1e1b4b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 3px 8px rgba(99, 102, 241, 0.12); text-align: center;">
+        ${d}
+      </td>
+    `
+    )
+    .join('<td style="width: 6px;"></td>');
+
   const html = `
-    <div style="margin:0;padding:0;background:#f3f5fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="padding:24px 12px;">
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="color-scheme" content="light dark">
+      <title>SH-Shop — Password Reset Verification</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1e293b;">
+      
+      <!-- Outer Background Container (Clean Light Backdrop) -->
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f6f8; padding: 25px 12px;">
         <tr>
           <td align="center">
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;">
+            
+            <!-- Main Email Container Card (Compact 460px on Clean Canvas) -->
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 460px; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.08), 0 0 0 1px #e2e8f0; border-collapse: separate;">
+              
+              <!-- Top Hero Luxury Header (Compact) -->
               <tr>
-                <td style="padding:20px 24px;background:#1d4ed8;color:#ffffff;font-size:20px;font-weight:700;">
-                  SH Shop
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:24px;">
-                  <p style="margin:0 0 12px;font-size:18px;font-weight:700;color:#111827;">Password reset verification</p>
-                  <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#374151;">
-                    Use the verification code below to reset your SH Shop password.
-                  </p>
-                  <div style="margin:0 auto 16px;max-width:280px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:12px;padding:14px;text-align:center;">
-                    <div style="font-size:30px;letter-spacing:6px;font-weight:700;color:#111827;">${code}</div>
+                <td style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #312e81 80%, #0e7490 100%); padding: 26px 20px 22px; text-align: center;">
+                  
+                  <!-- Security Badge Pill -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 10px;">
+                    <tr>
+                      <td style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 9999px; padding: 3px 12px; text-align: center;">
+                        <span style="font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #e0f2fe; vertical-align: middle;">
+                          🛡️ OFFICIAL SECURITY ALERT
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Brand Security Shield Emblem (Compact 44x44) -->
+                  <div style="width: 44px; height: 44px; margin: 0 auto 8px; background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 14px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); text-align: center; line-height: 42px; font-size: 20px;">
+                    🔒
                   </div>
-                  <p style="margin:0 0 8px;font-size:13px;color:#374151;">
-                    This code is valid for <strong>10 minutes</strong>.
-                  </p>
-                  <p style="margin:0;font-size:13px;color:#6b7280;">
-                    For your security, never share this code. If you did not request it, you can safely ignore this email.
+
+                  <!-- Brand Title -->
+                  <h1 style="margin: 0 0 2px; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.4px;">
+                    SH-Shop
+                  </h1>
+                  <p style="margin: 0; font-size: 12px; color: rgba(224, 242, 254, 0.85); font-weight: 400; letter-spacing: 0.2px;">
+                    Premium E-Commerce • Account Protection
                   </p>
                 </td>
               </tr>
+
+              <!-- Main Body Section (Compact & Well-Proportioned) -->
               <tr>
-                <td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;line-height:1.5;color:#6b7280;">
-                  Need help? Contact SH Shop support at
-                  <a href="mailto:shshopbyonline@gmail.com" style="color:#1d4ed8;text-decoration:none;">shshopbyonline@gmail.com</a>
+                <td style="padding: 24px 24px 20px;">
+                  
+                  <!-- Greeting & Subject Heading -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px;">
+                    <tr>
+                      <td>
+                        <div style="display: inline-block; background-color: #eef2ff; color: #4f46e5; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 0.4px;">
+                          PASSWORD RECOVERY
+                        </div>
+                        <h2 style="margin: 0 0 6px; font-size: 19px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px;">
+                          Verification Code
+                        </h2>
+                        <p style="margin: 0; font-size: 13.5px; line-height: 1.55; color: #475569;">
+                          Hello <strong style="color: #0f172a;">${customerName || 'Valued Customer'}</strong>, we received a request to reset your password for ${email ? `<span style="color: #4f46e5; font-weight: 600;">${email}</span>` : 'your account'}. Use the code below:
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- 6 Digit Individual Boxes Display (Proportional & Clean) -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin: 16px auto 14px;">
+                    <tr>
+                      ${digitBoxesHtml}
+                    </tr>
+                  </table>
+
+                  <!-- Quick Copy Snippet Chip (Compact) -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 18px;">
+                    <tr>
+                      <td align="center">
+                        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #64748b;">
+                          Or copy code:
+                        </p>
+                        <div style="display: inline-block; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 4px 12px;">
+                          <span style="font-size: 14px; font-weight: 700; letter-spacing: 4px; color: #0f172a; font-family: monospace;">
+                            ${digits.join(' ')}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Action Button CTA (Compact Pill) -->
+                  <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 20px;">
+                    <tr>
+                      <td align="center">
+                        <a href="${resetLink}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #06b6d4 100%); color: #ffffff; text-decoration: none; padding: 11px 34px; border-radius: 9999px; font-size: 13.5px; font-weight: 700; letter-spacing: 0.2px; box-shadow: 0 6px 18px rgba(79, 70, 229, 0.32);">
+                          Reset Password Now →
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Security Advisory Notice Card (Slim & Compact) -->
+                  <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 3.5px solid #f59e0b; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      <tr>
+                        <td style="vertical-align: top; width: 22px; padding-right: 8px; font-size: 15px; line-height: 1.2;">
+                          ⏱️
+                        </td>
+                        <td style="vertical-align: top;">
+                          <p style="margin: 0 0 2px; font-size: 12px; font-weight: 700; color: #92400e;">
+                            Expires in 15 minutes
+                          </p>
+                          <p style="margin: 0; font-size: 11.5px; line-height: 1.45; color: #78350f;">
+                            Single-use code. Never share this code with anyone.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <!-- Safety Guarantee Text (Slim) -->
+                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;">
+                    <p style="margin: 0; font-size: 11px; line-height: 1.45; color: #64748b;">
+                      🔒 <strong>Didn't request this?</strong> You can safely ignore this email. Your account remains secure.
+                    </p>
+                  </div>
+
                 </td>
               </tr>
+
+              <!-- Audit Metadata Card (Compact) -->
+              <tr>
+                <td style="padding: 0 24px 16px;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 10.5px; color: #64748b;">
+                    <tr>
+                      <td style="padding: 2px 0;"><strong>Security:</strong> SH-Shop Gateway</td>
+                      <td align="right" style="padding: 2px 0;">Phnom Penh, Cambodia</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Clean Light Modern Footer -->
+              <tr>
+                <td style="padding: 18px 20px; background-color: #f8fafc; text-align: center; font-size: 11px; color: #64748b; line-height: 1.5; border-top: 1px solid #e2e8f0;">
+                  <div style="margin-bottom: 6px;">
+                    <a href="${frontendUrl}" style="color: #4f46e5; text-decoration: none; font-weight: 600; margin: 0 8px;">Homepage</a>
+                    <span style="color: #cbd5e1;">•</span>
+                    <a href="${frontendUrl}/support" style="color: #4f46e5; text-decoration: none; font-weight: 600; margin: 0 8px;">Support</a>
+                    <span style="color: #cbd5e1;">•</span>
+                    <a href="${frontendUrl}" style="color: #4f46e5; text-decoration: none; font-weight: 600; margin: 0 8px;">Privacy</a>
+                  </div>
+                  <p style="margin: 0 0 2px; color: #475569; font-weight: 500;">
+                    © 2026 <strong>SH-Shop E-Commerce Co., Ltd.</strong> All rights reserved.
+                  </p>
+                  <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                    Automated security dispatch. Please do not reply.
+                  </p>
+                </td>
+              </tr>
+
             </table>
+            <!-- End Main Card -->
+
           </td>
         </tr>
       </table>
-    </div>
+
+    </body>
+    </html>
   `;
+
   return { subject, text, html };
 };
 
@@ -1162,28 +1325,54 @@ export const requestPasswordResetByEmail = async (req: Request, res: Response, n
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (user) {
-      const code = String(crypto.randomInt(10000000, 100000000));
-      const mail = buildPasswordResetEmail(code);
-      storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 10 * 60 * 1000 });
-      const sent = await sendEmail({
+    if (!user) {
+      throw new AppError('No account found with this email address. Please check and try again.', 404);
+    }
+
+    // Standard 6-digit verification OTP
+    const code = String(crypto.randomInt(100000, 1000000));
+    const mail = buildPasswordResetEmail(code, user.name, email);
+    storeForgotPasswordCode(email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
+
+    let emailSent = false;
+    try {
+      emailSent = await sendEmail({
         to: email,
         subject: mail.subject,
         text: mail.text,
         html: mail.html,
-      }).catch((err) => {
-        console.error('[Auth] Password reset email failed:', err);
-        return false;
       });
-      if (!sent) {
-        forgotPasswordCodes.delete(email);
-        throw new AppError('Failed to send verification code. Please try again later.', 503);
+    } catch (err) {
+      console.error('[Auth] Password reset email delivery failed:', err);
+    }
+
+    // Also dispatch to configured Telegram bot so admin/user receives code immediately
+    const tgChatId = process.env.TELEGRAM_USER_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+    if (tgChatId) {
+      try {
+        await sendTelegramMessage({
+          chatId: tgChatId,
+          text: `🔐 <b>SH-Shop Password Reset OTP</b>\n\n` +
+                `👤 <b>Account:</b> <code>${email}</code>\n` +
+                `🔢 <b>Verification Code:</b> <code>${code}</code>\n` +
+                `⏳ <i>Valid for 10 minutes</i>`
+        });
+      } catch (tgErr) {
+        console.error('[Auth] Telegram OTP dispatch failed:', tgErr);
       }
     }
 
+    console.log(`[Auth] 🔑 Password reset OTP for ${email}: ${code} (emailSent=${emailSent})`);
+
+    const isDev = process.env.NODE_ENV !== 'production';
+
     res.json({
       success: true,
-      message: 'If an account exists for this email, a verification code has been sent.',
+      emailSent,
+      message: emailSent
+        ? 'Verification code has been sent to your email.'
+        : 'Verification code generated.',
+      devOtp: isDev ? code : undefined,
     });
   } catch (error) {
     next(error);

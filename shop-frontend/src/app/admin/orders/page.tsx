@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { orderApi } from '@/lib/api';
-import { Order } from '@/types';
+import { orderApi, adminApi } from '@/lib/api';
+import { Order, Product, Category } from '@/types';
 import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
-import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter } from 'lucide-react';
+import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -12,6 +12,7 @@ import { playNewOrderChime, printThermalReceipt } from '@/components/admin/Therm
 import Image from 'next/image';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
+import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -45,6 +46,20 @@ export default function AdminOrdersPage() {
   const [paperWidth, setPaperWidth] = useState<'80mm' | '58mm'>('80mm');
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
+
+  // Excel Export State
+  const [excelModalOpen, setExcelModalOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    adminApi.getProducts({ limit: 500 }).then((res) => {
+      if (res.data?.data) setProducts(res.data.data);
+    }).catch(() => {});
+    adminApi.getCategories().then((res) => {
+      if (res.data?.data) setCategories(res.data.data);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -338,6 +353,17 @@ export default function AdminOrdersPage() {
             <Volume2 className="w-4 h-4 text-amber-500" />
           </button>
 
+          {/* Export Excel Button */}
+          <button
+            type="button"
+            onClick={() => setExcelModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95"
+            title={isKhmer ? 'ទាញយករបាយការណ៍ Excel' : 'Export Excel'}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-100" />
+            <span>{isKhmer ? 'ទាញយក Excel' : 'Export Excel'}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={() => fetchOrders(false)}
@@ -504,6 +530,7 @@ export default function AdminOrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-surface-800">
+                <th className="text-center py-3 px-3 text-xs font-semibold text-gray-500 w-12">{isKhmer ? 'ល.រ' : language === 'zh' ? '序号' : '#'}</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'orderCol')}</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'customerCol')}</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">{adminT(language, 'itemsCol')}</th>
@@ -518,7 +545,7 @@ export default function AdminOrdersPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`order-row-skeleton-${i}`} className="border-b border-gray-50 dark:border-gray-800/50">
-                    {Array.from({ length: 8 }).map((_, j) => (
+                    {Array.from({ length: 9 }).map((_, j) => (
                       <td key={`order-cell-skeleton-${i}-${j}`} className="py-3 px-4">
                         <div className="h-4 bg-gray-100 dark:bg-surface-800 rounded animate-pulse" />
                       </td>
@@ -527,16 +554,19 @@ export default function AdminOrdersPage() {
                 ))
               ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-gray-500">
+                  <td colSpan={9} className="text-center py-10 text-gray-500">
                     {adminT(language, 'noOrdersFound')}
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => (
+                orders.map((order, idx) => (
                   <tr
                     key={order.id}
                     className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50/80 dark:hover:bg-surface-800/50 transition-colors"
                   >
+                    <td className="py-3 px-3 text-center text-xs font-bold text-slate-400 dark:text-slate-500 tabular-nums w-12">
+                      {idx + 1}
+                    </td>
                     <td className="py-3 px-4">
                       <button
                         type="button"
@@ -738,6 +768,9 @@ export default function AdminOrdersPage() {
                   {selectedOrder.items.map((item, idx) => (
                     <div key={item.id || idx} className="p-3.5 flex items-center justify-between gap-3 hover:bg-gray-50/50 dark:hover:bg-surface-800/30 transition">
                       <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tabular-nums w-5 text-center shrink-0">
+                          {idx + 1}
+                        </span>
                         <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-surface-800 relative overflow-hidden shrink-0 border border-gray-100 dark:border-surface-700">
                           {item.image ? (
                             <Image
@@ -848,6 +881,16 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Enterprise Excel Export Hub */}
+      <ExcelExportModal
+        isOpen={excelModalOpen}
+        onClose={() => setExcelModalOpen(false)}
+        orders={orders}
+        products={products}
+        categories={categories}
+        language={language}
+      />
     </div>
   );
 }

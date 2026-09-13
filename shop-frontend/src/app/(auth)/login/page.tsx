@@ -67,6 +67,9 @@ function LoginForm() {
   const [forgotName, setForgotName] = useState('');
   const [forgotPhone, setForgotPhone] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [otpNotice, setOtpNotice] = useState<string | null>(null);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const { login, isLoading } = useAuthStore();
   const { language } = useLanguageStore();
   const router = useRouter();
@@ -118,16 +121,51 @@ function LoginForm() {
   };
 
   const handleRequestResetCode = async () => {
+    if (!forgotEmail.trim()) {
+      toast.error(language === 'km' ? 'សូមបញ្ចូលអ៊ីមែលរបស់អ្នក' : 'Please enter your email');
+      return;
+    }
+    setSendingCode(true);
     try {
-      await authApi.requestPasswordResetByEmail({ email: forgotEmail.trim() });
-      toast.success(language === 'km' ? 'បានផ្ញើលេខកូដទៅអ៊ីមែល' : language === 'zh' ? '验证码已发送到邮箱' : 'Code sent to email');
+      const res = await authApi.requestPasswordResetByEmail({ email: forgotEmail.trim() });
+      const data = res.data as { devOtp?: string; emailSent?: boolean; message?: string };
+      const devOtp = data?.devOtp;
+      const emailSent = data?.emailSent;
+      if (devOtp) {
+        setForgotCode(devOtp);
+        setOtpNotice(devOtp);
+      }
+      if (emailSent) {
+        toast.success(
+          language === 'km'
+            ? 'បានផ្ញើកូដទៅកាន់ប្រអប់សំបុត្រ Email របស់អ្នកជោគជ័យ!'
+            : language === 'zh'
+              ? '验证码已成功发送到您的邮箱！'
+              : 'Code successfully sent to your email inbox!'
+        );
+      } else {
+        toast.success(
+          language === 'km'
+            ? `បានបង្កើតកូដផ្ទៀងផ្ទាត់: ${devOtp}`
+            : language === 'zh'
+              ? `验证码: ${devOtp}`
+              : `Verification code: ${devOtp}`
+        );
+      }
     } catch (error: unknown) {
       const msg = axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message : undefined;
       toast.error(msg || (language === 'km' ? 'ផ្ញើលេខកូដបរាជ័យ' : language === 'zh' ? '发送验证码失败' : 'Failed to send code'));
+    } finally {
+      setSendingCode(false);
     }
   };
 
   const handleResetByEmailCode = async () => {
+    if (!forgotEmail.trim() || !forgotCode.trim() || !forgotNewPassword) {
+      toast.error(language === 'km' ? 'សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់' : 'Please fill in all fields');
+      return;
+    }
+    setResettingPassword(true);
     try {
       await authApi.resetPasswordByEmailCode({
         email: forgotEmail.trim(),
@@ -136,9 +174,14 @@ function LoginForm() {
       });
       toast.success(language === 'km' ? 'ប្ដូរពាក្យសម្ងាត់ជោគជ័យ' : language === 'zh' ? '密码重置成功' : 'Password reset successful');
       setForgotOpen(false);
+      setForgotCode('');
+      setForgotNewPassword('');
+      setOtpNotice(null);
     } catch (error: unknown) {
       const msg = axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message : undefined;
-      toast.error(msg || (language === 'km' ? 'លេខកូដមិនត្រឹមត្រូវ' : language === 'zh' ? '验证码不正确' : 'Invalid verification code'));
+      toast.error(msg || (language === 'km' ? 'លេខកូដមិនត្រឹមត្រូវ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវតាមលក្ខខណ្ឌ' : language === 'zh' ? '验证码或新密码不正确' : 'Invalid code or password format'));
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -269,7 +312,7 @@ function LoginForm() {
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 {language === 'km' ? 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ' : language === 'zh' ? '重置密码' : 'Reset password'}
               </h3>
-              <button type="button" onClick={() => setForgotOpen(false)} className="text-gray-500">✕</button>
+              <button type="button" onClick={() => { setForgotOpen(false); setOtpNotice(null); }} className="text-gray-500">✕</button>
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => setForgotMode('email')} className={`px-3 py-1.5 rounded-lg text-sm ${forgotMode === 'email' ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-surface-800'}`}>
@@ -281,23 +324,77 @@ function LoginForm() {
             </div>
 
             {forgotMode === 'email' ? (
-              <div className="space-y-2">
-                <input className="input" placeholder="Email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+              <div className="space-y-2.5">
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="Email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  disabled={sendingCode || resettingPassword}
+                />
                 <div className="flex gap-2">
-                  <input className="input flex-1" placeholder={language === 'km' ? 'លេខកូដ' : language === 'zh' ? '验证码' : 'Code'} value={forgotCode} onChange={(e) => setForgotCode(e.target.value)} />
-                  <button type="button" onClick={handleRequestResetCode} className="btn-secondary text-sm">
-                    {language === 'km' ? 'ផ្ញើកូដ' : language === 'zh' ? '发送验证码' : 'Send code'}
+                  <input
+                    className="input flex-1 font-mono font-bold tracking-wider"
+                    placeholder={language === 'km' ? 'លេខកូដ ៦ ខ្ទង់' : language === 'zh' ? '6位数验证码' : '6-digit code'}
+                    value={forgotCode}
+                    onChange={(e) => setForgotCode(e.target.value)}
+                    maxLength={8}
+                    disabled={resettingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRequestResetCode}
+                    disabled={sendingCode || !forgotEmail.trim()}
+                    className="btn-secondary text-xs sm:text-sm font-semibold shrink-0 disabled:opacity-60"
+                  >
+                    {sendingCode
+                      ? (language === 'km' ? 'កំពុងផ្ញើ...' : 'Sending...')
+                      : (language === 'km' ? 'ផ្ញើកូដ' : language === 'zh' ? '发送验证码' : 'Send code')}
                   </button>
                 </div>
-                <input
-                  type="password"
-                  className="input"
-                  placeholder={language === 'km' ? 'ពាក្យសម្ងាត់ថ្មី' : language === 'zh' ? '新密码' : 'New password'}
-                  value={forgotNewPassword}
-                  onChange={(e) => setForgotNewPassword(e.target.value)}
-                />
-                <button type="button" onClick={handleResetByEmailCode} className="btn-primary w-full">
-                  {language === 'km' ? 'ប្ដូរពាក្យសម្ងាត់' : language === 'zh' ? '重置密码' : 'Reset password'}
+
+                {otpNotice && (
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between font-bold">
+                      <span>{language === 'km' ? '🔑 លេខកូដផ្ទៀងផ្ទាត់ OTP:' : '🔑 Verification OTP:'}</span>
+                      <span className="font-mono text-sm tracking-widest bg-white dark:bg-surface-800 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-700 text-emerald-600 dark:text-emerald-400">
+                        {otpNotice}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-amber-700/80 dark:text-amber-300/80 mt-1">
+                      {language === 'km'
+                        ? 'ប្រព័ន្ធបានបំពេញកូដនេះដោយស្វ័យប្រវត្តិ។ (សម្រាប់ការផ្ញើអ៊ីមែលពិតប្រាកដចូល Gmail Inbox សូមកំណត់ SMTP_PASS ឬ RESEND_API_KEY)'
+                        : 'Code auto-filled. (For real delivery to Gmail, configure SMTP_PASS or RESEND_API_KEY in backend)'}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder={language === 'km' ? 'ពាក្យសម្ងាត់ថ្មី' : language === 'zh' ? '新密码' : 'New password'}
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    disabled={resettingPassword}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {language === 'km'
+                      ? 'ពាក្យសម្ងាត់យ៉ាងតិច ៨ ខ្ទង់ (អក្សរធំ តូច លេខ និងសញ្ញាពិសេស)'
+                      : 'Min 8 chars with uppercase, lowercase, number & symbol'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetByEmailCode}
+                  disabled={resettingPassword || !forgotEmail.trim() || !forgotCode.trim() || !forgotNewPassword}
+                  className="btn-primary w-full disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {resettingPassword ? (
+                    <span>{language === 'km' ? 'កំពុងប្ដូរ...' : 'Updating...'}</span>
+                  ) : (
+                    <span>{language === 'km' ? 'ប្ដូរពាក្យសម្ងាត់' : language === 'zh' ? '重置密码' : 'Reset password'}</span>
+                  )}
                 </button>
               </div>
             ) : (

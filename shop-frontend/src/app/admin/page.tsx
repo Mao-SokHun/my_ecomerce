@@ -27,6 +27,7 @@ import {
   UserPlus,
   AlertTriangle,
   BellRing,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
@@ -339,13 +340,22 @@ export default function AdminDashboard() {
               </h1>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">{adminT(language, 'dashboardOverview')}</p>
             </div>
-            <Link
-              href="/admin/settings"
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-primary-700"
-            >
-              {adminT(language, 'dashboardOpenSettings')}
-              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/analytics"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                <span>{isKhmer ? 'របាយការណ៍ Excel' : 'Excel Reports'}</span>
+              </Link>
+              <Link
+                href="/admin/settings"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-primary-700"
+              >
+                {adminT(language, 'dashboardOpenSettings')}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            </div>
           </div>
         </div>
 

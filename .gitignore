@@ -23,3 +23,7 @@ vercel-env.txt
 # SSL certificates
 *.pem
 certificates/
+
+# Database dumps and backups
+*.sql
+*.sqlite

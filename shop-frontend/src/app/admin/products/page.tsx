@@ -261,10 +261,30 @@ export default function AdminProductsPage() {
   const openRestock = (product: Product, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setRestockingProduct(product);
-    setRestockMode('add');
-    setRestockQty(10);
+    setRestockMode(product.stock > 0 ? 'add' : 'add');
+    setRestockQty(product.stock > 0 ? 10 : 10);
     setRestockReason('shipment');
     setRestockCostPrice(product.costPrice != null ? String(product.costPrice) : '');
+  };
+
+  const handleReasonSelect = (reasonId: string) => {
+    setRestockReason(reasonId);
+    if (reasonId === 'damaged') {
+      setRestockMode('deduct');
+      if (restockingProduct && restockingProduct.stock > 0) {
+        setRestockQty((prev) => (prev <= 0 || prev > restockingProduct.stock ? 1 : prev));
+      } else {
+        setRestockQty(0);
+      }
+    } else if (reasonId === 'shipment' || reasonId === 'return') {
+      setRestockMode('add');
+      setRestockQty((prev) => (prev <= 0 ? 10 : prev));
+    } else if (reasonId === 'audit') {
+      setRestockMode('set');
+      if (restockingProduct) {
+        setRestockQty(restockingProduct.stock);
+      }
+    }
   };
 
   const handleQuickRestockSubmit = async (e: React.FormEvent) => {
@@ -292,12 +312,46 @@ export default function AdminProductsPage() {
         : '';
 
       const diffText = diff > 0 ? `(+${diff})` : diff < 0 ? `(${diff})` : '';
+      const lossUnits = Math.abs(diff);
+      const unitCost = restockCostPrice.trim() !== '' ? Number(restockCostPrice) : (restockingProduct.costPrice || 0);
+      const unitPrice = restockingProduct.price || 0;
+      const capitalLoss = lossUnits * unitCost;
+      const revenueLoss = lossUnits * unitPrice;
 
-      toast.success(
-        isKhmer
-          ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${finalStock} គ្រឿង ${diffText}${reasonText} ✅`
-          : `Stock for "${restockingProduct.name}" updated to ${finalStock} ${diffText}${reasonText} ✅`
-      );
+      if (diff < 0 || restockReason === 'damaged') {
+        toast(
+          isKhmer
+            ? `⚠️ បានកត់ត្រាការខាតបង់ "${restockingProduct.name}"៖ កាត់ ${lossUnits} គ្រឿង (ខាតថ្លៃដើម -${formatPrice(capitalLoss, language)}, បាត់ចំណូល -${formatPrice(revenueLoss, language)}) នៅសល់ស្តុក ${finalStock} គ្រឿង`
+            : `⚠️ Recorded loss for "${restockingProduct.name}": Deducted ${lossUnits} pcs (Cost loss -${formatPrice(capitalLoss, language)}, Revenue loss -${formatPrice(revenueLoss, language)}) New stock: ${finalStock} pcs`,
+          { icon: '⚠️', duration: 6000 }
+        );
+      } else {
+        toast.success(
+          isKhmer
+            ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${finalStock} គ្រឿង ${diffText}${reasonText} ✅`
+            : `Stock for "${restockingProduct.name}" updated to ${finalStock} ${diffText}${reasonText} ✅`
+        );
+      }
+
+      try {
+        const historyItem = {
+          id: 'adj_' + Date.now(),
+          productId: restockingProduct.id,
+          productName: restockingProduct.name,
+          diff,
+          finalStock,
+          reason: restockReason,
+          costPrice: unitCost,
+          sellingPrice: unitPrice,
+          capitalLoss: diff < 0 ? capitalLoss : 0,
+          revenueLoss: diff < 0 ? revenueLoss : 0,
+          createdAt: new Date().toISOString(),
+        };
+        const existingRaw = localStorage.getItem('admin_stock_adjustments');
+        const existing = existingRaw ? JSON.parse(existingRaw) : [];
+        localStorage.setItem('admin_stock_adjustments', JSON.stringify([historyItem, ...existing].slice(0, 100)));
+      } catch {}
+
       updateProductsStateAndCache((prev) =>
         prev.map((p) =>
           p.id === restockingProduct.id
@@ -1415,17 +1469,33 @@ export default function AdminProductsPage() {
                     )}
 
                     {restockMode === 'deduct' && (
-                      <div className="grid grid-cols-5 gap-1.5">
-                        {[1, 2, 5, 10, 20].map((qty) => (
+                      <div className="space-y-1.5">
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {[1, 2, 5, 10].map((qty) => (
+                            <button
+                              key={qty}
+                              type="button"
+                              disabled={restockingProduct.stock <= 0}
+                              onClick={() => setRestockQty((prev) => Math.min(restockingProduct.stock, (prev || 0) + qty))}
+                              className="py-1.5 px-1 rounded-xl bg-white dark:bg-surface-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 hover:text-rose-600 dark:text-slate-300 text-xs font-bold font-mono transition border border-slate-200 dark:border-slate-700 hover:border-rose-400 active:scale-95 shadow-2xs disabled:opacity-40"
+                            >
+                              -{qty}
+                            </button>
+                          ))}
                           <button
-                            key={qty}
                             type="button"
-                            onClick={() => setRestockQty((prev) => prev + qty)}
-                            className="py-1.5 px-1 rounded-xl bg-white dark:bg-surface-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 hover:text-rose-600 dark:text-slate-300 text-xs font-bold font-mono transition border border-slate-200 dark:border-slate-700 hover:border-rose-400 active:scale-95 shadow-2xs"
+                            disabled={restockingProduct.stock <= 0}
+                            onClick={() => setRestockQty(restockingProduct.stock)}
+                            className="py-1.5 px-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800 hover:bg-rose-100 text-xs font-bold transition active:scale-95 shadow-2xs disabled:opacity-40"
                           >
-                            -{qty}
+                            {isKhmer ? 'ទាំងអស់' : 'All'}
                           </button>
-                        ))}
+                        </div>
+                        {restockingProduct.stock <= 0 && (
+                          <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                            {isKhmer ? '⚠️ ទំនិញនេះបច្ចុប្បន្នគ្មានស្តុកទេ (០ គ្រឿង) មិនអាចកាត់ស្តុកចេញទៀតបានឡើយ។' : '⚠️ Product has 0 stock. Cannot deduct.'}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1438,7 +1508,7 @@ export default function AdminProductsPage() {
                       {isKhmer ? 'ថ្លៃដើមនាំចូលក្នុង ១ គ្រឿង ($ Cost / Unit)' : 'Import Cost Price ($ / Unit)'}
                     </label>
                     <span className="text-[10px] text-slate-400">
-                      {isKhmer ? 'សម្រាប់គណនាចំណេញស្វ័យប្រវត្តិ' : 'For auto profit calculation'}
+                      {isKhmer ? 'សម្រាប់គណនាចំណេញ/ខាតស្វ័យប្រវត្តិ' : 'For auto profit & loss calculation'}
                     </span>
                   </div>
                   <div className="relative">
@@ -1454,118 +1524,237 @@ export default function AdminProductsPage() {
                   </div>
                   {restockCostPrice !== '' && Number(restockCostPrice) > 0 && (
                     <div className="flex items-center justify-between text-xs pt-1 text-slate-600 dark:text-slate-400">
-                      <span>{isKhmer ? 'ចំណេញក្នុង ១ គ្រឿង:' : 'Unit Gross Profit:'}</span>
-                      <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        +{formatPrice(Math.max(0, (restockingProduct.price || 0) - Number(restockCostPrice)), language)}
-                        {' '}({Math.round((((restockingProduct.price || 0) - Number(restockCostPrice)) / (restockingProduct.price || 1)) * 100)}%)
-                      </strong>
+                      <span>{isKhmer ? 'ចំណេញ/ខាតក្នុង ១ គ្រឿង:' : 'Unit Profit/Loss:'}</span>
+                      {((restockingProduct.price || 0) - Number(restockCostPrice)) >= 0 ? (
+                        <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          +{formatPrice((restockingProduct.price || 0) - Number(restockCostPrice), language)}
+                          {' '}({Math.round((((restockingProduct.price || 0) - Number(restockCostPrice)) / (restockingProduct.price || 1)) * 100)}%)
+                        </strong>
+                      ) : (
+                        <strong className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                          -{formatPrice(Math.abs((restockingProduct.price || 0) - Number(restockCostPrice)), language)}
+                          {' '}({isKhmer ? 'ខាត' : 'Loss'})
+                        </strong>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {/* Live Real-time Stock & Financial Accounting Preview */}
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 dark:from-surface-850 dark:via-surface-800/40 dark:to-surface-850 border border-slate-200/90 dark:border-surface-800 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
-                    <span className="flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
-                      <span>{isKhmer ? 'លទ្ធផលស្តុក & គណនេយ្យជាក់ស្តែង' : 'Live Stock & Financial Impact'}</span>
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {isKhmer ? 'គណនាស្វ័យប្រវត្តិ' : 'Auto calculated'}
-                    </span>
-                  </div>
+                {(() => {
+                  const isLossAdjustment = calculatedStock.diff < 0 || restockMode === 'deduct' || restockReason === 'damaged';
+                  const lossUnits = Math.abs(calculatedStock.diff);
+                  const unitCostVal = Number(restockCostPrice) > 0 ? Number(restockCostPrice) : (restockingProduct.costPrice || 0);
+                  const unitPriceVal = restockingProduct.price || 0;
+                  const directCostLoss = lossUnits * unitCostVal;
+                  const revenueLoss = lossUnits * unitPriceVal;
+                  const unitMarginVal = Math.max(0, unitPriceVal - unitCostVal);
+                  const lostProfitVal = lossUnits * unitMarginVal;
+                  const remainingStockValue = calculatedStock.finalStock * unitCostVal;
 
-                  {/* 3 Columns: Current -> Change -> New */}
-                  <div className="grid grid-cols-3 gap-2 text-center items-center">
-                    {/* Current */}
-                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase">
-                        {isKhmer ? 'ស្តុកដើម' : 'Original'}
+                  return (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 via-indigo-50/20 to-slate-50 dark:from-surface-850 dark:via-surface-800/40 dark:to-surface-850 border border-slate-200/90 dark:border-surface-800 space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                        <span className="flex items-center gap-1.5">
+                          {isLossAdjustment && lossUnits > 0 ? (
+                            <TrendingDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                          ) : (
+                            <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
+                          )}
+                          <span>
+                            {isLossAdjustment && lossUnits > 0
+                              ? (isKhmer ? 'ការគណនាផលខាតដើមទុន & បាត់បង់ចំណូល' : 'Capital Loss & Revenue Impact')
+                              : (isKhmer ? 'លទ្ធផលស្តុក & គណនេយ្យជាក់ស្តែង' : 'Live Stock & Financial Impact')}
+                          </span>
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {isKhmer ? 'គណនាស្វ័យប្រវត្តិ' : 'Auto calculated'}
+                        </span>
                       </div>
-                      <div className="text-lg font-black text-slate-700 dark:text-slate-200 tabular-nums">
-                        {restockingProduct.stock}
-                      </div>
-                    </div>
 
-                    {/* Change Diff */}
-                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase">
-                        {isKhmer ? 'បំលាស់ប្តូរ' : 'Change'}
-                      </div>
-                      <div
-                        className={`text-lg font-black tabular-nums flex items-center justify-center gap-0.5 ${calculatedStock.diff > 0
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : calculatedStock.diff < 0
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : 'text-slate-400'
-                          }`}
-                      >
-                        {calculatedStock.diff > 0 ? (
-                          <>
-                            <span>+{calculatedStock.diff}</span>
-                          </>
-                        ) : calculatedStock.diff < 0 ? (
-                          <>
-                            <span>{calculatedStock.diff}</span>
-                          </>
-                        ) : (
-                          <span>0</span>
-                        )}
-                      </div>
-                    </div>
+                      {/* 3 Columns: Current -> Change -> New */}
+                      <div className="grid grid-cols-3 gap-2 text-center items-center">
+                        {/* Current */}
+                        <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase">
+                            {isKhmer ? 'ស្តុកដើម' : 'Original'}
+                          </div>
+                          <div className="text-lg font-black text-slate-700 dark:text-slate-200 tabular-nums">
+                            {restockingProduct.stock}
+                          </div>
+                        </div>
 
-                    {/* New Total */}
-                    <div className="p-2.5 rounded-xl bg-gradient-to-tr from-primary-500/10 via-indigo-500/10 to-violet-500/10 border border-primary-500/30 dark:border-primary-500/30">
-                      <div className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase">
-                        {isKhmer ? 'ស្តុកថ្មីសរុប' : 'New Stock'}
+                        {/* Change Diff */}
+                        <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/60 dark:border-surface-700">
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase">
+                            {isKhmer ? 'បំលាស់ប្តូរ' : 'Change'}
+                          </div>
+                          <div
+                            className={`text-lg font-black tabular-nums flex items-center justify-center gap-0.5 ${calculatedStock.diff > 0
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : calculatedStock.diff < 0
+                                  ? 'text-rose-600 dark:text-rose-400 font-extrabold'
+                                  : 'text-slate-400'
+                              }`}
+                          >
+                            {calculatedStock.diff > 0 ? (
+                              <span>+{calculatedStock.diff}</span>
+                            ) : calculatedStock.diff < 0 ? (
+                              <span>{calculatedStock.diff}</span>
+                            ) : (
+                              <span>0</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* New Total */}
+                        <div
+                          className={`p-2.5 rounded-xl border ${calculatedStock.diff < 0
+                              ? 'bg-rose-500/10 border-rose-500/30'
+                              : 'bg-gradient-to-tr from-primary-500/10 via-indigo-500/10 to-violet-500/10 border-primary-500/30'
+                            }`}
+                        >
+                          <div
+                            className={`text-[10px] font-bold uppercase ${calculatedStock.diff < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-primary-600 dark:text-primary-400'
+                              }`}
+                          >
+                            {isKhmer ? 'ស្តុកថ្មីសរុប' : 'New Stock'}
+                          </div>
+                          <div
+                            className={`text-xl font-black tabular-nums ${calculatedStock.diff < 0
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-primary-600 dark:text-primary-400'
+                              }`}
+                          >
+                            {calculatedStock.finalStock}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xl font-black text-primary-600 dark:text-primary-400 tabular-nums">
-                        {calculatedStock.finalStock}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Financial Breakdown Grid */}
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
-                      <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
-                        {isKhmer ? 'ដើមទុនស្តុកសរុប' : 'Total Cost Value'}
-                      </span>
-                      <strong className="font-mono font-bold text-sm">
-                        {formatPrice(
-                          (Number(restockCostPrice) || restockingProduct.costPrice || 0) * calculatedStock.finalStock,
-                          language
-                        )}
-                      </strong>
-                    </div>
+                      {/* Loss Breakdown vs Standard Breakdown */}
+                      {isLossAdjustment && lossUnits > 0 ? (
+                        <div className="space-y-2.5 pt-1">
+                          {/* Alert Notice Banner */}
+                          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-900 dark:text-rose-200">
+                            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                            <div className="min-w-0">
+                              <span className="font-bold">
+                                {isKhmer
+                                  ? `ការកាត់ចេញ ${lossUnits} គ្រឿង នាំឱ្យមានការខាតបង់ដើមទុនផ្ទាល់ និងបាត់បង់ឱកាសចំណូល៖`
+                                  : `Deducting ${lossUnits} units incurs direct cost loss and lost retail sales:`}
+                              </span>
+                            </div>
+                          </div>
 
-                    <div className="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-900 dark:text-sky-200">
-                      <span className="text-[10px] text-sky-700 dark:text-sky-400 font-semibold block">
-                        {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន' : 'Est. Retail Revenue'}
-                      </span>
-                      <strong className="font-mono font-bold text-sm">
-                        {formatPrice((restockingProduct.price || 0) * calculatedStock.finalStock, language)}
-                      </strong>
-                    </div>
+                          {/* 3 Dedicated Loss KPI Cards in Red/Rose/Amber */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            {/* 1. Direct Cost Loss */}
+                            <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-950 dark:text-rose-200">
+                              <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold uppercase block tracking-wider">
+                                {isKhmer ? 'ខាតបង់ថ្លៃដើមផ្ទាល់' : 'Capital Loss'}
+                              </span>
+                              <strong className="font-mono font-black text-sm text-rose-600 dark:text-rose-400 block mt-0.5">
+                                -{formatPrice(directCostLoss, language)}
+                              </strong>
+                              <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 block mt-0.5">
+                                {lossUnits} × ${unitCostVal.toFixed(2)} ({isKhmer ? 'ទុនបាត់បង់' : 'Cost loss'})
+                              </span>
+                            </div>
 
-                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
-                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold block">
-                        {isKhmer ? 'ចំណេញប៉ាន់ស្មាន' : 'Est. Total Profit'}
-                      </span>
-                      <strong className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                        +{formatPrice(
-                          Math.max(
-                            0,
-                            ((restockingProduct.price || 0) -
-                              (Number(restockCostPrice) || restockingProduct.costPrice || 0)) *
-                            calculatedStock.finalStock
-                          ),
-                          language
-                        )}
-                      </strong>
+                            {/* 2. Lost Sales Revenue */}
+                            <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-950 dark:text-red-200">
+                              <span className="text-[10px] text-red-700 dark:text-red-400 font-bold uppercase block tracking-wider">
+                                {isKhmer ? 'បាត់បង់ចំណូលលក់' : 'Lost Sales Revenue'}
+                              </span>
+                              <strong className="font-mono font-black text-sm text-red-600 dark:text-red-400 block mt-0.5">
+                                -{formatPrice(revenueLoss, language)}
+                              </strong>
+                              <span className="text-[10px] text-red-600/80 dark:text-red-400/80 block mt-0.5">
+                                {lossUnits} × ${unitPriceVal.toFixed(2)} ({isKhmer ? 'លក់រាយ' : 'Retail'})
+                              </span>
+                            </div>
+
+                            {/* 3. Lost Net Profit */}
+                            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-950 dark:text-amber-200">
+                              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase block tracking-wider">
+                                {isKhmer ? 'បាត់បង់ប្រាក់ចំណេញ' : 'Lost Net Profit'}
+                              </span>
+                              <strong className="font-mono font-black text-sm text-amber-600 dark:text-amber-400 block mt-0.5">
+                                -{formatPrice(lostProfitVal, language)}
+                              </strong>
+                              <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
+                                {isKhmer ? 'ចំណេញរំពឹងទុក' : 'Lost margin'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Remaining Stock Value */}
+                          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/80 dark:border-surface-700 flex items-center justify-between text-xs">
+                            <span className="text-slate-500 dark:text-slate-400 font-medium">
+                              {isKhmer ? 'តម្លៃដើមទុនស្តុកនៅសល់:' : 'Remaining Inventory Cost Value:'}
+                            </span>
+                            <strong className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                              {formatPrice(remainingStockValue, language)} ({calculatedStock.finalStock} {isKhmer ? 'គ្រឿង' : 'pcs'})
+                            </strong>
+                          </div>
+                        </div>
+                      ) : (
+                        /* Standard Restock Financial Breakdown Grid */
+                        <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
+                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
+                              {isKhmer ? 'ដើមទុនស្តុកសរុប' : 'Total Cost Value'}
+                            </span>
+                            <strong className="font-mono font-bold text-sm">
+                              {formatPrice(
+                                (Number(restockCostPrice) || restockingProduct.costPrice || 0) * calculatedStock.finalStock,
+                                language
+                              )}
+                            </strong>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-900 dark:text-sky-200">
+                            <span className="text-[10px] text-sky-700 dark:text-sky-400 font-semibold block">
+                              {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន' : 'Est. Retail Revenue'}
+                            </span>
+                            <strong className="font-mono font-bold text-sm">
+                              {formatPrice((restockingProduct.price || 0) * calculatedStock.finalStock, language)}
+                            </strong>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
+                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold block">
+                              {isKhmer ? 'ចំណេញប៉ាន់ស្មាន' : 'Est. Total Profit'}
+                            </span>
+                            {((restockingProduct.price || 0) - (Number(restockCostPrice) || restockingProduct.costPrice || 0)) >= 0 ? (
+                              <strong className="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">
+                                +{formatPrice(
+                                  ((restockingProduct.price || 0) -
+                                    (Number(restockCostPrice) || restockingProduct.costPrice || 0)) *
+                                  calculatedStock.finalStock,
+                                  language
+                                )}
+                              </strong>
+                            ) : (
+                              <strong className="font-mono font-bold text-sm text-rose-600 dark:text-rose-400">
+                                -{formatPrice(
+                                  Math.abs(
+                                    ((restockingProduct.price || 0) -
+                                      (Number(restockCostPrice) || restockingProduct.costPrice || 0)) *
+                                    calculatedStock.finalStock
+                                  ),
+                                  language
+                                )}
+                              </strong>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Restock Reason Audit Tags */}
                 <div>
@@ -1582,9 +1771,11 @@ export default function AdminProductsPage() {
                       <button
                         key={reason.id}
                         type="button"
-                        onClick={() => setRestockReason(reason.id)}
+                        onClick={() => handleReasonSelect(reason.id)}
                         className={`px-2.5 py-1.5 rounded-xl text-xs font-medium transition border ${restockReason === reason.id
-                            ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-700 font-bold shadow-2xs'
+                            ? reason.id === 'damaged'
+                              ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 font-bold shadow-2xs'
+                              : 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border-primary-300 dark:border-primary-700 font-bold shadow-2xs'
                             : 'bg-white dark:bg-surface-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                           }`}
                       >
@@ -1603,27 +1794,47 @@ export default function AdminProductsPage() {
                   >
                     {isKhmer ? 'បោះបង់' : 'Cancel'}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={isRestocking}
-                    className="flex-[1.5] h-11 rounded-2xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-primary-500/25 transition active:scale-98 flex items-center justify-center gap-2"
-                  >
-                    {isRestocking ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>{isKhmer ? 'កំពុងរក្សាទុក...' : 'Updating...'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>
-                          {isKhmer
-                            ? `រក្សាទុកស្តុក (${calculatedStock.finalStock} គ្រឿង)`
-                            : `Save Stock (${calculatedStock.finalStock} pcs)`}
-                        </span>
-                      </>
-                    )}
-                  </button>
+                  {(() => {
+                    const isLossMode = calculatedStock.diff < 0 || restockMode === 'deduct' || restockReason === 'damaged';
+                    const lossUnits = Math.abs(calculatedStock.diff);
+
+                    return (
+                      <button
+                        type="submit"
+                        disabled={isRestocking || (isLossMode && lossUnits <= 0 && restockingProduct.stock <= 0)}
+                        className={`flex-[1.5] h-11 rounded-2xl text-white font-bold text-xs sm:text-sm shadow-md transition active:scale-98 flex items-center justify-center gap-2 ${
+                          isLossMode && lossUnits > 0
+                            ? 'bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-700 hover:to-red-700 shadow-rose-500/25'
+                            : 'bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 shadow-primary-500/25'
+                        }`}
+                      >
+                        {isRestocking ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>{isKhmer ? 'កំពុងរក្សាទុក...' : 'Updating...'}</span>
+                          </>
+                        ) : isLossMode && lossUnits > 0 ? (
+                          <>
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>
+                              {isKhmer
+                                ? `កត់ត្រាខាតបង់ & កាត់ស្តុក (-${lossUnits} គ្រឿង)`
+                                : `Record Loss & Deduct (-${lossUnits} pcs)`}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>
+                              {isKhmer
+                                ? `រក្សាទុកស្តុក (${calculatedStock.finalStock} គ្រឿង)`
+                                : `Save Stock (${calculatedStock.finalStock} pcs)`}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
               </form>
             </motion.div>

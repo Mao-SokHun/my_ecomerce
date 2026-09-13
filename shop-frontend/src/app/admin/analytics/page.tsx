@@ -8,6 +8,7 @@ import { formatPrice } from '@/lib/utils';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import {
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Package,
   Layers,
@@ -34,10 +35,13 @@ import {
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
+import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
+import { FileSpreadsheet } from 'lucide-react';
 
 export default function FinancialAccountingPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const [excelModalOpen, setExcelModalOpen] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -434,26 +438,38 @@ export default function FinancialAccountingPage() {
     return result;
   }, [products, categoriesMap, isKhmer]);
 
-  // Profit Simulator calculations
+  // Profit & Loss Simulator calculations
   const simResult = useMemo(() => {
     const cost = Math.max(0, Number(simCost) || 0);
     const price = Math.max(0, Number(simPrice) || 0);
     const qty = Math.max(1, Number(simQty) || 1);
 
-    const profitPerUnit = Math.max(0, price - cost);
+    const netPerUnit = price - cost;
+    const isLoss = netPerUnit < 0;
+    const isProfit = netPerUnit > 0;
+    const isBreakeven = netPerUnit === 0;
+
     const totalCost = cost * qty;
     const totalRevenue = price * qty;
-    const totalProfit = profitPerUnit * qty;
-    const margin = price > 0 ? Math.round((profitPerUnit / price) * 100) : 0;
-    const markup = cost > 0 ? Math.round((profitPerUnit / cost) * 100) : 0;
+    const totalProfit = netPerUnit * qty;
+
+    // Margin: (Profit / Price) * 100
+    const margin = price > 0 ? Math.round((netPerUnit / price) * 100) : (cost > 0 ? -100 : 0);
+    // Markup: (Profit / Cost) * 100
+    const markup = cost > 0 ? Math.round((netPerUnit / cost) * 100) : 0;
 
     return {
-      profitPerUnit,
+      profitPerUnit: netPerUnit,
+      absProfitPerUnit: Math.abs(netPerUnit),
       totalCost,
       totalRevenue,
       totalProfit,
+      absTotalProfit: Math.abs(totalProfit),
       margin,
       markup,
+      isLoss,
+      isProfit,
+      isBreakeven,
     };
   }, [simCost, simPrice, simQty]);
 
@@ -570,11 +586,21 @@ export default function FinancialAccountingPage() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={() => setExcelModalOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95"
+            title={isKhmer ? 'ទាញយករបាយការណ៍ Excel ស្តង់ដារ' : 'Export Excel Report'}
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-100" />
+            <span>{isKhmer ? 'ទាញយក Excel' : 'Export Excel'}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={exportCSV}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-surface-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition active:scale-95"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{isKhmer ? 'ទាញយក CSV' : 'Export CSV'}</span>
+            <span>CSV</span>
           </button>
 
           <button
@@ -737,20 +763,38 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
 
-        {/* Profit Simulator */}
+        {/* Profit & Loss Simulator */}
         <div className="h-fit bg-white dark:bg-surface-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Calculator className="w-4 h-4" />
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+                  simResult.isLoss
+                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                    : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {simResult.isLoss ? <TrendingDown className="w-4 h-4" /> : <Calculator className="w-4 h-4" />}
               </div>
               <h2 className="font-bold text-sm text-slate-900 dark:text-white">
-                {isKhmer ? 'ម៉ាស៊ីនគណនាចំណេញ' : 'Profit Simulator'}
+                {isKhmer
+                  ? simResult.isLoss
+                    ? 'ម៉ាស៊ីនគណនាផលខាត'
+                    : 'ម៉ាស៊ីនគណនាចំណេញ'
+                  : simResult.isLoss
+                  ? 'Loss Simulator'
+                  : 'Profit Simulator'}
               </h2>
             </div>
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-              Live
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${
+                simResult.isLoss
+                  ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border-rose-200/60 dark:border-rose-800/40'
+                  : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/40'
+              }`}
+            >
+              {simResult.isLoss ? (isKhmer ? 'ខាតបង់' : 'Loss') : 'Live'}
             </span>
           </div>
 
@@ -766,7 +810,11 @@ export default function FinancialAccountingPage() {
                 step="0.01"
                 value={simCost}
                 onChange={(e) => setSimCost(e.target.value)}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={`w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 ${
+                  simResult.isLoss
+                    ? 'border-rose-300 dark:border-rose-700/80 focus:ring-rose-500'
+                    : 'border-slate-200 dark:border-slate-700 focus:ring-emerald-500'
+                }`}
               />
             </div>
 
@@ -780,7 +828,11 @@ export default function FinancialAccountingPage() {
                 step="0.01"
                 value={simPrice}
                 onChange={(e) => setSimPrice(e.target.value)}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={`w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 ${
+                  simResult.isLoss
+                    ? 'border-rose-300 dark:border-rose-700/80 focus:ring-rose-500'
+                    : 'border-slate-200 dark:border-slate-700 focus:ring-emerald-500'
+                }`}
               />
             </div>
 
@@ -793,19 +845,49 @@ export default function FinancialAccountingPage() {
                 type="number"
                 value={simQty}
                 onChange={(e) => setSimQty(e.target.value)}
-                className="w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className={`w-full h-10 px-3 text-sm rounded-xl bg-slate-50 dark:bg-surface-800 border text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:ring-1 ${
+                  simResult.isLoss
+                    ? 'border-rose-300 dark:border-rose-700/80 focus:ring-rose-500'
+                    : 'border-slate-200 dark:border-slate-700 focus:ring-emerald-500'
+                }`}
               />
             </div>
           </div>
 
           {/* Live Result */}
-          <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-2">
+          <div
+            className={`p-4 rounded-xl space-y-2 border transition-colors ${
+              simResult.isLoss
+                ? 'bg-rose-50/70 dark:bg-rose-950/25 border-rose-200/90 dark:border-rose-800/50'
+                : simResult.isBreakeven
+                ? 'bg-slate-50/80 dark:bg-surface-850 border-slate-200 dark:border-slate-700'
+                : 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200/80 dark:border-emerald-800/40'
+            }`}
+          >
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">
-                {isKhmer ? 'ចំណេញ / ១គ្រឿង:' : 'Profit / Unit:'}
+                {simResult.isLoss
+                  ? isKhmer
+                    ? 'ខាត / ១ គ្រឿង:'
+                    : 'Loss / Unit:'
+                  : isKhmer
+                  ? 'ចំណេញ / ១ គ្រឿង:'
+                  : 'Profit / Unit:'}
               </span>
-              <strong className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                +${simResult.profitPerUnit.toFixed(2)} ({simResult.margin}%)
+              <strong
+                className={`font-mono font-bold text-sm ${
+                  simResult.isLoss
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : simResult.isBreakeven
+                    ? 'text-slate-600 dark:text-slate-400'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {simResult.isLoss
+                  ? `-$${simResult.absProfitPerUnit.toFixed(2)} (${simResult.margin}%)`
+                  : simResult.isBreakeven
+                  ? `$0.00 (0%)`
+                  : `+$${simResult.profitPerUnit.toFixed(2)} (+${simResult.margin}%)`}
               </strong>
             </div>
             <div className="flex justify-between items-center">
@@ -816,12 +898,44 @@ export default function FinancialAccountingPage() {
                 ${simResult.totalCost.toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40">
-              <span className="text-base text-emerald-800 dark:text-emerald-200 font-extrabold">
-                {isKhmer ? 'ចំណេញសរុប:' : 'Total Profit:'}
+            <div
+              className={`flex justify-between items-center pt-2 border-t ${
+                simResult.isLoss
+                  ? 'border-rose-200/70 dark:border-rose-800/40'
+                  : 'border-emerald-200/60 dark:border-emerald-800/40'
+              }`}
+            >
+              <span
+                className={`text-base font-extrabold ${
+                  simResult.isLoss
+                    ? 'text-rose-800 dark:text-rose-200'
+                    : simResult.isBreakeven
+                    ? 'text-slate-800 dark:text-slate-200'
+                    : 'text-emerald-800 dark:text-emerald-200'
+                }`}
+              >
+                {simResult.isLoss
+                  ? isKhmer
+                    ? 'ខាតសរុប:'
+                    : 'Total Loss:'
+                  : isKhmer
+                  ? 'ចំណេញសរុប:'
+                  : 'Total Profit:'}
               </span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 text-xl font-black">
-                +${simResult.totalProfit.toFixed(2)}
+              <span
+                className={`font-mono text-xl font-black ${
+                  simResult.isLoss
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : simResult.isBreakeven
+                    ? 'text-slate-700 dark:text-slate-300'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`}
+              >
+                {simResult.isLoss
+                  ? `-$${simResult.absTotalProfit.toFixed(2)}`
+                  : simResult.isBreakeven
+                  ? `$0.00`
+                  : `+$${simResult.totalProfit.toFixed(2)}`}
               </span>
             </div>
           </div>
@@ -1225,8 +1339,9 @@ export default function FinancialAccountingPage() {
                   const cost = Number(p.costPrice) || 0;
                   const price = Number(p.price) || 0;
                   const stock = Number(p.stock) || 0;
-                  const profitUnit = Math.max(0, price - cost);
-                  const margin = price > 0 ? Math.round((profitUnit / price) * 100) : 0;
+                  const profitUnit = price - cost;
+                  const isItemLoss = cost > 0 && profitUnit < 0;
+                  const margin = price > 0 ? Math.round((profitUnit / price) * 100) : (cost > 0 ? -100 : 0);
                   const totalCost = stock * cost;
                   const totalProfit = stock * profitUnit;
 
@@ -1300,12 +1415,21 @@ export default function FinancialAccountingPage() {
                       {/* Profit / Unit & Margin */}
                       <td className="py-3 px-3 text-right">
                         {cost > 0 ? (
-                          <div className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
-                            <span>+{formatPrice(profitUnit, language)}</span>
-                            <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-black">
-                              {margin}%
-                            </span>
-                          </div>
+                          isItemLoss ? (
+                            <div className="inline-flex items-center gap-1.5 font-mono font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border border-rose-300/80 dark:border-rose-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
+                              <span>-{formatPrice(Math.abs(profitUnit), language)}</span>
+                              <span className="text-[10px] px-1 py-0.2 rounded bg-rose-200/60 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 font-black">
+                                {margin}%
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1.5 font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300/80 dark:border-emerald-700/80 px-2 py-1 rounded-lg text-xs shadow-2xs">
+                              <span>+{formatPrice(profitUnit, language)}</span>
+                              <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-200/60 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-black">
+                                {margin}%
+                              </span>
+                            </div>
+                          )
                         ) : (
                           <span className="text-slate-400">—</span>
                         )}
@@ -1317,8 +1441,8 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       {/* Total Est Profit */}
-                      <td className="py-3 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                        +{formatPrice(totalProfit, language)}
+                      <td className={`py-3 px-4 text-right font-mono font-black text-sm ${totalProfit < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {totalProfit < 0 ? `-${formatPrice(Math.abs(totalProfit), language)}` : `+${formatPrice(totalProfit, language)}`}
                       </td>
                     </tr>
                   );
@@ -1344,16 +1468,20 @@ export default function FinancialAccountingPage() {
                       language
                     )}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 text-base">
-                    +{formatPrice(
-                      processedProducts.reduce((sum, p) => {
+                  <td className="py-3.5 px-4 text-right font-mono font-black text-base">
+                    {(() => {
+                      const netGrand = processedProducts.reduce((sum, p) => {
                         const cost = Number(p.costPrice) || 0;
                         const price = Number(p.price) || 0;
                         const stock = Number(p.stock) || 0;
-                        return sum + stock * Math.max(0, price - cost);
-                      }, 0),
-                      language
-                    )}
+                        return sum + stock * (price - cost);
+                      }, 0);
+                      return (
+                        <span className={netGrand < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
+                          {netGrand < 0 ? `-${formatPrice(Math.abs(netGrand), language)}` : `+${formatPrice(netGrand, language)}`}
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               </tfoot>
@@ -1361,6 +1489,16 @@ export default function FinancialAccountingPage() {
           </table>
         </div>
       </div>
+
+      {/* Enterprise Excel Export Hub */}
+      <ExcelExportModal
+        isOpen={excelModalOpen}
+        onClose={() => setExcelModalOpen(false)}
+        orders={orders}
+        products={products}
+        categories={categories}
+        language={language}
+      />
     </div>
   );
 }
