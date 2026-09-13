@@ -201,8 +201,8 @@ export default function AdminUsersPage() {
                 const lifetimeSpend = getUserLifetimeSpend(user.id);
                 const tier = calculateMembershipTier(lifetimeSpend);
                 const points = getUserPoints(user.id);
-                const staffRole = getUserStaffRole(user.id, user.role);
-                const isStaff = user.role === 'ADMIN';
+                const staffRole = getUserStaffRole(user.id, user.role, user.email);
+                const isStaff = user.role === 'ADMIN' || staffRole !== 'USER';
                 const staffConfig = STAFF_ROLES[staffRole as StaffRole] || STAFF_ROLES.ADMIN;
 
                 return (
@@ -372,7 +372,7 @@ export default function AdminUsersPage() {
                   </span>
                   {selectedUser.role === 'ADMIN' && (
                     <span className="text-[11px] font-bold text-primary-600 dark:text-primary-400">
-                      ({STAFF_ROLES[getUserStaffRole(selectedUser.id, selectedUser.role) as StaffRole]?.titleEn})
+                      ({STAFF_ROLES[getUserStaffRole(selectedUser.id, selectedUser.role, selectedUser.email) as StaffRole]?.titleEn})
                     </span>
                   )}
                 </div>
@@ -398,7 +398,7 @@ export default function AdminUsersPage() {
                     : (['CASHIER', 'WAREHOUSE'] as StaffRole[])
                   ).map((r) => {
                     const cfg = STAFF_ROLES[r];
-                    const isCurrent = getUserStaffRole(selectedUser.id, selectedUser.role) === r;
+                    const isCurrent = getUserStaffRole(selectedUser.id, selectedUser.role, selectedUser.email) === r;
                     return (
                       <button
                         key={r}

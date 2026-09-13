@@ -704,22 +704,30 @@ async function main() {
   }
 
   const adminPassword = await bcrypt.hash(adminPlainPassword, 12);
-  const admin = await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      password: adminPassword,
-      role: 'ADMIN',
-      isActive: true,
-      emailVerified: true,
-    },
-    create: {
-      name: 'Admin User',
-      email: adminEmail,
-      password: adminPassword,
-      role: 'ADMIN',
-      emailVerified: true,
-    },
-  });
+  const superAdminEmails = [
+    { email: 'shshopbyonline@gmail.com', name: 'SH Shop Super Admin' },
+    { email: 'sokhunmao390@gmail.com', name: 'Mao Sokhun (Super Admin)' },
+    { email: adminEmail, name: 'Admin User' },
+  ];
+
+  for (const sa of superAdminEmails) {
+    await prisma.user.upsert({
+      where: { email: sa.email },
+      update: {
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+      },
+      create: {
+        name: sa.name,
+        email: sa.email,
+        password: adminPassword,
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+  }
 
   // Demo user
   const userPassword = await bcrypt.hash('User@12345', 12);

@@ -121,6 +121,16 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
   },
 };
 
+export const SUPER_ADMIN_EMAILS = [
+  'shshopbyonline@gmail.com',
+  'sokhunmao390@gmail.com',
+];
+
+export function isSuperAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return SUPER_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
 const STORAGE_KEY_ACTIVE_ROLE = 'sh_admin_active_role';
 const STORAGE_KEY_USER_STAFF_ROLES = 'sh_user_staff_roles_map';
 
@@ -150,7 +160,10 @@ export function getUserStaffRolesMap(): Record<string, StaffRole> {
   return {};
 }
 
-export function getUserStaffRole(userId: string, defaultDbRole?: string): StaffRole | 'USER' {
+export function getUserStaffRole(userId: string, defaultDbRole?: string, email?: string | null): StaffRole | 'USER' {
+  if (isSuperAdminEmail(email)) {
+    return 'SUPER_ADMIN';
+  }
   if (defaultDbRole !== 'ADMIN') return 'USER';
   const map = getUserStaffRolesMap();
   if (map[userId] && STAFF_ROLES[map[userId]]) {
