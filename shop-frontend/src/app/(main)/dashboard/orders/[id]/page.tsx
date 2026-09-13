@@ -190,8 +190,9 @@ export default function OrderDetailsPage() {
       .join('');
 
     const barcodeSvgHtml = generateBarcodeSvg(invoice.orderNumber, {
-      height: 38,
-      maxWidth: '220px',
+      height: 42,
+      width: 1.6,
+      maxWidth: '240px',
       showText: true,
     });
 

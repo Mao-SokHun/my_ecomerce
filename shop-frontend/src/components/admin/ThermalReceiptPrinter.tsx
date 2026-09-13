@@ -100,8 +100,9 @@ export function generateThermalReceiptHtml(
     .join('');
 
   const barcodeSvgHtml = generateBarcodeSvg(order.orderNumber, {
-    height: is80 ? 38 : 32,
-    maxWidth: is80 ? '220px' : '170px',
+    height: is80 ? 42 : 35,
+    width: is80 ? 1.6 : 1.3,
+    maxWidth: is80 ? '240px' : '180px',
     showText: true,
   });
 
