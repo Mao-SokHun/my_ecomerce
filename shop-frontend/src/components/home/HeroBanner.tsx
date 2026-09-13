@@ -161,7 +161,7 @@ export function HeroBanner() {
                 <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-[1.08] tracking-tight">
                   <span className="block drop-shadow-lg">{slide.title}</span>
                   {slide.subtitle && (
-                    <span className="block luxury-gold-text italic font-serif font-normal text-3xl sm:text-5xl lg:text-6xl mt-2 tracking-normal">
+                    <span className="block luxury-gold-text font-black text-3xl sm:text-5xl lg:text-6xl mt-2 tracking-tight">
                       {slide.subtitle}
                     </span>
                   )}
