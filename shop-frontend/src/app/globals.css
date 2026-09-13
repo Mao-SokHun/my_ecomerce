@@ -35,17 +35,35 @@
   ::selection {
     @apply bg-primary-100 text-primary-900 dark:bg-primary-800 dark:text-primary-100;
   }
+
+  /* Slim, Elegant & Modern Scrollbars (Vertical & Horizontal) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  }
+
   ::-webkit-scrollbar {
-    @apply w-1.5;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+    background: rgba(148, 163, 184, 0.45);
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-gray-500;
+    background: rgba(100, 116, 139, 0.7);
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   /* Smooth reveal animations */
@@ -263,6 +281,38 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  .custom-scrollbar,
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar,
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track,
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.65);
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb,
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
   }
 
   .safe-bottom {
