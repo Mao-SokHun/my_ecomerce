@@ -237,8 +237,15 @@ export default function AdminNotificationsPage() {
       void loadHistory();
       setHistoryTab('history');
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      toast.error(msg || (isKhmer ? 'ការផ្ញើសារបរាជ័យ' : 'Failed to send notification'));
+      if (status === 401) {
+        toast.error(isKhmer ? '🔒 សម័យកាល Admin ផុតកំណត់ សូម Refresh ឬចូលគណនីម្តងទៀត' : '🔒 Session expired, please refresh or re-login as Admin');
+      } else if (status === 403) {
+        toast.error(isKhmer ? '⛔ គណនីរបស់អ្នកគ្មានសិទ្ធិ Admin ឡើយ' : '⛔ Admin privileges required');
+      } else {
+        toast.error(msg || (isKhmer ? 'ការផ្ញើសារបរាជ័យ' : 'Failed to send notification'));
+      }
     } finally {
       setIsSending(false);
     }
@@ -259,8 +266,13 @@ export default function AdminNotificationsPage() {
       await notificationApi.deleteBroadcast(id);
       toast.success(isKhmer ? 'បានលុបរួចរាល់' : 'Notification deleted');
       setHistoryList((prev) => prev.filter((item) => item.id !== id));
-    } catch {
-      toast.error(isKhmer ? 'បរាជ័យក្នុងការលុប' : 'Failed to delete');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        toast.error(isKhmer ? '🔒 សម័យកាល Admin ផុតកំណត់ សូម Refresh ឬចូលគណនីម្តងទៀត' : '🔒 Session expired, please refresh or re-login');
+      } else {
+        toast.error(isKhmer ? 'បរាជ័យក្នុងការលុប' : 'Failed to delete');
+      }
     } finally {
       setDeletingId(null);
     }

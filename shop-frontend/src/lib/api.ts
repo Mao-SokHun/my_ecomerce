@@ -16,10 +16,46 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+export function getStoredAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  let token = localStorage.getItem('token');
+  if (!token) {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        token = parsed?.state?.token || null;
+        if (token) {
+          localStorage.setItem('token', token);
+        }
+      }
+    } catch {}
+  }
+  return token;
+}
+
+export function getStoredRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  let rt = localStorage.getItem('refreshToken');
+  if (!rt) {
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        rt = parsed?.state?.refreshToken || null;
+        if (rt) {
+          localStorage.setItem('refreshToken', rt);
+        }
+      }
+    } catch {}
+  }
+  return rt;
+}
+
 // Attach token automatically
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
+    const token = getStoredAccessToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   // Let the browser set multipart boundary for file uploads
@@ -34,20 +70,44 @@ let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: unknow
 
 async function tryRefreshToken(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
-  const rt = localStorage.getItem('refreshToken');
+  const rt = getStoredRefreshToken();
+  if (!rt) return null;
   try {
     const { data } = await axios.post(
       `${resolveApiBaseUrl()}/auth/refresh`,
-      { refreshToken: rt || undefined },
+      { refreshToken: rt },
       { withCredentials: true }
     );
     const { token, refreshToken: newRt } = data.data;
     localStorage.setItem('token', token);
     if (newRt) localStorage.setItem('refreshToken', newRt);
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.state) {
+          parsed.state.token = token;
+          if (newRt) parsed.state.refreshToken = newRt;
+          localStorage.setItem('auth-storage', JSON.stringify(parsed));
+        }
+      }
+    } catch {}
     return token;
   } catch {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    try {
+      const raw = localStorage.getItem('auth-storage');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.state) {
+          parsed.state.token = null;
+          parsed.state.refreshToken = null;
+          parsed.state.isAuthenticated = false;
+          localStorage.setItem('auth-storage', JSON.stringify(parsed));
+        }
+      }
+    } catch {}
     return null;
   }
 }
