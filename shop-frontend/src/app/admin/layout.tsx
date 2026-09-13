@@ -15,6 +15,8 @@ import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { authApi } from '@/lib/api';
 import { adminT } from '@/lib/admin-i18n';
 import { adminApi } from '@/lib/api';
+import { useRealtime } from '@/providers/RealtimeProvider';
+import { playMessageAlertChime } from '@/lib/soundAlert';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -47,16 +49,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifOpen, setNotifOpen] = useState(false);
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null }>({
+  const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
     orders: null,
     users: null,
     leads: null,
     lowStock: null,
+    support: null,
   });
-  const [badgeFlash, setBadgeFlash] = useState<{ orders: boolean; users: boolean; leads: boolean }>({
+  const [badgeFlash, setBadgeFlash] = useState<{ orders: boolean; users: boolean; leads: boolean; support: boolean }>({
     orders: false,
     users: false,
     leads: false,
+    support: false,
   });
   /** Bumped when visiting a section (mark-seen) so in-flight poll responses cannot overwrite fresh counts. */
   const unreadPullGenerationRef = useRef(0);
@@ -129,21 +133,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let prevLeads = -1;
     let prevOrders = -1;
     let prevUsers = -1;
+    let prevSupport = -1;
     const pull = async () => {
       const gen = ++unreadPullGenerationRef.current;
       try {
         const { data } = await adminApi.getUnreadCounts();
         if (!mounted || gen !== unreadPullGenerationRef.current) return;
         const counts = data.data || {};
-        setLiveCounts({
-          orders: Number(counts.orders || 0),
-          users: Number(counts.users || 0),
-          leads: Number(counts.leads || 0),
-          lowStock: Number(counts.lowStock || 0),
-        });
         const nextOrders = Number(counts.orders || 0);
         const nextUsers = Number(counts.users || 0);
         const nextLeads = Number(counts.leads || 0);
+        const nextSupport = Number(counts.support || 0);
+        setLiveCounts({
+          orders: nextOrders,
+          users: nextUsers,
+          leads: nextLeads,
+          lowStock: Number(counts.lowStock || 0),
+          support: nextSupport,
+        });
         if (prevOrders >= 0 && nextOrders > prevOrders) {
           setBadgeFlash((prev) => ({ ...prev, orders: true }));
           setTimeout(() => setBadgeFlash((prev) => ({ ...prev, orders: false })), 1200);
@@ -156,12 +163,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setBadgeFlash((prev) => ({ ...prev, leads: true }));
           setTimeout(() => setBadgeFlash((prev) => ({ ...prev, leads: false })), 1200);
         }
+        if (prevSupport >= 0 && nextSupport > prevSupport) {
+          setBadgeFlash((prev) => ({ ...prev, support: true }));
+          setTimeout(() => setBadgeFlash((prev) => ({ ...prev, support: false })), 1200);
+        }
         if (prevLeads >= 0 && Number(counts.leads || 0) > prevLeads) {
           toast.success(language === 'km' ? 'មាន subscriber ថ្មី' : language === 'zh' ? '有新的订阅用户' : 'New subscriber arrived');
         }
         prevOrders = nextOrders;
         prevUsers = nextUsers;
         prevLeads = nextLeads;
+        prevSupport = nextSupport;
       } catch {
         // ignore
       }
@@ -174,6 +186,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [isAuthChecked, adminUser, user?.role, language]);
 
+  const { socket } = useRealtime();
+
+  // Instant real-time alert for Admin when customer creates support inquiry
+  useEffect(() => {
+    if (!socket) return;
+    const handleInquiry = (inquiry: any) => {
+      if (!pathname.startsWith('/admin/support-inbox')) {
+        playMessageAlertChime();
+        toast(`💬 សំណួរ Chat ថ្មីពី ${inquiry?.name || 'អតិថិជន'}!`, { icon: '🔔', id: 'admin-live-inquiry' });
+      }
+      adminApi.getUnreadCounts().then(({ data }) => {
+        const counts = data.data || {};
+        setLiveCounts((prev) => ({
+          ...prev,
+          support: Number(counts.support || 0),
+        }));
+      }).catch(() => {});
+    };
+
+    socket.on('SUPPORT_INQUIRY_CREATED', handleInquiry);
+    return () => {
+      socket.off('SUPPORT_INQUIRY_CREATED', handleInquiry);
+    };
+  }, [socket, pathname]);
+
   useEffect(() => {
     if (!isAuthChecked || (!adminUser && user?.role !== 'ADMIN')) return;
     const type =
@@ -183,7 +220,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ? 'users'
           : pathname === '/admin/leads' || pathname.startsWith('/admin/leads/')
             ? 'leads'
-            : null;
+            : pathname === '/admin/support-inbox' || pathname.startsWith('/admin/support-inbox/')
+              ? 'support'
+              : null;
     if (!type) return;
 
     let cancelled = false;
@@ -199,6 +238,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           users: Number(counts.users || 0),
           leads: Number(counts.leads || 0),
           lowStock: Number(counts.lowStock || 0),
+          support: Number(counts.support || 0),
         });
       } catch {
         // keep last known counts
@@ -325,12 +365,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     ? (liveCounts.users ?? 0)
                     : href === '/admin/leads'
                       ? (liveCounts.leads ?? 0)
-                      : 0;
+                      : href === '/admin/support-inbox'
+                        ? (liveCounts.support ?? 0)
+                        : 0;
               const hasBadge = badgeCount > 0;
               const isFlashing =
                 (href === '/admin/orders' && badgeFlash.orders) ||
                 (href === '/admin/users' && badgeFlash.users) ||
-                (href === '/admin/leads' && badgeFlash.leads);
+                (href === '/admin/leads' && badgeFlash.leads) ||
+                (href === '/admin/support-inbox' && badgeFlash.support);
 
               if (href === '/admin/settings') {
                 const settingsSubmenu = [

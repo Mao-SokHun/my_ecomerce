@@ -30,6 +30,15 @@ export function StoreAnnouncementBanner() {
       .then(({ data }) => {
         const item = data?.data as Announcement | null;
         if (item && item.id) {
+          // Strict Guard: Never display admin links, support tickets, or chat alerts on the storefront
+          if (
+            item.link?.includes('/admin') ||
+            item.title?.toLowerCase().includes('chat') ||
+            item.title?.includes('សំណួរ') ||
+            item.title?.includes('សារថ្មី')
+          ) {
+            return;
+          }
           try {
             const raw = localStorage.getItem(DISMISSED_KEY);
             const dismissedList: string[] = raw ? JSON.parse(raw) : [];
@@ -65,6 +74,9 @@ export function StoreAnnouncementBanner() {
   }, [announcement]);
 
   if (isDismissed || !announcement) return null;
+  if (announcement.link?.includes('/admin') || announcement.title?.includes('Chat') || announcement.title?.includes('សំណួរ')) {
+    return null;
+  }
 
   const isPromo = announcement.type === 'PROMOTION';
   const isUrgent = announcement.type === 'URGENT';
@@ -104,7 +116,13 @@ export function StoreAnnouncementBanner() {
               onClick={handleDismiss}
               className="px-3 py-1 rounded-xl bg-white/20 hover:bg-white text-white hover:text-slate-900 text-[11px] font-bold transition flex items-center gap-1 backdrop-blur-md"
             >
-              <span>{isKhmer ? 'មើលប្រូម៉ូសិន' : 'Explore'}</span>
+              <span>
+                {isPromo
+                  ? (isKhmer ? 'មើលប្រូម៉ូសិន' : 'Explore Promo')
+                  : isUrgent
+                  ? (isKhmer ? 'ព័ត៌មានលម្អិត' : 'Details')
+                  : (isKhmer ? 'ស្វែងយល់បន្ថែម' : 'Learn More')}
+              </span>
               <ArrowRight className="w-3 h-3" />
             </Link>
           )}

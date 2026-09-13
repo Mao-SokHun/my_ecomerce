@@ -69,7 +69,15 @@ export function NotificationBell() {
 
       if (notifsRes.status === 'fulfilled') {
         const list = (notifsRes.value.data?.data || []) as Notification[];
-        const mapped = list.map((item) => ({
+        // Filter out any leaked admin links or chat alert notifications
+        const filtered = list.filter(
+          (item) =>
+            !item.link?.includes('/admin') &&
+            !item.title?.toLowerCase().includes('chat') &&
+            !item.title?.includes('សំណួរ') &&
+            !item.title?.includes('សារថ្មី')
+        );
+        const mapped = filtered.map((item) => ({
           ...item,
           isRead: item.isRead || localReadIds.includes(item.id),
         }));
@@ -102,6 +110,15 @@ export function NotificationBell() {
 
     const handleNewNotification = (newNotif: Notification) => {
       if (!newNotif || !newNotif.id) return;
+      // Do not display internal admin links or chat inquiries in customer notification bell
+      if (
+        newNotif.link?.includes('/admin') ||
+        newNotif.title?.toLowerCase().includes('chat') ||
+        newNotif.title?.includes('សំណួរ') ||
+        newNotif.title?.includes('សារថ្មី')
+      ) {
+        return;
+      }
       playMessageAlertChime();
       toast.success(`📢 ${newNotif.title}: ${newNotif.message}`, { duration: 6000 });
 

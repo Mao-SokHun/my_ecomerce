@@ -224,9 +224,26 @@ export const getCustomerNotifications = async (req: AuthRequest, res: Response, 
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
 
     // Combine global broadcast notifications (target = ALL) and personal notifications (userId)
+    // Guard against any admin-internal links or chat inquiries leaking into customer notifications
     const notifications = await prisma.notification.findMany({
       where: {
         OR: [{ target: 'ALL' }, ...(userId ? [{ userId }] : [])],
+        AND: [
+          {
+            OR: [
+              { link: null },
+              { NOT: { link: { contains: '/admin' } } },
+            ],
+          },
+          {
+            NOT: {
+              OR: [
+                { title: { contains: 'Chat ថ្មី' } },
+                { title: { contains: 'សារថ្មី' } },
+              ],
+            },
+          },
+        ],
       },
       take: limit,
       orderBy: { createdAt: 'desc' },
@@ -250,6 +267,22 @@ export const getUnreadCount = async (req: AuthRequest, res: Response, next: Next
       where: {
         isRead: false,
         OR: [{ target: 'ALL' }, ...(userId ? [{ userId }] : [])],
+        AND: [
+          {
+            OR: [
+              { link: null },
+              { NOT: { link: { contains: '/admin' } } },
+            ],
+          },
+          {
+            NOT: {
+              OR: [
+                { title: { contains: 'Chat ថ្មី' } },
+                { title: { contains: 'សារថ្មី' } },
+              ],
+            },
+          },
+        ],
       },
     });
 
@@ -296,10 +329,37 @@ export const markAllNotificationsAsRead = async (req: AuthRequest, res: Response
 // ─── PUBLIC: Get Latest Active Store Announcement ───────────────────────────
 export const getLatestStoreAnnouncement = async (_req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    // Purge any historical leaked internal chat notifications from the public broadcast table
+    await prisma.notification.deleteMany({
+      where: {
+        OR: [
+          { link: { contains: '/admin' } },
+          { title: { contains: 'Chat ថ្មី' } },
+          { title: { contains: 'សារថ្មី' } },
+        ],
+      },
+    }).catch(() => {});
+
     const announcement = await prisma.notification.findFirst({
       where: {
         target: 'ALL',
         type: { in: ['ANNOUNCEMENT', 'PROMOTION', 'URGENT'] },
+        AND: [
+          {
+            OR: [
+              { link: null },
+              { NOT: { link: { contains: '/admin' } } },
+            ],
+          },
+          {
+            NOT: {
+              OR: [
+                { title: { contains: 'Chat ថ្មី' } },
+                { title: { contains: 'សារថ្មី' } },
+              ],
+            },
+          },
+        ],
       },
       orderBy: { createdAt: 'desc' },
     });

@@ -120,23 +120,6 @@ export const createSupportInquiry = async (req: Request, res: Response, next: Ne
       );
     }
 
-    try {
-      const notif = await prisma.notification.create({
-        data: {
-          title: `💬 សំណួរ Chat ថ្មីពី ${inquiry.name || 'អតិថិជន'}`,
-          message: inquiry.question,
-          type: 'URGENT',
-          target: 'ALL',
-          link: `/admin/support-inbox?id=${inquiry.id}`,
-          isRead: false,
-          sentBy: inquiry.name || 'Customer',
-        },
-      });
-      emitToAdmin('NOTIFICATION_NEW', notif);
-    } catch (notifErr) {
-      console.error('Failed to create support inquiry notification:', notifErr);
-    }
-
     emitToAdmin('SUPPORT_INQUIRY_CREATED', inquiry);
 
     res.status(201).json({ success: true, message: 'Inquiry created', data: inquiry, sessionToken });
@@ -236,25 +219,6 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
     emitToAdmin('SUPPORT_MESSAGE_CREATED', { inquiryId: id, message });
     emitToInquiry(id, 'SUPPORT_MESSAGE_CREATED', { inquiryId: id, message });
     broadcastRealtime(`support:inquiry:${id}`, message);
-
-    if (sender === 'USER') {
-      try {
-        const notif = await prisma.notification.create({
-          data: {
-            title: `💬 សារថ្មីពី ${inquiry.name || 'អតិថិជន'}`,
-            message: text,
-            type: 'URGENT',
-            target: 'ALL',
-            link: `/admin/support-inbox?id=${inquiry.id}`,
-            isRead: false,
-            sentBy: inquiry.name || 'Customer',
-          },
-        });
-        emitToAdmin('NOTIFICATION_NEW', notif);
-      } catch (notifErr) {
-        console.error('Failed to create support reply notification:', notifErr);
-      }
-    }
 
     res.status(201).json({ success: true, data: message });
   } catch (error) {

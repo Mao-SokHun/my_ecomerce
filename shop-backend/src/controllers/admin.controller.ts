@@ -310,9 +310,10 @@ export const getUnreadCounts = async (req: AuthRequest, res: Response, next: Nex
         lastSeenLeadsAt: true,
         lastSeenOrdersAt: true,
         lastSeenUsersAt: true,
+        lastSeenSupportAt: true,
       },
     });
-    const [orders, users, leads, lowStock] = await Promise.all([
+    const [orders, users, leads, lowStock, support] = await Promise.all([
       prisma.order.count({
         where: adminMeta?.lastSeenOrdersAt
           ? { createdAt: { gt: adminMeta.lastSeenOrdersAt } }
@@ -331,9 +332,17 @@ export const getUnreadCounts = async (req: AuthRequest, res: Response, next: Nex
       prisma.product.count({
         where: { isActive: true, stock: { lte: 5 } },
       }),
+      prisma.supportInquiry.count({
+        where: {
+          status: 'open',
+          ...(adminMeta?.lastSeenSupportAt
+            ? { updatedAt: { gt: adminMeta.lastSeenSupportAt } }
+            : {}),
+        },
+      }),
     ]);
 
-    res.json({ success: true, data: { orders, users, leads, lowStock } });
+    res.json({ success: true, data: { orders, users, leads, lowStock, support } });
   } catch (error) {
     next(error);
   }
