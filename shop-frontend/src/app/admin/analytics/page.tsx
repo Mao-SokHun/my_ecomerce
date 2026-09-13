@@ -189,14 +189,29 @@ export default function FinancialAccountingPage() {
   const loadData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [prodRes, catRes, orderRes] = await Promise.all([
-        adminApi.getProducts({ limit: 200 }),
+      const [prodRes, catRes, orderRes] = await Promise.allSettled([
+        adminApi.getProducts({ limit: 500 }),
         adminApi.getCategories(),
-        adminApi.getOrders({ limit: 100 }),
+        adminApi.getOrders({ limit: 200 }),
       ]);
-      setProducts(prodRes.data.data || []);
-      setCategories(catRes.data.data || []);
-      setOrders(orderRes.data.data || []);
+
+      let anySuccess = false;
+      if (prodRes.status === 'fulfilled' && prodRes.value.data?.data) {
+        setProducts(prodRes.value.data.data || []);
+        anySuccess = true;
+      }
+      if (catRes.status === 'fulfilled' && catRes.value.data?.data) {
+        setCategories(catRes.value.data.data || []);
+        anySuccess = true;
+      }
+      if (orderRes.status === 'fulfilled' && orderRes.value.data?.data) {
+        setOrders(orderRes.value.data.data || []);
+        anySuccess = true;
+      }
+
+      if (!anySuccess) {
+        toast.error(isKhmer ? 'មិនអាចទាញយកទិន្នន័យគណនេយ្យបានទេ' : 'Failed to load financial data');
+      }
     } catch (err) {
       console.error('Failed to load accounting data:', err);
       toast.error(isKhmer ? 'មិនអាចទាញយកទិន្នន័យគណនេយ្យបានទេ' : 'Failed to load financial data');

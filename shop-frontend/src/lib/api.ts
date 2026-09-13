@@ -12,7 +12,7 @@ function resolveApiBaseUrl(): string {
 export const api = axios.create({
   baseURL: resolveApiBaseUrl(),
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  timeout: 45000,
 });
 
 // Attach token automatically
