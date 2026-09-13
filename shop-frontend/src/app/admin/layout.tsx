@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, Tag,
+  LayoutDashboard, Package, Boxes, ShoppingCart, Users, Tag,
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
   Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2, BellRing, CircleDollarSign, TrendingUp,
@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 const navItems = [
   { href: '/admin', icon: LayoutDashboard, key: 'navDashboard' },
   { href: '/admin/products', icon: Package, key: 'navProducts' },
+  { href: '/admin/inventory', icon: Boxes, key: 'navInventory' },
   { href: '/admin/categories', icon: FolderTree, key: 'navCategories' },
   { href: '/admin/orders', icon: ShoppingCart, key: 'navOrders' },
   { href: '/admin/analytics', icon: CircleDollarSign, key: 'navAnalytics' },

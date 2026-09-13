@@ -34,6 +34,7 @@ import {
   X,
   FileSpreadsheet,
   Calendar,
+  Eye,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -94,9 +95,11 @@ export default function FinancialAccountingPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'profit_desc' | 'margin_desc' | 'stock_desc' | 'cost_desc' | 'name_asc'>('profit_desc');
 
-  // Stock Loss & Damaged Goods Tracking
+  // Stock Loss & Damaged Goods Tracking (Pure Loss Deductions)
   const [stockAdjustments, setStockAdjustments] = useState<StockAdjustmentItem[]>([]);
   const [logLossModalOpen, setLogLossModalOpen] = useState(false);
+  const [viewLossModalOpen, setViewLossModalOpen] = useState(false);
+  const [selectedLossDetail, setSelectedLossDetail] = useState<StockAdjustmentItem | null>(null);
   const [lossFilterReason, setLossFilterReason] = useState<string>('ALL');
   const [lossSearch, setLossSearch] = useState<string>('');
 
@@ -117,9 +120,13 @@ export default function FinancialAccountingPage() {
     return () => window.removeEventListener('stock_adjustments_updated', loadAdjustments);
   }, []);
 
-  const lossSummary = useMemo(() => {
-    return calculateStockLossSummary(stockAdjustments);
+  const pureLossItems = useMemo(() => {
+    return stockAdjustments.filter((item) => item.diff < 0);
   }, [stockAdjustments]);
+
+  const lossSummary = useMemo(() => {
+    return calculateStockLossSummary(pureLossItems);
+  }, [pureLossItems]);
 
   const lossProductOptions: DropdownOption[] = useMemo(() => {
     return products.map((p) => ({
@@ -133,27 +140,28 @@ export default function FinancialAccountingPage() {
   }, [products, lossProductId]);
 
   const filteredLossItems = useMemo(() => {
-    return stockAdjustments.filter((item) => {
+    return pureLossItems.filter((item) => {
       const matchReason =
         lossFilterReason === 'ALL'
           ? true
           : lossFilterReason === 'DAMAGED'
-          ? item.reason === 'damaged'
+          ? item.reason === 'damaged' || item.type === 'DAMAGED'
           : lossFilterReason === 'AUDIT'
-          ? item.reason === 'audit'
-          : lossFilterReason === 'RESTOCK'
-          ? item.diff > 0
+          ? item.reason === 'audit' || item.type === 'AUDIT_COUNT'
+          : lossFilterReason === 'EXCHANGE'
+          ? item.reason === 'exchange' || item.type === 'CUSTOMER_EXCHANGE'
           : true;
 
       const q = lossSearch.toLowerCase().trim();
       const matchSearch =
         !q ||
         item.productName.toLowerCase().includes(q) ||
+        (item.referenceNo && item.referenceNo.toLowerCase().includes(q)) ||
         (item.notes && item.notes.toLowerCase().includes(q));
 
       return matchReason && matchSearch;
     });
-  }, [stockAdjustments, lossFilterReason, lossSearch]);
+  }, [pureLossItems, lossFilterReason, lossSearch]);
 
   const handleLogLossSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1640,21 +1648,21 @@ export default function FinancialAccountingPage() {
         <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {[
-              { id: 'ALL', label: isKhmer ? 'ទាំងអស់' : 'All', count: stockAdjustments.length },
+              { id: 'ALL', label: isKhmer ? 'ទាំងអស់ (ខាតបង់)' : 'All Loss', count: pureLossItems.length },
               {
                 id: 'DAMAGED',
                 label: isKhmer ? '⚠️ ខូចខាត' : '⚠️ Damaged',
-                count: stockAdjustments.filter((x) => x.reason === 'damaged').length,
+                count: pureLossItems.filter((x) => x.reason === 'damaged' || x.type === 'DAMAGED').length,
               },
               {
                 id: 'AUDIT',
-                label: isKhmer ? '🔍 រាប់ស្តុក' : '🔍 Audit',
-                count: stockAdjustments.filter((x) => x.reason === 'audit').length,
+                label: isKhmer ? '🔍 រាប់ស្តុកបាត់' : '🔍 Audit Loss',
+                count: pureLossItems.filter((x) => x.reason === 'audit' || x.type === 'AUDIT_COUNT').length,
               },
               {
-                id: 'RESTOCK',
-                label: isKhmer ? '📦 នាំចូល/ប្តូរ' : '📦 Restock',
-                count: stockAdjustments.filter((x) => x.diff > 0).length,
+                id: 'EXCHANGE',
+                label: isKhmer ? '🔄 ប្ដូរឱ្យអតិថិជន' : '🔄 Exchange',
+                count: pureLossItems.filter((x) => x.reason === 'exchange' || x.type === 'CUSTOMER_EXCHANGE').length,
               },
             ].map((tab) => (
               <button
@@ -1692,7 +1700,7 @@ export default function FinancialAccountingPage() {
                 <th className="py-3 px-3.5 whitespace-nowrap">{isKhmer ? 'កាលបរិច្ឆេទ' : 'Date'}</th>
                 <th className="py-3 px-3.5">{isKhmer ? 'ឈ្មោះទំនិញ' : 'Product Name'}</th>
                 <th className="py-3 px-3.5 whitespace-nowrap">{isKhmer ? 'មូលហេតុ' : 'Reason'}</th>
-                <th className="py-3 px-3.5 text-center whitespace-nowrap">{isKhmer ? 'ចំនួនកែប្រែ' : 'Qty'}</th>
+                <th className="py-3 px-3.5 text-center whitespace-nowrap">{isKhmer ? 'ចំនួនកាត់ចេញ' : 'Deducted'}</th>
                 <th className="py-3 px-3.5 text-right whitespace-nowrap">{isKhmer ? 'ថ្លៃដើម' : 'Cost'}</th>
                 <th className="py-3 px-3.5 text-right whitespace-nowrap">{isKhmer ? 'តម្លៃលក់' : 'Price'}</th>
                 <th className="py-3 px-3.5 text-right whitespace-nowrap">{isKhmer ? 'ខាតដើមទុន' : 'Capital Loss'}</th>
@@ -1714,7 +1722,6 @@ export default function FinancialAccountingPage() {
                 </tr>
               ) : (
                 filteredLossItems.map((item) => {
-                  const isLoss = item.diff < 0;
                   return (
                     <tr
                       key={item.id}
@@ -1730,38 +1737,33 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white max-w-[220px] truncate">
-                        {item.productName}
+                        <div>{item.productName}</div>
+                        {item.productSku && <div className="text-[10px] font-mono text-slate-400 font-normal">{item.productSku}</div>}
                       </td>
 
                       <td className="py-3 px-3.5 whitespace-nowrap">
-                        {item.reason === 'damaged' ? (
+                        {item.reason === 'damaged' || item.type === 'DAMAGED' ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
                             ⚠️ {isKhmer ? 'ខូចខាត/បាត់បង់' : 'Damaged / Loss'}
                           </span>
-                        ) : item.reason === 'audit' ? (
+                        ) : item.reason === 'audit' || item.type === 'AUDIT_COUNT' ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                            🔍 {isKhmer ? 'រាប់ស្តុកចុងខែ' : 'Stock Audit'}
+                            🔍 {isKhmer ? 'រាប់ស្តុកបាត់' : 'Audit Shrinkage'}
                           </span>
-                        ) : item.reason === 'return' ? (
+                        ) : item.reason === 'exchange' || item.type === 'CUSTOMER_EXCHANGE' ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
-                            🔄 {isKhmer ? 'អតិថិជនប្តូរ' : 'Return'}
+                            🔄 {isKhmer ? 'ប្ដូរឱ្យអតិថិជន' : 'Replacement'}
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                            📦 {isKhmer ? 'នាំចូលថ្មី' : 'Shipment'}
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60">
+                            ⚠️ {isKhmer ? 'កាត់ខាតបង់' : 'Loss Write-off'}
                           </span>
                         )}
                       </td>
 
                       <td className="py-3 px-3.5 text-center whitespace-nowrap font-mono font-bold">
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[11px] ${
-                            isLoss
-                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                          }`}
-                        >
-                          {item.diff > 0 ? `+${item.diff}` : item.diff}
+                        <span className="px-2 py-0.5 rounded-md text-[11px] bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                          {item.diff}
                         </span>
                       </td>
 
@@ -1785,7 +1787,7 @@ export default function FinancialAccountingPage() {
                         {item.finalStock}
                       </td>
 
-                      <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 text-xs max-w-[260px]" title={item.notes || ''}>
+                      <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 text-xs max-w-[240px]" title={item.notes || ''}>
                         {item.notes ? (
                           <span className="inline-block max-w-full truncate font-medium text-slate-700 dark:text-slate-200" title={item.notes}>
                             {item.notes}
@@ -1796,14 +1798,27 @@ export default function FinancialAccountingPage() {
                       </td>
 
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteLoss(item.id, item.productName)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-95 cursor-pointer"
-                          title={isKhmer ? 'លុបកំណត់ត្រានេះ' : 'Delete record'}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLossDetail(item);
+                              setViewLossModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition active:scale-95 cursor-pointer"
+                            title={isKhmer ? 'មើលព័ត៌មានលម្អិត' : 'View Loss Details'}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLoss(item.id, item.productName)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition active:scale-95 cursor-pointer"
+                            title={isKhmer ? 'លុបកំណត់ត្រានេះ' : 'Delete record'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -2013,6 +2028,195 @@ export default function FinancialAccountingPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW STOCK LOSS DETAIL MODAL */}
+      {/* ========================================================================= */}
+      {viewLossModalOpen && selectedLossDetail && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="bg-white dark:bg-surface-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-rose-100 dark:border-rose-950/60 flex items-center justify-between bg-gradient-to-r from-rose-50/70 via-white to-amber-50/40 dark:from-rose-950/30 dark:to-surface-900">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200/60 dark:border-rose-800/40">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      {isKhmer ? 'ព័ត៌មានលម្អិតនៃការខាតបង់' : 'Stock Loss Record Details'}
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold">
+                      {selectedLossDetail.id}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {new Date(selectedLossDetail.createdAt).toLocaleString(isKhmer ? 'km-KH' : 'en-GB', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewLossModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-surface-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Product Info Banner */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-surface-800/60 border border-slate-200/80 dark:border-slate-700/80">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {isKhmer ? 'ទំនិញដែលបានកាត់ចេញ' : 'Deducted Product'}
+                    </span>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
+                      {selectedLossDetail.productName}
+                    </h4>
+                    {selectedLossDetail.productSku && (
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 block">
+                        SKU: {selectedLossDetail.productSku}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {isKhmer ? 'ចំនួនកាត់ចេញ' : 'Deducted Qty'}
+                    </span>
+                    <span className="inline-block px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-mono font-black text-sm mt-0.5">
+                      {selectedLossDetail.diff} {isKhmer ? 'គ្រឿង' : 'pcs'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Financial Impact 2-Card Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50">
+                  <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider block">
+                    {isKhmer ? 'ខាតបង់ថ្លៃដើមផ្ទាល់ (Capital Loss)' : 'Direct Capital Loss'}
+                  </span>
+                  <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-mono mt-1 block">
+                    -{formatPrice(selectedLossDetail.capitalLoss, language)}
+                  </span>
+                  <span className="text-[11px] text-rose-600/80 dark:text-rose-400/80 font-mono font-medium">
+                    (ថ្លៃដើម: {formatPrice(selectedLossDetail.costPrice || 0, language)} / គ្រឿង)
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    {isKhmer ? 'បាត់បង់ចំណូលលក់ (Revenue Loss)' : 'Lost Potential Revenue'}
+                  </span>
+                  <span className="text-lg font-black text-slate-800 dark:text-white font-mono mt-1 block">
+                    -{formatPrice(selectedLossDetail.revenueLoss, language)}
+                  </span>
+                  <span className="text-[11px] text-slate-500 font-mono font-medium">
+                    (តម្លៃលក់: {formatPrice(selectedLossDetail.sellingPrice || 0, language)} / គ្រឿង)
+                  </span>
+                </div>
+              </div>
+
+              {/* Status & Warehouse Impact Grid */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200/70 dark:border-slate-800">
+                  <span className="text-[10px] font-semibold text-slate-400 block mb-1">
+                    {isKhmer ? 'ប្រភេទនៃបញ្ហា / មូលហេតុ' : 'Incident Type'}
+                  </span>
+                  {selectedLossDetail.reason === 'damaged' || selectedLossDetail.type === 'DAMAGED' ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-600 dark:text-rose-400">
+                      ⚠️ {isKhmer ? 'ខូចខាត / បាក់បែក / បាត់បង់' : 'Damaged / Broken in Transit'}
+                    </span>
+                  ) : selectedLossDetail.reason === 'audit' || selectedLossDetail.type === 'AUDIT_COUNT' ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                      🔍 {isKhmer ? 'រាប់ស្តុកចុងខែបាត់បង់' : 'Audit Shrinkage'}
+                    </span>
+                  ) : selectedLossDetail.reason === 'exchange' || selectedLossDetail.type === 'CUSTOMER_EXCHANGE' ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-purple-600 dark:text-purple-400">
+                      🔄 {isKhmer ? 'ប្ដូរទំនិញថ្មីជូនអតិថិជន' : 'Customer Warranty Exchange'}
+                    </span>
+                  ) : (
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      {selectedLossDetail.reason}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200/70 dark:border-slate-800">
+                  <span className="text-[10px] font-semibold text-slate-400 block mb-1">
+                    {isKhmer ? 'ស្តុកនៅសល់ក្នុងឃ្លាំង' : 'Stock Remaining'}
+                  </span>
+                  <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
+                    {selectedLossDetail.finalStock} {isKhmer ? 'គ្រឿង' : 'pcs'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Reference & Operator */}
+              {(selectedLossDetail.referenceNo || selectedLossDetail.operatorName) && (
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  {selectedLossDetail.referenceNo && (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200/70 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">{isKhmer ? 'លេខយោង (Ref No):' : 'Reference:'}</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedLossDetail.referenceNo}</span>
+                    </div>
+                  )}
+                  {selectedLossDetail.operatorName && (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200/70 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">{isKhmer ? 'អ្នកកត់ត្រា:' : 'Logged By:'}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedLossDetail.operatorName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Detailed Incident Notes */}
+              <div className="p-3.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block mb-1">
+                  {isKhmer ? 'កំណត់ត្រា & មូលហេតុនៃការខូចខាត' : 'Incident Notes & Observations'}
+                </span>
+                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                  {selectedLossDetail.notes || (isKhmer ? 'មិនមានកំណត់ចំណាំបន្ថែម' : 'No additional notes provided.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-surface-850 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  const id = selectedLossDetail.id;
+                  const name = selectedLossDetail.productName;
+                  setViewLossModalOpen(false);
+                  handleDeleteLoss(id, name);
+                }}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isKhmer ? 'លុបកំណត់ត្រា' : 'Delete Record'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewLossModalOpen(false)}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition cursor-pointer"
+              >
+                {isKhmer ? 'បិទ' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       )}

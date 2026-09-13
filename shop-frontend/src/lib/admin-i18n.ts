@@ -4,6 +4,7 @@ const messages: Record<AppLanguage, Record<string, string>> = {
   km: {
     navDashboard: 'ផ្ទាំងគ្រប់គ្រង',
     navProducts: 'ទំនិញ',
+    navInventory: 'គ្រប់គ្រងស្តុក',
     navCategories: 'ប្រភេទ',
     navOrders: 'ការកម្មង់',
     navAnalytics: 'គណនេយ្យ & ប្រាក់ចំណេញ',
@@ -191,6 +192,7 @@ const messages: Record<AppLanguage, Record<string, string>> = {
   en: {
     navDashboard: 'Dashboard',
     navProducts: 'Products',
+    navInventory: 'Inventory & Stock',
     navCategories: 'Categories',
     navOrders: 'Orders',
     navAnalytics: 'Profit & Accounting',
@@ -378,6 +380,7 @@ const messages: Record<AppLanguage, Record<string, string>> = {
   zh: {
     navDashboard: '仪表板',
     navProducts: '商品',
+    navInventory: '库存管理',
     navCategories: '分类',
     navOrders: '订单',
     navAnalytics: '利润与财务报表',
