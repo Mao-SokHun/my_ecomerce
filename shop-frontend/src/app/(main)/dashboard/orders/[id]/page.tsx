@@ -156,91 +156,219 @@ export default function OrderDetailsPage() {
 
     const html = `
       <!doctype html>
-      <html>
+      <html lang="km">
         <head>
           <meta charset="utf-8" />
           <title>${escapeHtml(invoice.invoiceNumber)} Receipt</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
           <style>
-            @page { size: 80mm auto; margin: 8mm; }
+            @page { size: 80mm auto; margin: 0; }
+            @media print {
+              body { margin: 0; padding: 4mm; }
+            }
+            * { box-sizing: border-box; }
             body {
-              font-family: "Courier New", monospace;
-              color: #111;
+              font-family: 'Plus Jakarta Sans', 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              color: #0f172a;
               margin: 0;
+              padding: 4mm 2mm;
               display: flex;
               justify-content: center;
+              background: #fff;
+              -webkit-font-smoothing: antialiased;
             }
             .receipt {
-              width: 76mm;
-              padding: 8px 10px 14px;
-              border: 1px dashed #d1d5db;
+              width: 74mm;
+              padding: 6px 4px 10px;
             }
             .center { text-align: center; }
-            .title {
-              font-size: 28px;
-              font-weight: 700;
-              letter-spacing: 1px;
-              margin: 6px 0 10px;
+            .header-badge {
+              display: inline-block;
+              background: #0f172a;
+              color: #fff;
+              font-weight: 800;
+              font-size: 13px;
+              width: 28px;
+              height: 28px;
+              line-height: 28px;
+              text-align: center;
+              border-radius: 7px;
+              margin-bottom: 2px;
             }
             .shop-name {
               font-size: 16px;
-              font-weight: 700;
-              margin-bottom: 3px;
+              font-weight: 800;
+              color: #0f172a;
+              letter-spacing: 0.5px;
             }
-            .muted { font-size: 12px; color: #444; line-height: 1.35; }
-            .line { border-top: 1px solid #222; margin: 10px 0 6px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { font-size: 12px; padding: 2px 0; }
-            th { border-bottom: 1px dashed #777; padding-bottom: 6px; }
-            .summary { margin-top: 8px; border-top: 1px dashed #777; padding-top: 8px; }
+            .sub-tagline {
+              font-size: 9px;
+              color: #64748b;
+              font-weight: 600;
+              letter-spacing: 0.5px;
+              text-transform: uppercase;
+              margin-top: 1px;
+            }
+            .contact-meta {
+              font-size: 9.5px;
+              color: #475569;
+              margin-top: 4px;
+              line-height: 1.35;
+            }
+            .receipt-type-pill {
+              display: inline-block;
+              background: #f1f5f9;
+              color: #0f172a;
+              border: 1px solid #cbd5e1;
+              padding: 2px 10px;
+              border-radius: 12px;
+              font-size: 9.5px;
+              font-weight: 700;
+              letter-spacing: 0.5px;
+              margin: 6px auto 4px auto;
+              text-transform: uppercase;
+            }
+            .meta-card {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 6px 8px;
+              margin: 8px 0;
+              font-size: 10px;
+            }
+            .meta-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              padding: 1.5px 0;
+              line-height: 1.35;
+            }
+            .meta-label { color: #64748b; font-weight: 500; }
+            .meta-val { color: #0f172a; font-weight: 600; text-align: right; }
+            .invoice-pill {
+              font-family: ui-monospace, monospace;
+              background: #fff;
+              border: 1px solid #cbd5e1;
+              padding: 1px 5px;
+              border-radius: 4px;
+              font-weight: 700;
+            }
+            table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+            th {
+              font-size: 9.5px;
+              font-weight: 700;
+              color: #475569;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              padding: 4px 0;
+              border-bottom: 1.5px solid #0f172a;
+            }
+            td {
+              font-size: 10.5px;
+              padding: 4px 0;
+              border-bottom: 1px dashed #e2e8f0;
+              vertical-align: top;
+            }
+            .summary {
+              margin-top: 6px;
+              padding: 2px 0;
+            }
             .row {
               display: flex;
               justify-content: space-between;
-              font-size: 12px;
-              margin: 2px 0;
+              font-size: 10.5px;
+              padding: 2px 0;
+              color: #475569;
             }
-            .total {
+            .row span:last-child {
+              color: #0f172a;
+              font-weight: 600;
+            }
+            .grand-total-box {
+              background: #0f172a;
+              color: #ffffff;
+              padding: 6px 10px;
+              border-radius: 6px;
+              margin: 6px 0 4px 0;
               display: flex;
               justify-content: space-between;
-              font-weight: 700;
-              font-size: 14px;
-              margin-top: 6px;
-              padding-top: 6px;
-              border-top: 1px solid #222;
+              align-items: center;
             }
-            .barcode {
-              font-family: "Libre Barcode 39", "Courier New", monospace;
-              font-size: 40px;
-              letter-spacing: 1px;
-              line-height: 1;
-              margin-top: 12px;
-            }
-            .invoice-id {
+            .grand-total-box span:first-child {
+              font-weight: 800;
               font-size: 11px;
               letter-spacing: 0.5px;
-              margin-top: 2px;
+            }
+            .grand-total-box span:last-child {
+              font-weight: 800;
+              font-size: 14px;
+            }
+            .barcode-mock {
+              margin: 8px auto 2px auto;
+              letter-spacing: 3px;
+              font-family: ui-monospace, monospace;
+              font-size: 13px;
+              font-weight: 900;
+              color: #0f172a;
+              opacity: 0.85;
             }
             .thanks {
-              margin-top: 8px;
-              font-size: 11px;
+              margin-top: 6px;
+              font-size: 10px;
+              font-weight: 600;
+              color: #0f172a;
+            }
+            .watermark {
+              font-size: 8px;
+              color: #94a3b8;
+              margin-top: 4px;
             }
           </style>
-          <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39&display=swap" rel="stylesheet">
         </head>
         <body>
           <div class="receipt">
-            <div class="center title">${t(language, 'receipt')}</div>
-            <div class="center shop-name">${t(language, 'brand')} Online Store</div>
-            <div class="center muted">${escapeHtml(receiptMeta.contactLine)}</div>
-            <div class="center muted">${escapeHtml(receiptMeta.shopAddress)}</div>
-            <div class="center muted">${t(language, 'dateLabel')}: ${escapeHtml(formatDate(invoice.createdAt, language))}</div>
-            <div class="center muted">${t(language, 'orderLabel')}: ${escapeHtml(invoice.orderNumber)}</div>
-            <div class="line"></div>
-            <div class="muted">${t(language, 'customerLabel')}: ${escapeHtml(invoice.customerName)}</div>
-            <div class="muted">${t(language, 'phoneLabel')}: ${escapeHtml(invoice.customerPhone || 'N/A')}</div>
-            <div class="muted">${t(language, 'addressLabel')}: ${escapeHtml(invoice.shippingAddress || 'Not provided')}</div>
-            <div class="muted">${t(language, 'noteLabel')}: ${escapeHtml(invoice.note || 'N/A')}</div>
-            <div class="muted">${t(language, 'receiptNoLabel')}: ${escapeHtml(invoice.invoiceNumber)}</div>
-            <div class="muted">${t(language, 'paymentType')}: ${escapeHtml(paymentTypeForInvoice(language, invoice.paymentMethod))}</div>
+            <div class="center">
+              <div class="header-badge">SH</div>
+              <div class="shop-name">${t(language, 'brand')} Online Store</div>
+              <div class="sub-tagline">PREMIUM E-COMMERCE & RETAIL</div>
+              <div class="contact-meta">
+                <div>📞 ${escapeHtml(receiptMeta.contactLine)}</div>
+                <div>📍 ${escapeHtml(receiptMeta.shopAddress)}</div>
+              </div>
+              <div>
+                <span class="receipt-type-pill">វិក្កយបត្រ • ${t(language, 'receipt')}</span>
+              </div>
+            </div>
+
+            <div class="meta-card">
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'orderLabel')}</span>
+                <span class="meta-val"><span class="invoice-pill">${escapeHtml(invoice.orderNumber)}</span></span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'dateLabel')}</span>
+                <span class="meta-val">${escapeHtml(formatDate(invoice.createdAt, language))}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'customerLabel')}</span>
+                <span class="meta-val">${escapeHtml(invoice.customerName)}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'phoneLabel')}</span>
+                <span class="meta-val">${escapeHtml(invoice.customerPhone || 'N/A')}</span>
+              </div>
+              ${invoice.shippingAddress ? `
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'addressLabel')}</span>
+                <span class="meta-val">${escapeHtml(invoice.shippingAddress)}</span>
+              </div>` : ''}
+              <div class="meta-row">
+                <span class="meta-label">${t(language, 'paymentType')}</span>
+                <span class="meta-val">${escapeHtml(paymentTypeForInvoice(language, invoice.paymentMethod))}</span>
+              </div>
+            </div>
 
             <table>
               <thead>
@@ -256,23 +384,28 @@ export default function OrderDetailsPage() {
             <div class="summary">
               <div class="row"><span>${t(language, 'subtotal')}</span><span>${formatPrice(invoice.subtotal, language)}</span></div>
               ${(invoice.discount ?? 0) > 0 ? `
-              <div class="row" style="color:#dc2626;">
-                <span>${invoice.couponCode
+              <div class="row" style="color:#16a34a;">
+                <span style="color:#16a34a;">${invoice.couponCode
                   ? escapeHtml(t(language, 'couponDiscount').replace('{code}', invoice.couponCode))
                   : escapeHtml(t(language, 'couponDiscountNoCode'))}</span>
-                <span>-${formatPrice(invoice.discount, language)}</span>
+                <span style="color:#16a34a; font-weight: 700;">-${formatPrice(invoice.discount, language)}</span>
               </div>` : ''}
               <div class="row"><span>${t(language, 'shipping')}${
                 invoice.shippingCarrierLabel
                   ? ` (${escapeHtml(invoice.shippingCarrierLabel)})`
                   : ''
               }</span><span>${formatPrice(invoice.shippingCost, language)}</span></div>
-              <div class="total"><span>${t(language, 'total')}</span><span>${formatPrice(invoice.total, language)}</span></div>
+              
+              <div class="grand-total-box">
+                <span>${t(language, 'total')} (GRAND TOTAL)</span>
+                <span>${formatPrice(invoice.total, language)}</span>
+              </div>
             </div>
 
-            <div class="center barcode">*${escapeHtml(invoice.orderNumber)}*</div>
-            <div class="center invoice-id">#${escapeHtml(invoice.invoiceNumber)}</div>
-            <div class="center thanks">${t(language, 'thankYou')}</div>
+            <div class="center barcode-mock">||| | |||| | | |||| | ||| | |||</div>
+            <div class="center" style="font-size: 8.5px; color: #64748b; font-family: monospace;">* ${escapeHtml(invoice.orderNumber)} *</div>
+            <div class="center thanks">🙏 ${t(language, 'thankYou')}</div>
+            <div class="center watermark">Powered by ${t(language, 'brand')} Cloud POS</div>
           </div>
           <script>
             window.onload = function () { window.print(); window.close(); };
