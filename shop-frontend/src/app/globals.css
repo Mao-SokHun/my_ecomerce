@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Kantumruy+Pro:wght@300;400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&family=Noto+Sans+Khmer:wght@100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -22,8 +22,8 @@
   }
   body {
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
-    /* Noto Sans Khmer must be first: proper subscripts/vowel positioning (Inter has no Khmer glyphs). */
-    font-family: 'Noto Sans Khmer', 'Khmer OS Siemreap', 'Inter', system-ui, sans-serif;
+    /* Kantumruy Pro & Noto Sans Khmer for pristine Khmer typography and glyph alignment. */
+    font-family: 'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS Siemreap', 'Inter', system-ui, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;

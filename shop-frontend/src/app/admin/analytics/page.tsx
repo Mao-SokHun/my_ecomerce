@@ -1493,7 +1493,7 @@ export default function FinancialAccountingPage() {
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
               {isKhmer ? 'ថ្លៃដើមខាតបង់សរុប (Capital Loss)' : 'Total Capital Loss'}
             </span>
-            <span className="text-lg font-black text-rose-600 dark:text-rose-400 font-mono mt-1 block">
+            <span className="text-lg font-black text-rose-600 dark:text-rose-400 tabular-nums mt-1 block">
               -{formatPrice(lossSummary.totalCapitalLoss, language)}
             </span>
           </div>
@@ -1502,7 +1502,7 @@ export default function FinancialAccountingPage() {
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
               {isKhmer ? 'បាត់ចំណូលលក់ (Revenue Loss)' : 'Lost Potential Revenue'}
             </span>
-            <span className="text-lg font-black text-slate-700 dark:text-slate-300 font-mono mt-1 block">
+            <span className="text-lg font-black text-slate-700 dark:text-slate-300 tabular-nums mt-1 block">
               -{formatPrice(lossSummary.totalRevenueLoss, language)}
             </span>
           </div>
@@ -1511,18 +1511,20 @@ export default function FinancialAccountingPage() {
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
               {isKhmer ? 'ចំនួនខូចខាត / បាត់បង់' : 'Damaged / Lost Units'}
             </span>
-            <span className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono mt-1 block">
-              {lossSummary.totalLossUnits} {isKhmer ? 'គ្រឿង' : 'pcs'}
-            </span>
+            <div className="text-lg font-black text-amber-600 dark:text-amber-400 mt-1 flex items-baseline gap-1.5">
+              <span className="tabular-nums">{lossSummary.totalLossUnits}</span>
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{isKhmer ? 'គ្រឿង' : 'pcs'}</span>
+            </div>
           </div>
 
           <div className="p-3 rounded-xl bg-white dark:bg-surface-800 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
               {isKhmer ? 'ករណីខូចខាតជាក់ស្ដែង' : 'Damaged Incidents'}
             </span>
-            <span className="text-lg font-black text-slate-800 dark:text-white font-mono mt-1 block">
-              {lossSummary.damagedCount} {isKhmer ? 'គ្រឿង (ខូចខាត)' : 'damaged pcs'}
-            </span>
+            <div className="text-lg font-black text-slate-800 dark:text-white mt-1 flex items-baseline gap-1.5">
+              <span className="tabular-nums">{lossSummary.damagedCount}</span>
+              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{isKhmer ? 'គ្រឿង (ខូចខាត)' : 'damaged pcs'}</span>
+            </div>
           </div>
         </div>
 

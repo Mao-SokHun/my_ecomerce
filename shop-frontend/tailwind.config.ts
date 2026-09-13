@@ -46,8 +46,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Noto Sans Khmer', 'Khmer OS Siemreap', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['Cal Sans', 'Noto Sans Khmer', 'Inter', 'sans-serif'],
+        sans: ['Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS Siemreap', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Kantumruy Pro', 'Cal Sans', 'Noto Sans Khmer', 'Inter', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Kantumruy Pro', 'Noto Sans Khmer', 'monospace'],
       },
       borderRadius: {
         '4xl': '2rem',
