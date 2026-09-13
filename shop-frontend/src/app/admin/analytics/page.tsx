@@ -18,7 +18,6 @@ import {
   Download,
   Printer,
   RefreshCw,
-  Sparkles,
   PieChart,
   BarChart3,
   Percent,

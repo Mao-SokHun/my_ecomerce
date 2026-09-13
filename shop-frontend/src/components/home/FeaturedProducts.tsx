@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp, Sparkles } from 'lucide-react';
+import { ArrowRight, TrendingUp } from 'lucide-react';
 import { Product } from '@/types';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductSkeleton } from '@/components/ui/Skeleton';
@@ -56,7 +56,6 @@ export function FeaturedProducts() {
       <div className="flex items-end justify-between mb-8 sm:mb-12 border-b border-black/[0.06] dark:border-white/[0.08] pb-4">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
             <span>{t(language, 'trending')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">

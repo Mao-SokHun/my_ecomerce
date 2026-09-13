@@ -17,7 +17,6 @@ import {
   X,
   Copy,
   Check,
-  Sparkles,
   Zap,
   Smile,
   ShieldCheck,

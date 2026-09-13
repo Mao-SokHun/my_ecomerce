@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ShieldCheck, Truck, Sparkles, Star, Award, Compass } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Truck, Star, Award, Compass } from 'lucide-react';
 import { useLanguageStore } from '@/store/languageStore';
 import { t } from '@/lib/i18n';
 import { settingApi } from '@/lib/api';
@@ -154,7 +154,6 @@ export function HeroBanner() {
               >
                 {/* Luxury Tag Badge */}
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase border border-amber-400/30 bg-black/40 backdrop-blur-xl text-amber-300 mb-6 shadow-sm shadow-amber-500/10">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                   <span>{slide.tag}</span>
                 </div>
 

@@ -13,7 +13,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, Clock, TrendingUp, ArrowRight, X, Sparkles, Trash2 } from 'lucide-react';
+import { Search, Loader2, Clock, TrendingUp, ArrowRight, X, Trash2 } from 'lucide-react';
 import type { AppLanguage } from '@/lib/i18n';
 import { t } from '@/lib/i18n';
 import { formatPrice } from '@/lib/utils';
@@ -191,7 +191,7 @@ function DropdownPanel({ slot }: { slot: 'desktop' | 'mobile' }) {
         <div className="p-3">
           <div className="flex items-center justify-between px-2 pb-2">
             <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              <Sparkles className="w-3.5 h-3.5 text-primary-500" />
+              <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
               {t(language, 'searchQuickResults')}
             </span>
             {assist.suggestions.length > 0 && (
