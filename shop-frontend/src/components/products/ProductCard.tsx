@@ -100,9 +100,9 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
   return (
     <motion.div
-      whileHover={{ y: -5 }}
+      whileHover={{ y: -6 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="group relative flex flex-col justify-between h-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl dark:hover:shadow-2xl dark:hover:shadow-black/60 hover:border-primary-500/40 dark:hover:border-primary-500/50 transition-all duration-300 overflow-hidden cursor-pointer"
+      className="group relative flex flex-col justify-between h-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-sm hover:shadow-2xl dark:hover:shadow-black/70 hover:border-amber-500/40 dark:hover:border-amber-400/40 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={() => router.push(`/products/${product.slug}`)}
     >
       {/* Top Image Container */}
@@ -122,7 +122,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         )}
 
         {/* Soft dark vignette on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
         {/* Badges (Top Left) */}
         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-10 flex flex-col items-start gap-1.5 pointer-events-none">
@@ -137,12 +137,12 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
             </span>
           )}
           {discount > 0 && (
-            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-600 to-rose-600 text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 sm:py-1 rounded-full shadow-md shadow-red-500/20 tracking-tight">
+            <span className="inline-flex items-center gap-1 bg-slate-950/90 dark:bg-black/90 text-amber-400 border border-amber-500/30 backdrop-blur-md text-[10px] sm:text-xs font-black px-2.5 py-0.5 sm:py-1 rounded-full shadow-md tracking-tight">
               <span>-{discount}%</span>
             </span>
           )}
           {product.isFeatured && (
-            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 sm:py-0.5 rounded-full shadow-md shadow-amber-500/20 tracking-wide">
+            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 text-slate-950 font-black text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full shadow-md shadow-amber-500/20 tracking-wider uppercase">
               <span>{t(language, 'badgeFeatured')}</span>
             </span>
           )}
@@ -174,7 +174,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               router.push(`/products/${product.slug}`);
             }}
             aria-label="Quick view"
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-white/60 dark:border-white/10 hover:text-primary-600 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center backdrop-blur-md shadow-md opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 border border-white/60 dark:border-white/10 hover:text-amber-500 hover:bg-white dark:hover:bg-slate-700 flex items-center justify-center backdrop-blur-md shadow-md opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200"
           >
             <Eye className="w-4 h-4" />
           </motion.button>
@@ -185,12 +185,12 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
           <button
             onClick={handleAddToCart}
             disabled={isAddingToCart || product.stock === 0}
-            className={`w-full py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm shadow-xl backdrop-blur-md flex items-center justify-center gap-2 active:scale-98 transition-all duration-200 ${
+            className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm shadow-xl backdrop-blur-md flex items-center justify-center gap-2 active:scale-98 transition-all duration-200 ${
               product.stock === 0
                 ? 'bg-slate-800/90 text-slate-400 cursor-not-allowed'
                 : justAdded
                 ? 'bg-emerald-600 text-white'
-                : 'bg-slate-900/95 hover:bg-black text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100'
+                : 'bg-slate-950 text-amber-300 hover:bg-black dark:bg-amber-400 dark:text-slate-950 dark:hover:bg-amber-300 border border-amber-500/20 shadow-lg'
             }`}
           >
             {justAdded ? (
@@ -216,20 +216,20 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       </div>
 
       {/* Card Content & Details (Dark mode high-contrast background) */}
-      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 sm:gap-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800/80">
+      <div className="p-3.5 sm:p-4 flex flex-col flex-1 justify-between gap-2.5 sm:gap-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5">
         {/* Brand & Title */}
         <div className="space-y-1">
           {product.brand ? (
-            <p className="text-[10px] sm:text-[11px] font-extrabold text-primary-600 dark:text-primary-400 uppercase tracking-wider line-clamp-1">
+            <p className="text-[10px] sm:text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest line-clamp-1">
               {product.brand}
             </p>
           ) : (
-            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
               SH-Shop
             </p>
           )}
 
-          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors min-h-[2rem] sm:min-h-[2.5rem]">
             {product.name}
           </h3>
         </div>
@@ -253,14 +253,14 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
               ({product.reviewCount})
             </span>
           ) : (
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
               New
             </span>
           )}
         </div>
 
         {/* Price and Mobile Quick-Add Button Row */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
           <div className="flex flex-col min-w-0">
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <span className="text-sm sm:text-base md:text-lg font-black text-slate-950 dark:text-white tabular-nums tracking-tight">
@@ -293,13 +293,13 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
                 ? 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                 : justAdded
                 ? 'bg-emerald-600 text-white shadow-emerald-600/20'
-                : 'bg-primary-600 text-white shadow-primary-600/20 hover:bg-primary-700 active:scale-95'
+                : 'bg-slate-950 text-amber-300 dark:bg-amber-400 dark:text-slate-950 shadow-md active:scale-95'
             }`}
           >
             {justAdded ? (
               <Check className="w-4 h-4 stroke-[2.5]" />
             ) : isAddingToCart ? (
-              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-white dark:border-slate-950 border-t-transparent rounded-full animate-spin" />
             ) : (
               <Plus className="w-4 h-4 stroke-[2.5]" />
             )}

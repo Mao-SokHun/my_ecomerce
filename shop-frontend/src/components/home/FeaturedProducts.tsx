@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowRight, TrendingUp, Sparkles } from 'lucide-react';
 import { Product } from '@/types';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductSkeleton } from '@/components/ui/Skeleton';
@@ -52,39 +52,47 @@ export function FeaturedProducts() {
   }
 
   return (
-    <section className="py-10 sm:py-16 page-container">
-      <div className="flex items-end justify-between mb-5 sm:mb-8">
+    <section className="py-12 sm:py-20 page-container">
+      <div className="flex items-end justify-between mb-8 sm:mb-12 border-b border-black/[0.06] dark:border-white/[0.08] pb-4">
         <div>
-          <p className="text-xs sm:text-sm font-semibold text-primary-600 mb-0.5 sm:mb-1 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {t(language, 'trending')}
-          </p>
-          <h2 className="section-title text-xl sm:text-2xl">{t(language, 'featuredProducts')}</h2>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 mb-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+            <span>{t(language, 'trending')}</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+            {t(language, 'featuredProducts')}
+          </h2>
         </div>
         <Link
           href="/products?featured=true"
-          className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
+          className="hidden sm:inline-flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors group"
         >
-          {t(language, 'viewAll')} <ArrowRight className="w-4 h-4" />
+          <span>{t(language, 'viewAll')}</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {products.map((product, i) => (
           <motion.div
             key={product.id}
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.4, delay: i * 0.05 }}
+            transition={{ duration: 0.45, delay: i * 0.05 }}
           >
             <ProductCard product={product} />
           </motion.div>
         ))}
       </div>
 
-      <div className="text-center mt-6 sm:mt-10">
-        <Link href="/products" className="btn-secondary inline-flex text-sm sm:text-base">
-          {t(language, 'browseAllProducts')} <ArrowRight className="w-4 h-4" />
+      <div className="text-center mt-10 sm:mt-14">
+        <Link
+          href="/products"
+          className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white bg-white dark:bg-surface-900 hover:bg-amber-50 dark:hover:bg-surface-800 border border-black/10 dark:border-white/15 hover:border-amber-400/50 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300"
+        >
+          <span>{t(language, 'browseAllProducts')}</span>
+          <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
     </section>

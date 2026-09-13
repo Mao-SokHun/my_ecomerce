@@ -538,13 +538,17 @@ export const getAdminProducts = async (
   try {
     const {
       page = '1',
-      limit = '50',
+      limit = '500',
       search,
       featured,
       active,
     } = req.query;
 
-    const { skip, take, page: pageNum, limit: limitNum } = paginate(Number(page), Number(limit));
+    // Admin endpoint: allow higher limit than the shared paginate() cap of 100
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(500, Math.max(1, Number(limit)));
+    const skip = (pageNum - 1) * limitNum;
+    const take = limitNum;
 
     const where: Record<string, unknown> = {};
 

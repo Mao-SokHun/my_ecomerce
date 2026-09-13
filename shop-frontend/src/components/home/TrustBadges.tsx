@@ -55,22 +55,29 @@ export function TrustBadges() {
   if (!cards || cards.length === 0) return null;
 
   return (
-    <section className="py-5 sm:py-8 page-container">
-      <div className="grid gap-2.5 sm:gap-4 grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+    <section className="py-6 sm:py-10 page-container">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {cards.map((card, i) => {
           const Icon = resolveTrustBadgeIcon(card.iconKey);
           const { title, desc } = pickText(card, language);
           return (
             <div
               key={`${card.iconKey}-${i}`}
-              className="flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 liquid-glass rounded-2xl sm:rounded-3xl shadow-sm hover:shadow-md transition-all duration-300"
+              className="group relative flex items-center gap-3 sm:gap-4 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-white/70 dark:bg-surface-900/70 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] hover:border-amber-500/40 dark:hover:border-amber-400/40 shadow-sm hover:shadow-xl hover:shadow-amber-500/5 transition-all duration-300 hover:-translate-y-0.5"
             >
-              <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-tr from-primary-500/15 to-indigo-500/25 dark:from-primary-600/30 dark:to-indigo-600/30 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 border border-primary-500/20">
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600 dark:text-primary-400" aria-hidden />
+              {/* Subtle top golden hairline on hover */}
+              <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-amber-400/0 group-hover:via-amber-400/60 to-transparent transition-all duration-500" />
+
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500/15 via-yellow-500/20 to-amber-600/25 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-500/25 group-hover:scale-105 group-hover:border-amber-400/50 transition-all duration-300 shadow-sm">
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white leading-tight">{title}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">{desc}</p>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors">
+                  {title}
+                </p>
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight mt-1 font-medium">
+                  {desc}
+                </p>
               </div>
             </div>
           );

@@ -166,7 +166,7 @@ export default function AdminProductsPage() {
     setIsFetching(true);
 
     const params: Record<string, unknown> = {
-      limit: 150,
+      limit: 500,
       search: search.trim() || undefined,
     };
     if (filterMode === 'featured') params.featured = 'true';
@@ -485,7 +485,7 @@ export default function AdminProductsPage() {
       }
 
       setShowModal(false);
-      const res = await adminApi.getProducts({ limit: 150 });
+      const res = await adminApi.getProducts({ limit: 500 });
       setProducts(res.data.data || []);
     } catch (error: unknown) {
       toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed');
