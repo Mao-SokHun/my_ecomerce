@@ -876,7 +876,10 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
   // SHEET 5: STOCK LOSS & DAMAGE AUDIT
   // ==========================================
   if (includeSheets.stockLoss !== false && options.adjustments && options.adjustments.length > 0) {
-    const lossItems = options.adjustments;
+    const lossItems = options.adjustments.filter(
+      (item) => item.diff < 0 || item.reason === 'damaged' || item.reason === 'broken' || item.reason === 'expired' || item.type === 'DAMAGED'
+    );
+    if (lossItems.length > 0) {
     const lossSheet = workbook.addWorksheet(
       isKhmer ? 'ការខាតបង់ & ខូចខាត' : 'Loss & Damage',
       {
@@ -989,14 +992,14 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
       });
     });
 
-    // Total Loss Summary Row
+    // Total Loss Summary Row (Note: Deducted Qty is deliberately left empty, only summarizing financial capital & revenue loss)
     const totalRowIndex = startLossRow + lossItems.length;
     const tRow = lossSheet.addRow([
       '',
       isKhmer ? 'សរុបការខាតបង់' : 'TOTAL LOSS',
       '',
       '',
-      { formula: `SUM(E${startLossRow}:E${totalRowIndex - 1})` },
+      '', // Column E: No sum formula for deducted quantity
       '',
       '',
       { formula: `SUM(H${startLossRow}:H${totalRowIndex - 1})` },
@@ -1014,14 +1017,9 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
         left: { style: 'thin', color: { argb: 'F43F5E' } },
         right: { style: 'thin', color: { argb: 'F43F5E' } },
       };
-      if ([5, 8, 9].includes(colNum)) {
-        if (colNum === 5) {
-          c.alignment = { horizontal: 'center' };
-          c.numFmt = FORMAT_INTEGER;
-        } else {
-          c.alignment = { horizontal: 'right' };
-          c.numFmt = FORMAT_CURRENCY;
-        }
+      if ([8, 9].includes(colNum)) {
+        c.alignment = { horizontal: 'right' };
+        c.numFmt = FORMAT_CURRENCY;
       }
     });
 
@@ -1038,6 +1036,7 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
       { width: 14 }, // Stock Left
       { width: 30 }, // Notes
     ];
+    }
   }
 
   // ==========================================
