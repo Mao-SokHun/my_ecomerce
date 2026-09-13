@@ -346,7 +346,7 @@ export default function AdminAuditPage() {
           >
             <option value="ALL">{isKhmer ? '👤 គ្រប់តួនាទីបុគ្គលិក' : '👤 All Roles'}</option>
             <option value="SUPER_ADMIN">👑 Super Admin</option>
-            <option value="MANAGER">💼 Manager</option>
+            <option value="ADMIN">💼 Admin</option>
             <option value="CASHIER">💳 Cashier / POS</option>
             <option value="WAREHOUSE">📦 Warehouse</option>
           </select>

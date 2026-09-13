@@ -1,6 +1,6 @@
 'use client';
 
-export type StaffRole = 'SUPER_ADMIN' | 'MANAGER' | 'CASHIER' | 'WAREHOUSE';
+export type StaffRole = 'SUPER_ADMIN' | 'ADMIN' | 'CASHIER' | 'WAREHOUSE';
 
 export interface RolePermissionConfig {
   role: StaffRole;
@@ -11,6 +11,7 @@ export interface RolePermissionConfig {
   badgeBorder: string;
   descriptionKm: string;
   allowedNavHrefs: string[];
+  canCreateRoles: StaffRole[]; // Roles this staff member is allowed to create/assign
   canViewFinancials: boolean; // Cost price, Gross profit, Net margins
   canEditProducts: boolean;
   canManageUsers: boolean;
@@ -27,7 +28,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
     badgeBg: 'bg-rose-100 dark:bg-rose-950/60',
     badgeText: 'text-rose-700 dark:text-rose-300',
     badgeBorder: 'border-rose-300/80 dark:border-rose-800',
-    descriptionKm: 'សិទ្ធិពេញលេញគ្រប់គ្រងប្រព័ន្ធ របាយការណ៍ហិរញ្ញវត្ថុ និងបុគ្គលិកទាំងអស់',
+    descriptionKm: 'សិទ្ធិពេញលេញបង្កើត និងកែប្រែគ្រប់គណនី (Super Admin, Admin, Cashier, Warehouse) និងគ្រប់គ្រងហិរញ្ញវត្ថុ',
     allowedNavHrefs: [
       '/admin',
       '/admin/analytics',
@@ -41,6 +42,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
       '/admin/settings',
       '/admin/audit',
     ],
+    canCreateRoles: ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'],
     canViewFinancials: true,
     canEditProducts: true,
     canManageUsers: true,
@@ -48,14 +50,14 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
     canManageInventory: true,
     canProcessOrders: true,
   },
-  MANAGER: {
-    role: 'MANAGER',
-    titleKm: 'អ្នកគ្រប់គ្រងទូទៅ (Manager)',
-    titleEn: 'Store Manager',
+  ADMIN: {
+    role: 'ADMIN',
+    titleKm: 'អ្នកគ្រប់គ្រង (Admin)',
+    titleEn: 'Store Admin',
     badgeBg: 'bg-indigo-100 dark:bg-indigo-950/60',
     badgeText: 'text-indigo-700 dark:text-indigo-300',
     badgeBorder: 'border-indigo-300/80 dark:border-indigo-800',
-    descriptionKm: 'គ្រប់គ្រងការលក់ ស្តុកទំនិញ អតិថិជន និងបុគ្គលិកថ្នាក់ក្រោម',
+    descriptionKm: 'គ្រប់គ្រងការលក់ ស្តុក អតិថិជន និងបង្កើតបានតែគណនី Cashier/POS និង Warehouse ប៉ុណ្ណោះ (មិនអាចបង្កើត Super Admin ឬ Admin ឡើយ)',
     allowedNavHrefs: [
       '/admin',
       '/admin/analytics',
@@ -68,9 +70,10 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
       '/admin/banners',
       '/admin/audit',
     ],
+    canCreateRoles: ['CASHIER', 'WAREHOUSE'],
     canViewFinancials: true,
     canEditProducts: true,
-    canManageUsers: false,
+    canManageUsers: true, // Can access users page to manage Cashier/Warehouse
     canManageSettings: false,
     canManageInventory: true,
     canProcessOrders: true,
@@ -87,6 +90,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
       '/admin/orders',
       '/admin/products',
     ],
+    canCreateRoles: [],
     canViewFinancials: false,
     canEditProducts: false,
     canManageUsers: false,
@@ -107,6 +111,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
       '/admin/orders',
       '/admin/products',
     ],
+    canCreateRoles: [],
     canViewFinancials: false,
     canEditProducts: false,
     canManageUsers: false,
@@ -117,6 +122,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
 };
 
 const STORAGE_KEY_ACTIVE_ROLE = 'sh_admin_active_role';
+const STORAGE_KEY_USER_STAFF_ROLES = 'sh_user_staff_roles_map';
 
 export function getActiveStaffRole(): StaffRole {
   if (typeof window === 'undefined') return 'SUPER_ADMIN';
@@ -133,6 +139,44 @@ export function setActiveStaffRole(role: StaffRole): void {
     localStorage.setItem(STORAGE_KEY_ACTIVE_ROLE, role);
     window.dispatchEvent(new Event('staff_role_changed'));
   } catch {}
+}
+
+export function getUserStaffRolesMap(): Record<string, StaffRole> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_USER_STAFF_ROLES);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return {};
+}
+
+export function getUserStaffRole(userId: string, defaultDbRole?: string): StaffRole | 'USER' {
+  if (defaultDbRole !== 'ADMIN') return 'USER';
+  const map = getUserStaffRolesMap();
+  if (map[userId] && STAFF_ROLES[map[userId]]) {
+    return map[userId];
+  }
+  return 'ADMIN'; // Default fallback for ADMIN role in database
+}
+
+export function setUserStaffRole(userId: string, role: StaffRole): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const map = getUserStaffRolesMap();
+    map[userId] = role;
+    localStorage.setItem(STORAGE_KEY_USER_STAFF_ROLES, JSON.stringify(map));
+    window.dispatchEvent(new Event('user_staff_role_updated'));
+  } catch {}
+}
+
+export function canCreateRole(actorRole: StaffRole, targetRole: StaffRole): boolean {
+  const cfg = STAFF_ROLES[actorRole] || STAFF_ROLES.SUPER_ADMIN;
+  return cfg.canCreateRoles.includes(targetRole);
+}
+
+export function getCreatableRoles(actorRole: StaffRole): StaffRole[] {
+  const cfg = STAFF_ROLES[actorRole] || STAFF_ROLES.SUPER_ADMIN;
+  return cfg.canCreateRoles;
 }
 
 export function canAccessNav(role: StaffRole, href: string): boolean {

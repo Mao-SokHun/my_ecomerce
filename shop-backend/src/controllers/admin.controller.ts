@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
@@ -168,6 +169,61 @@ export const getUsers = async (req: AuthRequest, res: Response, next: NextFuncti
     ]);
 
     res.json({ success: true, ...paginateResponse(users, total, pageNum, limitNum) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { name, email, phone, password, role = 'USER' } = req.body;
+
+    if (!name || !password) {
+      throw new AppError('Name and password are required', 400);
+    }
+    if (!email && !phone) {
+      throw new AppError('Either email or phone is required', 400);
+    }
+
+    if (email) {
+      const existing = await prisma.user.findUnique({ where: { email: String(email).toLowerCase() } });
+      if (existing) throw new AppError('Email already registered', 400);
+    }
+
+    if (phone) {
+      const existingPhone = await prisma.user.findFirst({ where: { phone: String(phone) } });
+      if (existingPhone) throw new AppError('Phone number already registered', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const userRole = role === 'ADMIN' ? 'ADMIN' : 'USER';
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: email ? String(email).toLowerCase() : null,
+        phone: phone ? String(phone) : null,
+        password: hashedPassword,
+        role: userRole,
+        isActive: true,
+        emailVerified: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: user,
+    });
   } catch (error) {
     next(error);
   }

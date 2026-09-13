@@ -5,16 +5,43 @@ import Image from 'next/image';
 import { adminApi } from '@/lib/api';
 import { User } from '@/types';
 import { formatDate, formatPrice } from '@/lib/utils';
-import { Search, ShieldCheck, UserX, X, Award, Eye, Phone, Mail, Calendar, ShoppingBag, MapPin } from 'lucide-react';
+import {
+  Search,
+  ShieldCheck,
+  UserX,
+  X,
+  Award,
+  Eye,
+  Phone,
+  Mail,
+  Calendar,
+  ShoppingBag,
+  MapPin,
+  UserPlus,
+  Shield,
+  UserCheck,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getInitials } from '@/lib/utils';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
 import { calculateMembershipTier, getUserPoints, getUserLifetimeSpend } from '@/lib/loyaltyEngine';
+import {
+  StaffRole,
+  STAFF_ROLES,
+  getActiveStaffRole,
+  getUserStaffRole,
+  setUserStaffRole,
+  canCreateRole,
+  logAuditEvent,
+} from '@/lib/rbac';
+import { CreateStaffModal } from '@/components/admin/CreateStaffModal';
 
 export default function AdminUsersPage() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const [activeStaffRole, setActiveStaffRole] = useState<StaffRole>('SUPER_ADMIN');
+  const [isCreateStaffOpen, setIsCreateStaffOpen] = useState(false);
   const [users, setUsers] = useState<User[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -37,7 +64,22 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!search && users.length === 0) setLoading(true);
+    setActiveStaffRole(getActiveStaffRole());
+    const handleRoleChange = () => {
+      setActiveStaffRole(getActiveStaffRole());
+    };
+    window.addEventListener('staff_role_changed', handleRoleChange);
+    window.addEventListener('user_staff_role_updated', () => {
+      // Trigger rerender
+      setUsers((prev) => [...prev]);
+    });
+    return () => {
+      window.removeEventListener('staff_role_changed', handleRoleChange);
+    };
+  }, []);
+
+  const loadUsers = () => {
+    setLoading(true);
     adminApi.getUsers({ search: search || undefined })
       .then(({ data }) => {
         const list = data.data || [];
@@ -49,6 +91,10 @@ export default function AdminUsersPage() {
         }
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadUsers();
   }, [search]);
 
   const handleRoleToggle = async (userId: string, currentRole: string) => {
@@ -79,11 +125,30 @@ export default function AdminUsersPage() {
 
   return (
     <div style={isKhmer ? { fontFamily: "'Noto Sans Khmer', 'Khmer OS Siemreap', sans-serif" } : undefined}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{adminT(language, 'usersTitle')}</h1>
-          <p className="text-gray-500 text-sm">{users.length} {adminT(language, 'registeredUsersCount')}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <span>{adminT(language, 'usersTitle')}</span>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-surface-700">
+              {users.length} {adminT(language, 'registeredUsersCount')}
+            </span>
+          </h1>
+          <p className="text-gray-500 text-xs mt-0.5">
+            {isKhmer ? 'គ្រប់គ្រងអតិថិជន និងគណនីបុគ្គលិកតាមកម្រិតសិទ្ធិ' : 'Manage customers and staff account permissions'}
+          </p>
         </div>
+
+        {/* Create Staff Account Button (Super Admin & Admin only) */}
+        {(activeStaffRole === 'SUPER_ADMIN' || activeStaffRole === 'ADMIN') && (
+          <button
+            type="button"
+            onClick={() => setIsCreateStaffOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-bold transition shadow-md shadow-primary-500/25 flex items-center gap-2 cursor-pointer shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{isKhmer ? '➕ បង្កើតគណនីបុគ្គលិកថ្មី' : '➕ Create Staff Account'}</span>
+          </button>
+        )}
       </div>
 
       <div className="relative mb-5 max-w-sm">
@@ -136,6 +201,9 @@ export default function AdminUsersPage() {
                 const lifetimeSpend = getUserLifetimeSpend(user.id);
                 const tier = calculateMembershipTier(lifetimeSpend);
                 const points = getUserPoints(user.id);
+                const staffRole = getUserStaffRole(user.id, user.role);
+                const isStaff = user.role === 'ADMIN';
+                const staffConfig = STAFF_ROLES[staffRole as StaffRole] || STAFF_ROLES.ADMIN;
 
                 return (
                   <tr key={user.id} className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-surface-800/50 transition-colors">
@@ -157,7 +225,7 @@ export default function AdminUsersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-500">{user.email}</td>
+                    <td className="py-3 px-4 text-gray-500">{user.email || '—'}</td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${tier.badgeBg} ${tier.badgeText} ${tier.badgeBorder}`}>
                         <span>{tier.icon}</span>
@@ -169,10 +237,20 @@ export default function AdminUsersPage() {
                         {points.toLocaleString()} Pts
                       </span>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`badge ${user.role === 'ADMIN' ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'bg-gray-100 text-gray-600 dark:bg-surface-800 dark:text-gray-400'}`}>
-                        {user.role}
-                      </span>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {isStaff ? (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-lg border ${staffConfig.badgeBg} ${staffConfig.badgeText} ${staffConfig.badgeBorder}`}>
+                          {staffRole === 'SUPER_ADMIN' && '👑'}
+                          {staffRole === 'ADMIN' && '💼'}
+                          {staffRole === 'CASHIER' && '💳'}
+                          {staffRole === 'WAREHOUSE' && '📦'}
+                          <span>{isKhmer ? staffConfig.titleKm.split(' ')[0] : staffConfig.titleEn}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-surface-700">
+                          👤 Customer
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`badge ${user.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
@@ -288,9 +366,16 @@ export default function AdminUsersPage() {
                 <span className="text-gray-400 font-medium flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" /> Role & Status
                 </span>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {selectedUser.role} • {selectedUser.isActive ? 'Active' : 'Disabled'}
-                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {selectedUser.role} • {selectedUser.isActive ? 'Active' : 'Disabled'}
+                  </span>
+                  {selectedUser.role === 'ADMIN' && (
+                    <span className="text-[11px] font-bold text-primary-600 dark:text-primary-400">
+                      ({STAFF_ROLES[getUserStaffRole(selectedUser.id, selectedUser.role) as StaffRole]?.titleEn})
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="p-3 rounded-xl bg-gray-50 dark:bg-surface-800 space-y-1 col-span-2">
@@ -300,6 +385,60 @@ export default function AdminUsersPage() {
                 <p className="font-semibold text-gray-900 dark:text-white">{formatDate(selectedUser.createdAt)}</p>
               </div>
             </div>
+
+            {/* Staff Role Assignment (When user is Admin) */}
+            {selectedUser.role === 'ADMIN' && (activeStaffRole === 'SUPER_ADMIN' || activeStaffRole === 'ADMIN') && (
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-surface-800/80 border border-slate-200 dark:border-surface-700 space-y-2">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
+                  {isKhmer ? 'កំណត់តួនាទីបុគ្គលិកជាក់លាក់ (Assign Staff Role)៖' : 'Assign Specific Staff Role:'}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(activeStaffRole === 'SUPER_ADMIN'
+                    ? (['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'] as StaffRole[])
+                    : (['CASHIER', 'WAREHOUSE'] as StaffRole[])
+                  ).map((r) => {
+                    const cfg = STAFF_ROLES[r];
+                    const isCurrent = getUserStaffRole(selectedUser.id, selectedUser.role) === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setUserStaffRole(selectedUser.id, r);
+                          logAuditEvent({
+                            action: 'STAFF_ROLE_ASSIGNED',
+                            actionCategory: 'AUTH',
+                            descriptionKm: `បានកំណត់តួនាទីបុគ្គលិក ${selectedUser.name} ជា ${cfg.titleKm}`,
+                            descriptionEn: `Assigned staff role for ${selectedUser.name} to ${cfg.titleEn}`,
+                            actorName: 'Admin',
+                            actorRole: activeStaffRole,
+                            targetId: selectedUser.id,
+                            targetName: selectedUser.name,
+                            newValue: r,
+                          });
+                          toast.success(isKhmer ? `បានកំណត់តួនាទីជា ${cfg.titleKm}` : `Assigned role to ${cfg.titleEn}`);
+                          setUsers((prev) => [...prev]);
+                        }}
+                        className={`p-2 rounded-xl text-left border text-xs font-bold transition flex items-center justify-between ${
+                          isCurrent
+                            ? `${cfg.badgeBg} ${cfg.badgeText} ${cfg.badgeBorder} ring-1 ring-primary-500`
+                            : 'bg-white dark:bg-surface-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-surface-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1">
+                          {r === 'SUPER_ADMIN' && '👑'}
+                          {r === 'ADMIN' && '💼'}
+                          {r === 'CASHIER' && '💳'}
+                          {r === 'WAREHOUSE' && '📦'}
+                          {isKhmer ? cfg.titleKm.split(' ')[0] : cfg.titleEn}
+                        </span>
+                        {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-primary-500" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-surface-800">
               <button
@@ -322,6 +461,16 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* Create Staff Modal */}
+      <CreateStaffModal
+        isOpen={isCreateStaffOpen}
+        onClose={() => setIsCreateStaffOpen(false)}
+        onSuccess={() => loadUsers()}
+        activeStaffRole={activeStaffRole}
+        currentActorName="Admin"
+        isKhmer={isKhmer}
+      />
     </div>
   );
 }

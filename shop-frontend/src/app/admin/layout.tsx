@@ -639,7 +639,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                           {r === 'SUPER_ADMIN' && '👑'}
-                          {r === 'MANAGER' && '💼'}
+                          {r === 'ADMIN' && '💼'}
                           {r === 'CASHIER' && '💳'}
                           {r === 'WAREHOUSE' && '📦'}
                           {isKhmer ? cfg.titleKm : cfg.titleEn}
