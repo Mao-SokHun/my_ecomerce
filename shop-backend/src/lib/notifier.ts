@@ -106,18 +106,49 @@ export const sendSms = async (payload: SmsPayload): Promise<boolean> => {
   return true;
 };
 
+export const escapeTelegramHtml = (text?: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
+
 export const sendTelegramMessage = async (payload: TelegramPayload): Promise<boolean> => {
-  const token = payload.botToken || process.env.TELEGRAM_BOT_TOKEN;
+  const token =
+    payload.botToken ||
+    process.env.TELEGRAM_BOT_TOKEN ||
+    process.env.TELEGRAM_USER_BOT_TOKEN ||
+    '8616756630:AAHSoeWM_-V8gmUAoDtMTGbyyoT29roSfDk';
+
   if (!token || !payload.chatId || !payload.text) {
     console.log('[Notify] Telegram not configured; skipped Telegram message');
     return false;
   }
 
-  await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
-    chat_id: payload.chatId,
-    text: payload.text,
-    parse_mode: 'HTML',
-  });
-
-  return true;
+  try {
+    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+      chat_id: payload.chatId,
+      text: payload.text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: false,
+    });
+    console.log(`[Telegram] ✅ Broadcast delivered to ${payload.chatId}`);
+    return true;
+  } catch (err: any) {
+    console.error(`[Telegram] ⚠️ HTML delivery failed to ${payload.chatId}:`, err?.response?.data || err?.message);
+    // Fallback: send as plain text without parse_mode if HTML entities failed
+    try {
+      const plain = payload.text.replace(/<[^>]*>/g, '');
+      await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
+        chat_id: payload.chatId,
+        text: plain,
+      });
+      console.log(`[Telegram] ✅ Fallback plain text delivered to ${payload.chatId}`);
+      return true;
+    } catch (fallbackErr: any) {
+      console.error(`[Telegram] ❌ Fallback plain text failed to ${payload.chatId}:`, fallbackErr?.response?.data || fallbackErr?.message);
+      return false;
+    }
+  }
 };

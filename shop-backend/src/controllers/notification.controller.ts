@@ -79,10 +79,18 @@ export const broadcastNotification = async (req: AuthRequest, res: Response, nex
 
     // Optionally broadcast to Telegram channel / subscribers
     if (sendTelegram) {
-      const telegramTargets = parseCsv(
-        process.env.TELEGRAM_USER_CHAT_ID || process.env.TELEGRAM_CHAT_IDS || process.env.TELEGRAM_CHAT_ID
-      );
-      const botToken = process.env.TELEGRAM_USER_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+      const rawTargets = [
+        process.env.TELEGRAM_USER_CHAT_ID,
+        process.env.TELEGRAM_CHAT_ID,
+        process.env.TELEGRAM_CHAT_IDS,
+        '@shshopbylyhour',
+      ].filter(Boolean).join(',');
+
+      const telegramTargets = Array.from(new Set(parseCsv(rawTargets)));
+      const botToken =
+        process.env.TELEGRAM_USER_BOT_TOKEN ||
+        process.env.TELEGRAM_BOT_TOKEN ||
+        '8616756630:AAHSoeWM_-V8gmUAoDtMTGbyyoT29roSfDk';
 
       const typeEmoji =
         type === 'PROMOTION'
@@ -93,15 +101,28 @@ export const broadcastNotification = async (req: AuthRequest, res: Response, nex
           ? '📦'
           : '📢';
 
+      const typeTitleKm =
+        type === 'PROMOTION'
+          ? 'ប្រូម៉ូសិនពិសេស'
+          : type === 'URGENT'
+          ? 'ដំណឹងបន្ទាន់'
+          : type === 'ORDER_UPDATE'
+          ? 'បច្ចុប្បន្នភាពការកម្មង់'
+          : 'ដំណឹងពីហាង';
+
+      const escapedTitle = title.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escapedMessage = message.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escapedTargetName = targetUserName ? targetUserName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
       const telegramLines = [
-        `<b>${typeEmoji} ការជូនដំណឹងពី SH-Shop</b>`,
-        `<b>ចំណងជើង:</b> ${title.trim()}`,
+        `<b>${typeEmoji} ការជូនដំណឹង (${typeTitleKm}) - SH-Shop</b>`,
+        `<b>ចំណងជើង:</b> ${escapedTitle}`,
         ``,
-        `${message.trim()}`,
+        `${escapedMessage}`,
       ];
 
       if (target === 'USER' && targetUserName) {
-        telegramLines.push(``, `👤 <i>ផ្ញើជូនអតិថិជន: ${targetUserName} (${targetUserEmail || targetUserId})</i>`);
+        telegramLines.push(``, `👤 <i>ផ្ញើជូនអតិថិជន: ${escapedTargetName}</i>`);
       } else if (target === 'SUBSCRIBERS') {
         telegramLines.push(``, `📬 <i>ផ្ញើជូនអ្នកចុះឈ្មោះ Subscribe ទាំងអស់</i>`);
       } else {
@@ -109,7 +130,9 @@ export const broadcastNotification = async (req: AuthRequest, res: Response, nex
       }
 
       if (link?.trim()) {
-        telegramLines.push(`🔗 <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}${link.trim()}">ចូលមើលលម្អិត</a>`);
+        const baseUrl = (process.env.FRONTEND_URL || 'https://shonlineshop.vercel.app').replace(/\/$/, '');
+        const targetUrl = link.trim().startsWith('http') ? link.trim() : `${baseUrl}${link.trim().startsWith('/') ? '' : '/'}${link.trim()}`;
+        telegramLines.push(``, `👉 <a href="${targetUrl}">ចុចទីនេះដើម្បីមើលព័ត៌មានលម្អិត</a>`);
       }
 
       const telegramText = telegramLines.join('\n');
