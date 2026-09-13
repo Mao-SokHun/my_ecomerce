@@ -218,7 +218,7 @@ export function HeroBanner() {
                       {t(language, 'statRating')} (VIP Quality)
                     </p>
                   </div>
-                </motion.div>
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>

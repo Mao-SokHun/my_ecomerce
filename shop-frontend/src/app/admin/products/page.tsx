@@ -77,6 +77,19 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [filterMode, setFilterMode] = useState<'all' | 'featured' | 'low_stock' | 'out_of_stock' | 'active' | 'inactive'>('all');
 
+  // Helper to keep both React state and sessionStorage cache in sync
+  const updateProductsStateAndCache = (updater: (prev: Product[]) => Product[]) => {
+    setProducts((prev) => {
+      const next = updater(prev);
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('admin_cached_products', JSON.stringify(next));
+        } catch { }
+      }
+      return next;
+    });
+  };
+
   // Quick Restock State
   const [restockingProduct, setRestockingProduct] = useState<Product | null>(null);
   const [restockMode, setRestockMode] = useState<'add' | 'set' | 'deduct'>('add');
@@ -207,7 +220,7 @@ export default function AdminProductsPage() {
 
     const handleProductCreated = (newProd: Product) => {
       if (!newProd || !newProd.id) return;
-      setProducts((prev) => {
+      updateProductsStateAndCache((prev) => {
         const exists = prev.some((p) => p.id === newProd.id);
         if (exists) return prev.map((p) => (p.id === newProd.id ? { ...p, ...newProd } : p));
         return [newProd, ...prev];
@@ -216,19 +229,19 @@ export default function AdminProductsPage() {
 
     const handleProductUpdated = (updatedProd: Product) => {
       if (!updatedProd || !updatedProd.id) return;
-      setProducts((prev) => prev.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p)));
+      updateProductsStateAndCache((prev) => prev.map((p) => (p.id === updatedProd.id ? { ...p, ...updatedProd } : p)));
     };
 
     const handleStockChanged = (data: { productId: string; stock: number }) => {
       if (!data || !data.productId) return;
-      setProducts((prev) =>
+      updateProductsStateAndCache((prev) =>
         prev.map((p) => (p.id === data.productId ? { ...p, stock: data.stock } : p))
       );
     };
 
     const handleProductDeleted = (data: { id: string }) => {
       if (!data || !data.id) return;
-      setProducts((prev) => prev.filter((p) => p.id !== data.id));
+      updateProductsStateAndCache((prev) => prev.filter((p) => p.id !== data.id));
     };
 
     socket.on('PRODUCT_CREATED', handleProductCreated);
@@ -285,7 +298,7 @@ export default function AdminProductsPage() {
           ? `បានកែសម្រួលស្តុក "${restockingProduct.name}" ទៅ ${finalStock} គ្រឿង ${diffText}${reasonText} ✅`
           : `Stock for "${restockingProduct.name}" updated to ${finalStock} ${diffText}${reasonText} ✅`
       );
-      setProducts((prev) =>
+      updateProductsStateAndCache((prev) =>
         prev.map((p) =>
           p.id === restockingProduct.id
             ? {
@@ -309,7 +322,7 @@ export default function AdminProductsPage() {
     e.stopPropagation();
     const nextVal = !product.isFeatured;
     // Optimistic UI update
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: nextVal } : p)));
+    updateProductsStateAndCache((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: nextVal } : p)));
     try {
       await productApi.update(product.id, { isFeatured: nextVal });
       toast.success(
@@ -319,7 +332,7 @@ export default function AdminProductsPage() {
       );
     } catch {
       // Revert on error
-      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: !nextVal } : p)));
+      updateProductsStateAndCache((prev) => prev.map((p) => (p.id === product.id ? { ...p, isFeatured: !nextVal } : p)));
       toast.error('Failed to update featured status');
     }
   };
@@ -329,7 +342,7 @@ export default function AdminProductsPage() {
     e.stopPropagation();
     const nextVal = !product.isActive;
     // Optimistic UI update
-    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: nextVal } : p)));
+    updateProductsStateAndCache((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: nextVal } : p)));
     try {
       await productApi.update(product.id, { isActive: nextVal });
       toast.success(
@@ -339,7 +352,7 @@ export default function AdminProductsPage() {
       );
     } catch {
       // Revert on error
-      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: !nextVal } : p)));
+      updateProductsStateAndCache((prev) => prev.map((p) => (p.id === product.id ? { ...p, isActive: !nextVal } : p)));
       toast.error('Failed to update active status');
     }
   };
@@ -486,7 +499,13 @@ export default function AdminProductsPage() {
 
       setShowModal(false);
       const res = await adminApi.getProducts({ limit: 500 });
-      setProducts(res.data.data || []);
+      const freshList = res.data.data || [];
+      setProducts(freshList);
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('admin_cached_products', JSON.stringify(freshList));
+        } catch { }
+      }
     } catch (error: unknown) {
       toast.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed');
     } finally {
@@ -499,7 +518,7 @@ export default function AdminProductsPage() {
     if (!window.confirm(isKhmer ? `តើអ្នកពិតជាចង់លុបទំនិញ "${name}" មែនទេ?` : `Delete "${name}"?`)) return;
     try {
       await productApi.delete(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
+      updateProductsStateAndCache((prev) => prev.filter((p) => p.id !== id));
       toast.success(isKhmer ? 'បានលុបទំនិញជោគជ័យ' : 'Product deleted');
     } catch {
       toast.error(isKhmer ? 'បរាជ័យក្នុងការលុប' : 'Failed to delete');
@@ -919,17 +938,18 @@ export default function AdminProductsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-surface-850/60 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  <th className="py-2.5 px-3 sm:px-4 w-[28%] min-w-[200px]">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
+                  <th className="py-2.5 px-3 text-center w-[5%] min-w-[45px]">{isKhmer ? 'ល.រ' : '#'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 w-[26%] min-w-[190px]">{isKhmer ? 'ទំនិញ' : 'Product'}</th>
                   <th className="py-2.5 px-3 hidden md:table-cell w-[13%] min-w-[110px]">{isKhmer ? 'ប្រភេទ' : 'Category'}</th>
                   <th className="py-2.5 px-3 w-[12%] min-w-[90px]">{isKhmer ? 'តម្លៃ' : 'Price'}</th>
                   <th className="py-2.5 px-3 w-[12%] min-w-[90px]">{isKhmer ? 'ស្តុក' : 'Stock'}</th>
                   <th className="py-2.5 px-3 text-center w-[11%] min-w-[85px]">{isKhmer ? 'Featured (Home)' : 'Featured'}</th>
-                  <th className="py-2.5 px-3 text-center w-[11%] min-w-[85px]">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
-                  <th className="py-2.5 px-3 sm:px-4 text-right w-[13%] min-w-[95px]">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
+                  <th className="py-2.5 px-3 text-center w-[10%] min-w-[80px]">{isKhmer ? 'ស្ថានភាព' : 'Status'}</th>
+                  <th className="py-2.5 px-3 sm:px-4 text-right w-[11%] min-w-[90px]">{isKhmer ? 'សកម្មភាព' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
-                {filteredProducts.map((product) => {
+                {filteredProducts.map((product, idx) => {
                   const isLow = product.stock > 0 && product.stock <= 5;
                   const isOut = product.stock <= 0;
 
@@ -938,6 +958,11 @@ export default function AdminProductsPage() {
                       key={product.id}
                       className="hover:bg-slate-50/80 dark:hover:bg-surface-850/50 transition-colors group"
                     >
+                      {/* Row Index Number */}
+                      <td className="py-2.5 px-3 text-center text-xs font-bold text-slate-400 dark:text-slate-500 tabular-nums">
+                        {idx + 1}
+                      </td>
+
                       {/* Product Name & Thumbnail */}
                       <td className="py-2.5 px-3 sm:px-4">
                         <div className="flex items-center gap-2.5">
