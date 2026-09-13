@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { AuthRequest } from '../middleware/auth';
-import { generateSlug, paginate, paginateResponse, str } from '../utils/helpers';
+import { generateBarcode, generateSlug, paginate, paginateResponse, str } from '../utils/helpers';
 import { PRODUCT_NAME_TRANSLATIONS } from '../data/productNameTranslations';
 import { apiCache } from '../lib/memoryCache';
 import { emitToAdmin, broadcastRealtime } from '../lib/socket';
@@ -280,6 +280,7 @@ export const createProduct = async (
       comparePrice,
       costPrice,
       sku,
+      barcode,
       stock,
       categoryId,
       brand,
@@ -297,6 +298,8 @@ export const createProduct = async (
     }
 
     const slug = await generateUniqueSlug(name);
+    const finalBarcode = barcode && String(barcode).trim() ? String(barcode).trim() : generateBarcode();
+    const finalSku = sku && String(sku).trim() ? String(sku).trim() : `PROD-${slug.toUpperCase().slice(0, 10)}`;
 
     const variantRows = Array.isArray(variants)
       ? variants
@@ -318,7 +321,8 @@ export const createProduct = async (
         price: Number(price),
         comparePrice: comparePrice ? Number(comparePrice) : null,
         costPrice: costPrice ? Number(costPrice) : null,
-        sku,
+        sku: finalSku,
+        barcode: finalBarcode,
         stock: Number(stock) || 0,
         categoryId,
         brand,
@@ -396,6 +400,17 @@ export const updateProduct = async (
     if (updates.stock !== undefined) updates.stock = Number(updates.stock);
     if (updates.isFeatured !== undefined) updates.isFeatured = Boolean(updates.isFeatured);
     if (updates.isActive !== undefined) updates.isActive = Boolean(updates.isActive);
+
+    if (updates.barcode !== undefined) {
+      const bStr = String(updates.barcode || '').trim();
+      updates.barcode = bStr !== '' ? bStr : (existing.barcode || generateBarcode());
+    } else if (!existing.barcode) {
+      updates.barcode = generateBarcode();
+    }
+
+    if (!existing.sku && !updates.sku) {
+      updates.sku = `PROD-${String(updates.slug || existing.slug).toUpperCase().slice(0, 10)}`;
+    }
 
     const updateData: Record<string, unknown> = { ...updates };
     if (variants !== undefined) {

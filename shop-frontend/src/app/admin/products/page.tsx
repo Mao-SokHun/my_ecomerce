@@ -28,9 +28,22 @@ import {
   DollarSign,
   Check,
   Calendar,
+  Barcode,
 } from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productApi, adminApi, uploadApi } from '@/lib/api';
+
+function generateEan13BarcodeFrontend(): string {
+  const seedStr = Math.floor(100000000 + Math.random() * 900000000).toString();
+  const raw12 = `884${seedStr}`;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const digit = parseInt(raw12[i], 10);
+    sum += i % 2 === 0 ? digit : digit * 3;
+  }
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return `${raw12}${checkDigit}`;
+}
 import { formatPrice, normalizeImageListToFullUrls, resolveToFullImageUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -112,6 +125,8 @@ export default function AdminProductsPage() {
     comparePrice: '',
     costPrice: '',
     stock: '',
+    sku: '',
+    barcode: '',
     categoryId: '',
     brand: '',
     thumbnail: '',
@@ -486,6 +501,8 @@ export default function AdminProductsPage() {
       comparePrice: '',
       costPrice: '',
       stock: '',
+      sku: '',
+      barcode: generateEan13BarcodeFrontend(),
       categoryId: '',
       brand: '',
       thumbnail: '',
@@ -509,6 +526,8 @@ export default function AdminProductsPage() {
       comparePrice: String(product.comparePrice || ''),
       costPrice: String(product.costPrice != null ? product.costPrice : ''),
       stock: String(product.stock),
+      sku: product.sku || '',
+      barcode: product.barcode || generateEan13BarcodeFrontend(),
       categoryId: product.categoryId,
       brand: product.brand || '',
       thumbnail: product.thumbnail || '',
@@ -541,6 +560,8 @@ export default function AdminProductsPage() {
         comparePrice: form.comparePrice ? Number(form.comparePrice) : undefined,
         costPrice: form.costPrice !== '' ? Number(form.costPrice) : undefined,
         stock: Number(form.stock),
+        sku: form.sku.trim() || undefined,
+        barcode: form.barcode.trim() || undefined,
         categoryId: form.categoryId,
         brand: form.brand || undefined,
         thumbnail: form.thumbnail.trim() ? resolveToFullImageUrl(form.thumbnail.trim()) : undefined,
@@ -645,14 +666,24 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Filtered Products by search & category
+  // Filtered Products by search & category & barcode
   const filteredProducts = useMemo(() => {
     let list = products;
     if (selectedCategory !== 'all') {
       list = list.filter((p) => p.categoryId === selectedCategory);
     }
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+          (p.sku && p.sku.toLowerCase().includes(q))
+      );
+    }
     return list;
-  }, [products, selectedCategory]);
+  }, [products, selectedCategory, search]);
 
   const totalCount = products.length;
   const activeCount = products.filter((p) => p.isActive).length;
@@ -1122,10 +1153,21 @@ export default function AdminProductsPage() {
                             >
                               {product.name}
                             </Link>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                               {product.brand && (
                                 <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                   {product.brand}
+                                </span>
+                              )}
+                              {product.barcode && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[10px] font-mono font-bold bg-slate-100 dark:bg-surface-800 text-primary-600 dark:text-primary-400 rounded border border-slate-200/80 dark:border-slate-700/80" title="Product Barcode">
+                                  <Barcode className="w-2.5 h-2.5 text-slate-400" />
+                                  {product.barcode}
+                                </span>
+                              )}
+                              {product.sku && (
+                                <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+                                  {product.sku}
                                 </span>
                               )}
                               {product.category && (
@@ -2016,6 +2058,58 @@ export default function AdminProductsPage() {
                       className={modalInputCls}
                       placeholder="e.g. A18 Pro chip, Grade Titanium, 48MP Fusion"
                     />
+                  </div>
+
+                  {/* Barcode & SKU Row */}
+                  <div>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'លេខ Barcode (EAN-13) *' : 'Barcode (EAN-13) *'}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Barcode className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          value={form.barcode}
+                          onChange={(e) => setForm((p) => ({ ...p, barcode: e.target.value }))}
+                          required
+                          className={`${modalInputCls} pl-9 font-mono font-bold tracking-wider text-primary-600 dark:text-primary-400`}
+                          placeholder="e.g. 8841000010017"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, barcode: generateEan13BarcodeFrontend() }))}
+                        className="px-3 py-2 bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 text-xs font-bold rounded-xl hover:bg-primary-100 transition shrink-0 flex items-center gap-1.5"
+                        title={isKhmer ? 'បង្កើតលេខ Barcode ថ្មី' : 'Generate new barcode'}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{isKhmer ? 'បង្កើត' : 'Generate'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={modalLabelCls}>
+                      {isKhmer ? 'លេខ SKU (Product SKU)' : 'Product SKU'}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        value={form.sku}
+                        onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))}
+                        className={`${modalInputCls} font-mono`}
+                        placeholder="e.g. MBP-16-M3"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const autoSku = `SKU-${(form.name || 'PROD').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)}-${Math.floor(100 + Math.random() * 900)}`;
+                          setForm((p) => ({ ...p, sku: autoSku }));
+                        }}
+                        className="px-3 py-2 bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-surface-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition shrink-0"
+                      >
+                        Auto
+                      </button>
+                    </div>
                   </div>
                   <div className="sm:col-span-2">
                     <label className={modalLabelCls}>Full Description *</label>

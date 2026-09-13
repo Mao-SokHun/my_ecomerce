@@ -147,39 +147,88 @@ export function BarcodeVerifyModal({
     codeReaderRef.current = reader;
     setCameraError(null);
 
-    reader
-      .decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
-        if (result && isMounted) {
-          const text = result.getText();
-          if (text) {
-            setInputCode(text);
-            setScanMode('MANUAL');
-            reader.reset();
-            setCameraActive(false);
-            void handleVerify(text);
+    const initCamera = async () => {
+      try {
+        if (typeof window === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('NO_MEDIA_DEVICES');
+        }
+
+        // 1. Trigger explicit browser camera permissions prompt with facingMode environment fallback
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+          });
+          testStream.getTracks().forEach((t) => t.stop());
+        } catch (permErr) {
+          // If environment constraint fails, fallback to simple video permission
+          const testStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          testStream.getTracks().forEach((t) => t.stop());
+        }
+
+        if (!isMounted) return;
+
+        // 2. Select appropriate video device (prefer back/rear/environment camera for mobile receipt scanning)
+        const devices = await reader.listVideoInputDevices();
+        let targetDeviceId: string | undefined = undefined;
+
+        if (devices.length > 0) {
+          const backDevice = devices.find((d) => {
+            const label = d.label.toLowerCase();
+            return label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('0');
+          });
+          targetDeviceId = backDevice ? backDevice.deviceId : devices[devices.length - 1].deviceId;
+        }
+
+        if (!isMounted || !videoRef.current) return;
+
+        await reader.decodeFromVideoDevice(targetDeviceId || null, videoRef.current, (result, err) => {
+          if (result && isMounted) {
+            const text = result.getText();
+            if (text) {
+              setInputCode(text);
+              setScanMode('MANUAL');
+              reader.reset();
+              setCameraActive(false);
+              void handleVerify(text);
+            }
           }
-        }
-        if (err && !(err.name === 'NotFoundException')) {
-          // Continuous scanning error (normal while seeking)
-        }
-      })
-      .then(() => {
-        if (isMounted) setCameraActive(true);
-      })
-      .catch((err) => {
+        });
+
         if (isMounted) {
-          setCameraError(
-            isKhmer
-              ? '⚠️ មិនអាចបើកកាមេរ៉ាបានទេ សូមអនុញ្ញាត Camera Permission ឬប្រើប្រាស់កាំភ្លើងស្កេន Barcode ជំនួសវិញ'
-              : 'Unable to access camera. Please allow camera permissions or enter manually.'
-          );
-          setCameraActive(false);
+          setCameraActive(true);
         }
-      });
+      } catch (err: unknown) {
+        if (!isMounted) return;
+        console.warn('Camera initialization error:', err);
+        const errObj = err as { name?: string; message?: string };
+        const errName = errObj?.name || '';
+
+        let msg = isKhmer
+          ? '⚠️ មិនអាចបើកកាមេរ៉ាបានទេ! សូមអនុញ្ញាត Camera Permission ឬប្រើប្រាស់កាំភ្លើងស្កេន Barcode ជំនួសវិញ។'
+          : 'Unable to access camera. Please allow camera permissions or enter manually.';
+
+        if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+          msg = isKhmer
+            ? '⚠️ អ្នកបានបដិសេធសិទ្ធិប្រើប្រាស់កាមេរ៉ា (Permission Denied)។ សូមអនុញ្ញាត Allow Camera ក្នុង Setting របស់ Browser។'
+            : 'Camera permission denied. Please allow camera access in browser settings.';
+        } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+          msg = isKhmer
+            ? '⚠️ រកមិនឃើញឧបករណ៍កាមេរ៉ាលើឧបករណ៍នេះឡើយ។'
+            : 'No camera hardware found on this device.';
+        }
+
+        setCameraError(msg);
+        setCameraActive(false);
+      }
+    };
+
+    void initCamera();
 
     return () => {
       isMounted = false;
-      reader.reset();
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
     };
   }, [isOpen, scanMode, handleVerify, isKhmer]);
 
@@ -338,16 +387,30 @@ export function BarcodeVerifyModal({
               </div>
 
               {cameraError && (
-                <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center">
+                <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center z-10">
                   <AlertTriangle className="w-8 h-8 text-amber-400 mb-2" />
-                  <p className="text-xs text-amber-200 max-w-sm mb-3">{cameraError}</p>
-                  <button
-                    type="button"
-                    onClick={() => setScanMode('MANUAL')}
-                    className="px-4 py-1.5 rounded-xl bg-white text-slate-900 text-xs font-bold"
-                  >
-                    {isKhmer ? 'ប្តូរមកវាយលេខកូដវិញ' : 'Switch to Manual Input'}
-                  </button>
+                  <p className="text-xs text-amber-200 max-w-sm mb-3 leading-relaxed">{cameraError}</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraError(null);
+                        setScanMode('MANUAL');
+                        setTimeout(() => setScanMode('CAMERA'), 100);
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>{isKhmer ? 'ព្យាយាមម្តងទៀត' : 'Try Again'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScanMode('MANUAL')}
+                      className="px-3.5 py-1.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+                    >
+                      {isKhmer ? 'ប្តូរមកវាយលេខកូដវិញ' : 'Switch to Manual Input'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

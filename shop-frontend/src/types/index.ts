@@ -47,6 +47,7 @@ export interface Product {
   comparePrice?: number;
   costPrice?: number;
   sku?: string;
+  barcode?: string;
   stock: number;
   lowStockAlert?: number;
   images: string[];

@@ -359,14 +359,29 @@ async function updateAllProducts() {
   console.log(`\n🔍 Found total ${allDbProducts.length} products in DB. Standardizing remaining products...`);
 
   let updatedCount = 0;
+  let barcodeSeed = 2001;
   for (const prod of allDbProducts) {
     const isCostMissing = prod.costPrice == null || prod.costPrice <= 0;
     const hasDiscount = prod.comparePrice != null;
+    const isBarcodeMissing = !prod.barcode || prod.barcode.includes('NaN');
 
-    if (isCostMissing || hasDiscount || !prod.sku) {
+    if (isCostMissing || hasDiscount || !prod.sku || isBarcodeMissing) {
       // Estimated cost price at 60% of retail price if not set
       const defaultCost = prod.costPrice && prod.costPrice > 0 ? prod.costPrice : Math.round(prod.price * 0.6 * 100) / 100;
       const skuVal = prod.sku || `PROD-${prod.slug.toUpperCase().slice(0, 10)}`;
+      
+      let barcodeVal = prod.barcode;
+      if (isBarcodeMissing) {
+        const seedStr = String(100000000 + barcodeSeed++).slice(-9);
+        const raw12 = `884${seedStr}`;
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+          const digit = parseInt(raw12[i], 10);
+          sum += i % 2 === 0 ? digit : digit * 3;
+        }
+        const checkDigit = (10 - (sum % 10)) % 10;
+        barcodeVal = `${raw12}${checkDigit}`;
+      }
 
       await prisma.product.update({
         where: { id: prod.id },
@@ -374,6 +389,7 @@ async function updateAllProducts() {
           costPrice: defaultCost,
           comparePrice: null, // មិនទាន់ដាក់ Discount
           sku: skuVal,
+          barcode: barcodeVal,
           stock: prod.stock > 0 ? prod.stock : 50,
           isActive: true,
         },

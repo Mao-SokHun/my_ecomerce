@@ -146,7 +146,7 @@ export default function AdminInventoryPage() {
   const productOptions: DropdownOption[] = useMemo(() => {
     return products.map((p) => ({
       value: p.id,
-      label: `${p.name} (ស្តុក: ${p.stock} | ថ្លៃដើម: $${(p.costPrice || 0).toFixed(2)})`,
+      label: `${p.name} (Barcode: ${p.barcode || 'N/A'} | ស្តុក: ${p.stock} | ថ្លៃដើម: $${(p.costPrice || 0).toFixed(2)})`,
     }));
   }, [products]);
 

@@ -23,6 +23,18 @@ export const generateOrderNumber = (): string => {
   return `ORD-${timestamp}-${random}`;
 };
 
+export const generateBarcode = (): string => {
+  const seedStr = Math.floor(100000000 + Math.random() * 900000000).toString();
+  const raw12 = `884${seedStr}`;
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    const digit = parseInt(raw12[i], 10);
+    sum += i % 2 === 0 ? digit : digit * 3;
+  }
+  const checkDigit = (10 - (sum % 10)) % 10;
+  return `${raw12}${checkDigit}`;
+};
+
 export const paginate = (page: number = 1, limit: number = 12) => {
   const pageNum = Math.max(1, page);
   const limitNum = Math.min(100, Math.max(1, limit));
