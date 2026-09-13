@@ -66,7 +66,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
         GROUP BY ("createdAt")::date
         ORDER BY date ASC
       `,
-      prisma.product.count({ where: { isActive: true, stock: { lte: 10 } } }),
+      prisma.product.count({ where: { isActive: true, stock: { lte: 5 } } }),
       prisma.product.aggregate({
         where: { isActive: true },
         _sum: { stock: true },
@@ -76,7 +76,7 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
         select: { stock: true, price: true, costPrice: true, soldCount: true },
       }),
       prisma.product.findMany({
-        where: { isActive: true, stock: { lte: 10 } },
+        where: { isActive: true, stock: { lte: 5 } },
         orderBy: { stock: 'asc' },
         take: 8,
         select: { id: true, name: true, stock: true, thumbnail: true },
