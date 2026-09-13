@@ -713,7 +713,7 @@ export default function FinancialAccountingPage() {
 
   return (
     <div
-      className="space-y-4 pb-12"
+      className="space-y-4 pb-12 w-full max-w-full min-w-0 overflow-x-hidden"
       style={isKhmer ? { fontFamily: "'Kantumruy Pro', 'Noto Sans Khmer', 'Khmer OS Siemreap', 'Inter', sans-serif" } : undefined}
     >
       {/* Top Header & Quick Actions */}
@@ -786,103 +786,113 @@ export default function FinancialAccountingPage() {
       )}
 
       {/* 5 Main Financial KPI Cards (Including Stock Loss & Damage) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5 w-full min-w-0">
         {/* 1. Total Cost */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (យកមក)' : 'Total Inventory Capital'}
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate" title={isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (យកមក)' : 'Total Inventory Capital'}>
+                {isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (យកមក)' : 'Total Inventory Capital'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 dark:text-white tabular-nums truncate" title={formatPrice(financials.totalInventoryCost, language)}>
+              {formatPrice(financials.totalInventoryCost, language)}
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
-            {formatPrice(financials.totalInventoryCost, language)}
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400">
-            <Package className="w-3.5 h-3.5 text-slate-400" />
-            <span>{financials.totalStockUnits.toLocaleString()} {isKhmer ? 'គ្រឿងសរុប' : 'units in stock'}</span>
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">
+            <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate">{financials.totalStockUnits.toLocaleString()} {isKhmer ? 'គ្រឿងសរុប' : 'units in stock'}</span>
           </div>
         </div>
 
         {/* 2. Retail Value */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {isKhmer ? 'ចំណូលលក់ចេញប៉ាន់ស្មាន' : 'Estimated Retail Value'}
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <ArrowUpRight className="w-4 h-4" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate" title={isKhmer ? 'ចំណូលលក់ចេញប៉ាន់ស្មាន' : 'Estimated Retail Value'}>
+                {isKhmer ? 'ចំណូលលក់ចេញប៉ាន់ស្មាន' : 'Estimated Retail Value'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-slate-900 dark:text-white tabular-nums truncate" title={formatPrice(financials.totalRetailValue, language)}>
+              {formatPrice(financials.totalRetailValue, language)}
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
-            {formatPrice(financials.totalRetailValue, language)}
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400">
-            <span>{products.length} {isKhmer ? 'មុខទំនិញសរុប' : 'active products'}</span>
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">
+            <span className="truncate">{products.length} {isKhmer ? 'មុខទំនិញសរុប' : 'active products'}</span>
           </div>
         </div>
 
         {/* 3. Est Gross Profit */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-white dark:to-surface-900 border border-emerald-500/30 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">
-              {isKhmer ? 'ប្រាក់ចំណេញដុលប៉ាន់ស្មាន' : 'Est. Gross Profit'}
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
-              +
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-white dark:to-surface-900 border border-emerald-500/30 shadow-xs relative overflow-hidden min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider truncate" title={isKhmer ? 'ប្រាក់ចំណេញដុលប៉ាន់ស្មាន' : 'Est. Gross Profit'}>
+                {isKhmer ? 'ប្រាក់ចំណេញដុលប៉ាន់ស្មាន' : 'Est. Gross Profit'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black shrink-0">
+                +
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums truncate" title={`+${formatPrice(financials.totalEstGrossProfit, language)}`}>
+              +{formatPrice(financials.totalEstGrossProfit, language)}
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
-            +{formatPrice(financials.totalEstGrossProfit, language)}
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-center gap-1.5 mt-2 text-xs truncate">
+            <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0 text-[11px]">
               Margin: {financials.overallMargin}%
             </span>
-            <span className="text-slate-500 dark:text-slate-400 text-[11px]">{isKhmer ? 'លើស្តុកទាំងអស់' : 'overall'}</span>
+            <span className="text-slate-500 dark:text-slate-400 text-[11px] truncate">{isKhmer ? 'លើស្តុកទាំងអស់' : 'overall'}</span>
           </div>
         </div>
 
         {/* 4. Realized Paid Profit */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {isKhmer ? 'ចំណេញជាក់ស្តែងពីការលក់' : 'Realized Gross Profit'}
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden min-w-0 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate" title={isKhmer ? 'ចំណេញជាក់ស្តែងពីការលក់' : 'Realized Gross Profit'}>
+                {isKhmer ? 'ចំណេញជាក់ស្តែងពីការលក់' : 'Realized Gross Profit'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums truncate" title={`+${formatPrice(financials.realizedProfit, language)}`}>
+              +{formatPrice(financials.realizedProfit, language)}
             </div>
           </div>
-          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tabular-nums">
-            +{formatPrice(financials.realizedProfit, language)}
-          </div>
-          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400">
-            <span>{isKhmer ? 'ចំណូលលក់បាន:' : 'Revenue:'} <strong>{formatPrice(financials.realizedRevenue, language)}</strong></span>
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-500 dark:text-slate-400 truncate">
+            <span className="truncate">{isKhmer ? 'ចំណូលលក់:' : 'Rev:'} <strong>{formatPrice(financials.realizedRevenue, language)}</strong></span>
           </div>
         </div>
 
         {/* 5. Stock Loss & Damage */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-rose-500/10 via-red-500/5 to-white dark:to-surface-900 border border-rose-500/30 dark:border-rose-900/50 shadow-xs relative overflow-hidden group">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider">
-              {isKhmer ? 'ការខាតបង់ ឬខូចខាតស្តុក' : 'Stock Loss & Damage'}
-            </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <TrendingDown className="w-4 h-4" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-500/10 via-red-500/5 to-white dark:to-surface-900 border border-rose-500/30 dark:border-rose-900/50 shadow-xs relative overflow-hidden min-w-0 group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wider truncate" title={isKhmer ? 'ការខាតបង់ ឬខូចខាតស្តុក' : 'Stock Loss & Damage'}>
+                {isKhmer ? 'ការខាតបង់ ឬខូចខាតស្តុក' : 'Stock Loss & Damage'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums truncate" title={lossSummary.totalCapitalLoss > 0 ? `-${formatPrice(lossSummary.totalCapitalLoss, language)}` : '$0.00'}>
+              {lossSummary.totalCapitalLoss > 0 ? `-${formatPrice(lossSummary.totalCapitalLoss, language)}` : '$0.00'}
             </div>
           </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400 tabular-nums">
-            {lossSummary.totalCapitalLoss > 0 ? `-${formatPrice(lossSummary.totalCapitalLoss, language)}` : '$0.00'}
-          </div>
-          <div className="flex items-center justify-between gap-1.5 mt-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px]">
+          <div className="flex items-center justify-between gap-1.5 mt-2 text-xs min-w-0">
+            <span className="px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[10.5px] truncate">
               {lossSummary.totalLossUnits} {isKhmer ? 'គ្រឿងខូចខាត' : 'lost pcs'}
             </span>
             <a
               href="#stock-loss-audit-section"
-              className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
+              className="text-[10.5px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5 shrink-0"
             >
               {isKhmer ? 'មើលតារាង' : 'Table'} ›
             </a>

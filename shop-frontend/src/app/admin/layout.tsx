@@ -593,7 +593,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       {/* Main */}
-      <div className={`flex-1 ${compactSidebar ? 'lg:ml-[92px]' : 'lg:ml-[280px]'} flex flex-col relative z-10 transition-all duration-300`}>
+      <div className={`flex-1 min-w-0 max-w-full ${compactSidebar ? 'lg:ml-[92px]' : 'lg:ml-[280px]'} flex flex-col relative z-10 transition-all duration-300 overflow-x-hidden`}>
         <header
           className={`sticky top-0 z-30 px-5 h-[68px] flex items-center gap-4 transition-all duration-200 ${
             isScrolled
@@ -804,7 +804,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <Link href="/" className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 bg-white dark:bg-surface-800 border border-slate-200 dark:border-gray-700 px-3 py-1.5 rounded-xl transition">← {adminT(language, 'backToStore')}</Link>
         </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8 w-full">{children}</main>
+        <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">{children}</main>
       </div>
     </div>
   );
