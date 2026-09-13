@@ -13,6 +13,7 @@ function resolveBackendOrigin(): string {
 }
 
 const backendProxyTarget = resolveBackendOrigin();
+const wsBackendTarget = backendProxyTarget.replace(/^http:/i, 'ws:').replace(/^https:/i, 'wss:');
 
 /** Allow next/image for product URLs hosted on the same API host (e.g. Render). */
 function apiUrlRemotePattern(): { protocol: 'https' | 'http'; hostname: string } | null {
@@ -42,7 +43,7 @@ const nextConfig: NextConfig = {
       { key: 'X-DNS-Prefetch-Control', value: 'on' },
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+      { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self)' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
       {
         key: 'Content-Security-Policy',
@@ -55,7 +56,7 @@ const nextConfig: NextConfig = {
           "style-src-elem 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
           "img-src 'self' data: blob: https: http:",
           "font-src 'self' data: https://fonts.gstatic.com",
-          `connect-src 'self' ${backendProxyTarget} https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://oauth2.googleapis.com https://api.stripe.com https://r.stripe.com https://pay.google.com https://maps.googleapis.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org https://telegram.org`,
+          `connect-src 'self' ${backendProxyTarget} ${wsBackendTarget} wss: ws: https://accounts.google.com https://graph.facebook.com https://www.facebook.com https://oauth2.googleapis.com https://api.stripe.com https://r.stripe.com https://pay.google.com https://maps.googleapis.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org https://telegram.org`,
           "frame-src https://accounts.google.com https://www.facebook.com https://js.stripe.com https://hooks.stripe.com https://pay.google.com https://checkout.payway.com.kh https://checkout-sandbox.payway.com.kh https://oauth.telegram.org https://telegram.org",
           "worker-src 'self' blob:",
           "base-uri 'self'",
