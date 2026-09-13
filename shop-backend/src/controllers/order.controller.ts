@@ -57,6 +57,15 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
         throw new AppError('Coupon usage limit reached', 400);
       }
+      // ──────────────────────────────────────────────────────────────
+      // PER-USER CHECK: each customer may only use a coupon ONCE
+      // ──────────────────────────────────────────────────────────────
+      const alreadyUsed = await prisma.couponUsage.findUnique({
+        where: { userId_couponId: { userId: req.user!.id, couponId: coupon.id } },
+      });
+      if (alreadyUsed) {
+        throw new AppError('You have already used this coupon. Each coupon can only be used once per customer.', 400);
+      }
       if (coupon.minOrder && subtotal < coupon.minOrder) {
         throw new AppError(`Minimum order is ${coupon.minOrder} for this coupon`, 400);
       }
@@ -172,6 +181,21 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
 
     // Clear cart
     await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+    // Record per-user coupon usage so it cannot be reused
+    if (orderCouponCode) {
+      const usedCoupon = await prisma.coupon.findFirst({
+        where: { code: orderCouponCode },
+        select: { id: true },
+      });
+      if (usedCoupon) {
+        await prisma.couponUsage.upsert({
+          where: { userId_couponId: { userId: req.user!.id, couponId: usedCoupon.id } },
+          create: { userId: req.user!.id, couponId: usedCoupon.id, orderId: order.id },
+          update: { usedAt: new Date(), orderId: order.id },
+        });
+      }
+    }
 
     // Create Stripe PaymentIntent for card checkout (optional — skipped if Stripe key not configured)
     let clientSecret: string | null = null;

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Order, Product, Category } from '@/types';
 import { generateEcommerceExcelReport, ReportPeriod } from '@/lib/excelReportGenerator';
+import { getStockAdjustments } from '@/lib/stockLossStorage';
 import { formatPrice } from '@/lib/utils';
 import {
   FileSpreadsheet,
@@ -82,6 +83,7 @@ export function ExcelExportModal({
   const [includeOrders, setIncludeOrders] = useState(true);
   const [includeTopProducts, setIncludeTopProducts] = useState(true);
   const [includeInventory, setIncludeInventory] = useState(true);
+  const [includeStockLoss, setIncludeStockLoss] = useState(true);
 
   // Generating loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -202,11 +204,13 @@ export function ExcelExportModal({
         products,
         categories,
         language,
+        adjustments: getStockAdjustments(),
         includeSheets: {
           summary: includeSummary,
           orders: includeOrders,
           topProducts: includeTopProducts,
           inventory: includeInventory,
+          stockLoss: includeStockLoss,
         },
       });
       toast.success(
@@ -556,6 +560,27 @@ export function ExcelExportModal({
                     🏬 {isKhmer ? 'ស្ថានភាពស្តុក & ដើមទុន (Inventory Valuation)' : 'Inventory & Capital Valuation'}
                   </p>
                   <p className="text-[10px] text-slate-400">Current stock, capital & potential profit</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30 cursor-pointer transition sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={includeStockLoss}
+                  onChange={(e) => setIncludeStockLoss(e.target.checked)}
+                  className="rounded text-rose-600 focus:ring-rose-500 w-4 h-4"
+                />
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <span>⚠️</span>
+                    <span>{isKhmer ? 'ការខាតបង់ & ខូចខាតទំនិញ (Stock Loss & Damage Audit)' : 'Stock Loss & Damage Audit'}</span>
+                    <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300">
+                      New
+                    </span>
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {isKhmer ? 'កត់ត្រាការខូចខាត បាត់បង់ទំនិញ ថ្លៃដើមខាតបង់ និងមូលហេតុ' : 'Shrinkage, damaged units, capital write-offs & reason audit'}
+                  </p>
                 </div>
               </label>
             </div>

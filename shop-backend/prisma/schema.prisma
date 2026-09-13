@@ -93,6 +93,7 @@ model User {
   sellerProfile    SellerProfile?
   auditLogs        AuditLog[]
   notifications    Notification[]
+  couponUsages     CouponUsage[]
   lastSeenOrdersAt  DateTime?
   lastSeenUsersAt   DateTime?
   lastSeenLeadsAt   DateTime?
@@ -478,7 +479,24 @@ model Coupon {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  couponUsages CouponUsage[]
+
   @@map("coupons")
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  couponId  String
+  orderId   String?
+  usedAt    DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, couponId])
+  @@index([couponId])
+  @@map("coupon_usages")
 }
 
 model Advertisement {

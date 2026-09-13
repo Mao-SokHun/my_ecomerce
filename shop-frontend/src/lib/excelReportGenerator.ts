@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { Order, Product, Category } from '@/types';
+import { StockAdjustmentItem } from '@/lib/stockLossStorage';
 
 export type ReportPeriod = 'weekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -13,6 +14,7 @@ export interface ExcelReportOptions {
   orders: Order[];
   products: Product[];
   categories?: Category[];
+  adjustments?: StockAdjustmentItem[];
   shopInfo?: {
     name?: string;
     phone?: string;
@@ -25,6 +27,7 @@ export interface ExcelReportOptions {
     orders?: boolean;
     topProducts?: boolean;
     inventory?: boolean;
+    stockLoss?: boolean;
   };
 }
 
@@ -866,6 +869,174 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
       { width: 22 }, // Inventory Capital
       { width: 20 }, // Potential Retail
       { width: 20 }, // Potential Profit
+    ];
+  }
+
+  // ==========================================
+  // SHEET 5: STOCK LOSS & DAMAGE AUDIT
+  // ==========================================
+  if (includeSheets.stockLoss !== false && options.adjustments && options.adjustments.length > 0) {
+    const lossItems = options.adjustments;
+    const lossSheet = workbook.addWorksheet(
+      isKhmer ? 'ការខាតបង់ & ខូចខាត' : 'Loss & Damage',
+      {
+        views: [{ showGridLines: true }],
+        properties: { tabColor: { argb: 'E11D48' } }, // Rose 600
+      }
+    );
+
+    // Title banner
+    lossSheet.mergeCells('A1:K1');
+    const bTitle = lossSheet.getCell('A1');
+    bTitle.value = isKhmer
+      ? '⚠️ របាយការណ៍ការខាតបង់ និងខូចខាតទំនិញក្នុងស្តុក (STOCK LOSS & DAMAGED GOODS AUDIT)'
+      : '⚠️ STOCK LOSS & DAMAGED INVENTORY AUDIT REPORT';
+    bTitle.font = { name: FONT_FAMILY, size: 14, bold: true, color: { argb: 'FFFFFF' } };
+    bTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '9F1239' } }; // Rose 900
+    bTitle.alignment = { vertical: 'middle', horizontal: 'center' };
+    lossSheet.getRow(1).height = 34;
+
+    // Subtitle
+    lossSheet.mergeCells('A2:K2');
+    const bSub = lossSheet.getCell('A2');
+    bSub.value = `${dateRange.label} | ${shopInfo.name}`;
+    bSub.font = { name: FONT_FAMILY, size: 10, italic: true, color: { argb: 'FFFFFF' } };
+    bSub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'BE123C' } };
+    bSub.alignment = { vertical: 'middle', horizontal: 'center' };
+    lossSheet.getRow(2).height = 20;
+
+    // Empty row
+    lossSheet.getRow(3).height = 10;
+
+    // Table Headers
+    const lossHeaders = isKhmer
+      ? ['ល.រ', 'កាលបរិច្ឆេទ', 'ឈ្មោះទំនិញ', 'មូលហេតុ', 'ចំនួនកាត់ចេញ', 'ថ្លៃដើម ($)', 'តម្លៃលក់ ($)', 'ខាតដើមទុន ($)', 'បាត់ចំណូល ($)', 'ស្តុកនៅសល់', 'ចំណាំ / ការពិពណ៌នា']
+      : ['No', 'Date', 'Product Name', 'Reason', 'Deducted Qty', 'Unit Cost ($)', 'Unit Price ($)', 'Capital Loss ($)', 'Lost Revenue ($)', 'Stock Left', 'Incident Notes'];
+
+    const hRow = lossSheet.addRow(lossHeaders);
+    hRow.height = 26;
+    hRow.eachCell((cell) => {
+      cell.font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '881337' } }; // Deep Burgundy
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFFFFF' } },
+        bottom: { style: 'medium', color: { argb: 'FFFFFF' } },
+        left: { style: 'thin', color: { argb: '9F1239' } },
+        right: { style: 'thin', color: { argb: '9F1239' } },
+      };
+    });
+
+    const startLossRow = 5;
+    lossItems.forEach((item, idx) => {
+      const isLoss = item.diff < 0;
+      const qtyUnits = Math.abs(item.diff);
+      const reasonLabel =
+        item.reason === 'damaged'
+          ? (isKhmer ? '⚠️ ខូចខាត/បាត់បង់' : 'Damaged')
+          : item.reason === 'audit'
+          ? (isKhmer ? '🔍 រាប់ស្តុកបាត់' : 'Audit')
+          : item.reason === 'return'
+          ? (isKhmer ? '🔄 អតិថិជនប្តូរ' : 'Return')
+          : (isKhmer ? '📦 នាំចូល' : 'Shipment');
+
+      const dRow = lossSheet.addRow([
+        idx + 1,
+        new Date(item.createdAt).toLocaleDateString(),
+        item.productName,
+        reasonLabel,
+        isLoss ? -qtyUnits : qtyUnits,
+        item.costPrice || 0,
+        item.sellingPrice || 0,
+        item.capitalLoss || (isLoss ? qtyUnits * (item.costPrice || 0) : 0),
+        item.revenueLoss || (isLoss ? qtyUnits * (item.sellingPrice || 0) : 0),
+        item.finalStock,
+        item.notes || '-',
+      ]);
+      dRow.height = 22;
+
+      const isOdd = idx % 2 === 1;
+      dRow.eachCell((c, colNum) => {
+        c.font = { name: FONT_FAMILY, size: 10 };
+        c.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: isOdd ? 'FFF1F2' : 'FFFFFF' }, // Rose 50 tint
+        };
+        c.border = {
+          top: { style: 'thin', color: { argb: 'FECDD3' } },
+          bottom: { style: 'thin', color: { argb: 'FECDD3' } },
+          left: { style: 'thin', color: { argb: 'FECDD3' } },
+          right: { style: 'thin', color: { argb: 'FECDD3' } },
+        };
+
+        if (colNum === 1 || colNum === 2 || colNum === 4 || colNum === 10) {
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (colNum === 5) {
+          c.alignment = { horizontal: 'center', vertical: 'middle' };
+          c.font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: isLoss ? 'BE123C' : '047857' } };
+        } else if ([6, 7].includes(colNum)) {
+          c.alignment = { horizontal: 'right', vertical: 'middle' };
+          c.numFmt = FORMAT_CURRENCY;
+        } else if (colNum === 8) {
+          c.alignment = { horizontal: 'right', vertical: 'middle' };
+          c.font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: 'BE123C' } };
+          c.numFmt = FORMAT_CURRENCY;
+        } else if (colNum === 9) {
+          c.alignment = { horizontal: 'right', vertical: 'middle' };
+          c.numFmt = FORMAT_CURRENCY;
+        }
+      });
+    });
+
+    // Total Loss Summary Row
+    const totalRowIndex = startLossRow + lossItems.length;
+    const tRow = lossSheet.addRow([
+      '',
+      isKhmer ? 'សរុបការខាតបង់' : 'TOTAL LOSS',
+      '',
+      '',
+      { formula: `SUM(E${startLossRow}:E${totalRowIndex - 1})` },
+      '',
+      '',
+      { formula: `SUM(H${startLossRow}:H${totalRowIndex - 1})` },
+      { formula: `SUM(I${startLossRow}:I${totalRowIndex - 1})` },
+      '',
+      '',
+    ]);
+    tRow.height = 26;
+    tRow.eachCell((c, colNum) => {
+      c.font = { name: FONT_FAMILY, size: 10, bold: true, color: { argb: '881337' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE4E6' } }; // Rose 100
+      c.border = {
+        top: { style: 'thin', color: { argb: 'F43F5E' } },
+        bottom: { style: 'double', color: { argb: '881337' } },
+        left: { style: 'thin', color: { argb: 'F43F5E' } },
+        right: { style: 'thin', color: { argb: 'F43F5E' } },
+      };
+      if ([5, 8, 9].includes(colNum)) {
+        if (colNum === 5) {
+          c.alignment = { horizontal: 'center' };
+          c.numFmt = FORMAT_INTEGER;
+        } else {
+          c.alignment = { horizontal: 'right' };
+          c.numFmt = FORMAT_CURRENCY;
+        }
+      }
+    });
+
+    lossSheet.columns = [
+      { width: 6 },  // No
+      { width: 14 }, // Date
+      { width: 34 }, // Product Name
+      { width: 18 }, // Reason
+      { width: 14 }, // Deducted Qty
+      { width: 14 }, // Unit Cost
+      { width: 14 }, // Unit Price
+      { width: 18 }, // Capital Loss
+      { width: 18 }, // Revenue Loss
+      { width: 14 }, // Stock Left
+      { width: 30 }, // Notes
     ];
   }
 

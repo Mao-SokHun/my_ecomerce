@@ -134,11 +134,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     let prevOrders = -1;
     let prevUsers = -1;
     let prevSupport = -1;
+    let authErrorCount = 0; // stop polling after repeated auth failures
     const pull = async () => {
       const gen = ++unreadPullGenerationRef.current;
       try {
         const { data } = await adminApi.getUnreadCounts();
         if (!mounted || gen !== unreadPullGenerationRef.current) return;
+        authErrorCount = 0; // reset on success
         const counts = data.data || {};
         const nextOrders = Number(counts.orders || 0);
         const nextUsers = Number(counts.users || 0);
@@ -174,17 +176,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         prevUsers = nextUsers;
         prevLeads = nextLeads;
         prevSupport = nextSupport;
-      } catch {
-        // ignore
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // Stop hammering on auth errors (401 / 403) — token expired or invalid
+        if (status === 401 || status === 403) {
+          authErrorCount += 1;
+          if (authErrorCount >= 2) {
+            clearInterval(timer);
+          }
+        }
+        // All other errors: silently ignore and retry at next interval
       }
     };
     pull();
-    const timer = setInterval(pull, 8000);
+    const timer = setInterval(pull, 30000); // poll every 30s (was 8s) to reduce server load
     return () => {
       mounted = false;
       clearInterval(timer);
     };
   }, [isAuthChecked, adminUser, user?.role, language]);
+
 
   const { socket } = useRealtime();
 

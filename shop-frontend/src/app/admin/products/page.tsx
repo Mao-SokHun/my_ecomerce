@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
+import { saveStockAdjustment } from '@/lib/stockLossStorage';
 
 export default function AdminProductsPage() {
   const { language } = useAdminLanguageStore();
@@ -347,9 +348,7 @@ export default function AdminProductsPage() {
           revenueLoss: diff < 0 ? revenueLoss : 0,
           createdAt: new Date().toISOString(),
         };
-        const existingRaw = localStorage.getItem('admin_stock_adjustments');
-        const existing = existingRaw ? JSON.parse(existingRaw) : [];
-        localStorage.setItem('admin_stock_adjustments', JSON.stringify([historyItem, ...existing].slice(0, 100)));
+        saveStockAdjustment(historyItem);
       } catch {}
 
       updateProductsStateAndCache((prev) =>
