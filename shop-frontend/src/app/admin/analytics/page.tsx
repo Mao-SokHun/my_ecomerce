@@ -33,6 +33,7 @@ import {
   Delete as DeleteIcon,
   X,
   FileSpreadsheet,
+  Calendar,
 } from 'lucide-react';
 import type { Product, Category, Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -70,6 +71,7 @@ export default function FinancialAccountingPage() {
   const [lossQty, setLossQty] = useState<number>(1);
   const [lossReason, setLossReason] = useState<string>('damaged');
   const [lossNotes, setLossNotes] = useState<string>('');
+  const [lossDateTime, setLossDateTime] = useState<string>('');
   const [isSubmittingLoss, setIsSubmittingLoss] = useState(false);
 
   useEffect(() => {
@@ -148,6 +150,7 @@ export default function FinancialAccountingPage() {
 
       await productApi.update(selectedLossProduct.id, { stock: finalStock });
 
+      const resolvedCreatedAt = lossDateTime ? new Date(lossDateTime).toISOString() : new Date().toISOString();
       const newAdjustment: StockAdjustmentItem = {
         id: 'loss_' + Date.now(),
         productId: selectedLossProduct.id,
@@ -160,7 +163,7 @@ export default function FinancialAccountingPage() {
         capitalLoss,
         revenueLoss,
         notes: lossNotes.trim() || undefined,
-        createdAt: new Date().toISOString(),
+        createdAt: resolvedCreatedAt,
       };
       saveStockAdjustment(newAdjustment);
 
@@ -181,6 +184,7 @@ export default function FinancialAccountingPage() {
       setLossProductId('');
       setLossQty(1);
       setLossNotes('');
+      setLossDateTime('');
     } catch {
       toast.error(isKhmer ? 'បរាជ័យក្នុងការកត់ត្រាការខូចខាត' : 'Failed to record stock loss');
     } finally {
@@ -1477,6 +1481,11 @@ export default function FinancialAccountingPage() {
                 setLossQty(1);
                 setLossReason('damaged');
                 setLossNotes('');
+                const now = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                setLossDateTime(
+                  `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+                );
                 setLogLossModalOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white text-xs font-bold shadow-xs shadow-rose-500/25 transition active:scale-95 cursor-pointer"
@@ -1613,10 +1622,12 @@ export default function FinancialAccountingPage() {
                       className="hover:bg-rose-50/30 dark:hover:bg-rose-950/10 transition-colors group"
                     >
                       <td className="py-3 px-3.5 whitespace-nowrap font-mono text-slate-500 dark:text-slate-400 text-[11px]">
-                        {new Date(item.createdAt).toLocaleDateString()}{' '}
-                        <span className="text-[10px] text-slate-400">
+                        <div className="font-semibold text-slate-700 dark:text-slate-200">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
                           {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        </div>
                       </td>
 
                       <td className="py-3 px-3.5 font-bold text-slate-900 dark:text-white max-w-[220px] truncate">
@@ -1675,8 +1686,14 @@ export default function FinancialAccountingPage() {
                         {item.finalStock}
                       </td>
 
-                      <td className="py-3 px-3.5 text-slate-500 dark:text-slate-400 text-xs max-w-[220px] truncate" title={item.notes || ''}>
-                        {item.notes || '-'}
+                      <td className="py-3 px-3.5 text-slate-600 dark:text-slate-300 text-xs max-w-[260px]" title={item.notes || ''}>
+                        {item.notes ? (
+                          <span className="inline-block max-w-full truncate font-medium text-slate-700 dark:text-slate-200" title={item.notes}>
+                            {item.notes}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic text-[11px]">{isKhmer ? 'គ្មានចំណាំ' : 'No notes'}</span>
+                        )}
                       </td>
 
                       <td className="py-3 px-3.5 text-center whitespace-nowrap">
@@ -1809,17 +1826,48 @@ export default function FinancialAccountingPage() {
                 </div>
               </div>
 
+              {/* Date & Time Picker */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {isKhmer ? 'កាលបរិច្ឆេទ & ម៉ោងកត់ត្រា' : 'Date & Time'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const now = new Date();
+                      const pad = (n: number) => String(n).padStart(2, '0');
+                      setLossDateTime(
+                        `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+                      );
+                    }}
+                    className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+                  >
+                    {isKhmer ? 'កំណត់ពេលឥឡូវនេះ (Now)' : 'Set to Now'}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="datetime-local"
+                    value={lossDateTime}
+                    onChange={(e) => setLossDateTime(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  />
+                </div>
+              </div>
+
               {/* Notes */}
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
                   {isKhmer ? 'ចំណាំ / ការបរិយាយលម្អិត' : 'Incident Details / Notes'}
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={2}
                   value={lossNotes}
                   onChange={(e) => setLossNotes(e.target.value)}
                   placeholder={isKhmer ? 'ឧ. បែកអេក្រង់ពេលដឹកជញ្ជូន ឬប្រអប់សើមទឹក...' : 'e.g. Broken screen during transport...'}
-                  className="w-full h-10 px-3 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  className="w-full p-2.5 text-xs rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
                 />
               </div>
 

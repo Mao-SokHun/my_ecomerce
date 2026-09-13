@@ -942,7 +942,7 @@ export async function generateEcommerceExcelReport(options: ExcelReportOptions):
 
       const dRow = lossSheet.addRow([
         idx + 1,
-        new Date(item.createdAt).toLocaleDateString(),
+        `${new Date(item.createdAt).toLocaleDateString()} ${new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
         item.productName,
         reasonLabel,
         isLoss ? -qtyUnits : qtyUnits,

@@ -27,6 +27,7 @@ import {
   Tag,
   DollarSign,
   Check,
+  Calendar,
 } from 'lucide-react';
 import { Product, Category } from '@/types';
 import { productApi, adminApi, uploadApi } from '@/lib/api';
@@ -97,6 +98,8 @@ export default function AdminProductsPage() {
   const [restockQty, setRestockQty] = useState<number>(10);
   const [restockCostPrice, setRestockCostPrice] = useState<string>('');
   const [restockReason, setRestockReason] = useState<string>('shipment');
+  const [restockNotes, setRestockNotes] = useState<string>('');
+  const [restockDateTime, setRestockDateTime] = useState<string>('');
   const [isRestocking, setIsRestocking] = useState(false);
 
   // Edit/Create Form State
@@ -266,6 +269,12 @@ export default function AdminProductsPage() {
     setRestockQty(product.stock > 0 ? 10 : 10);
     setRestockReason('shipment');
     setRestockCostPrice(product.costPrice != null ? String(product.costPrice) : '');
+    setRestockNotes('');
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setRestockDateTime(
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+    );
   };
 
   const handleReasonSelect = (reasonId: string) => {
@@ -318,6 +327,8 @@ export default function AdminProductsPage() {
       const unitPrice = restockingProduct.price || 0;
       const capitalLoss = lossUnits * unitCost;
       const revenueLoss = lossUnits * unitPrice;
+      const resolvedCreatedAt = restockDateTime ? new Date(restockDateTime).toISOString() : new Date().toISOString();
+      const trimmedNotes = restockNotes.trim();
 
       if (diff < 0 || restockReason === 'damaged') {
         toast(
@@ -346,7 +357,8 @@ export default function AdminProductsPage() {
           sellingPrice: unitPrice,
           capitalLoss: diff < 0 ? capitalLoss : 0,
           revenueLoss: diff < 0 ? revenueLoss : 0,
-          createdAt: new Date().toISOString(),
+          notes: trimmedNotes || undefined,
+          createdAt: resolvedCreatedAt,
         };
         saveStockAdjustment(historyItem);
       } catch {}
@@ -543,10 +555,56 @@ export default function AdminProductsPage() {
       };
 
       if (editingProduct) {
+        const prevStock = editingProduct.stock || 0;
+        const newStock = Number(form.stock);
         await productApi.update(editingProduct.id, data);
+        if (newStock !== prevStock) {
+          const diff = newStock - prevStock;
+          const unitCost = form.costPrice !== '' ? Number(form.costPrice) : (editingProduct.costPrice || 0);
+          const unitPrice = Number(form.price);
+          try {
+            saveStockAdjustment({
+              id: 'adj_' + Date.now(),
+              productId: editingProduct.id,
+              productName: form.name,
+              diff,
+              finalStock: newStock,
+              reason: diff > 0 ? 'shipment' : 'audit',
+              costPrice: unitCost,
+              sellingPrice: unitPrice,
+              capitalLoss: diff < 0 ? Math.abs(diff) * unitCost : 0,
+              revenueLoss: diff < 0 ? Math.abs(diff) * unitPrice : 0,
+              notes: diff > 0
+                ? (isKhmer ? 'កែសម្រួលបន្ថែមស្តុកតាមផ្ទាំងកែប្រែទំនិញ' : 'Stock increased via product edit modal')
+                : (isKhmer ? 'កែសម្រួលកាត់ស្តុកតាមផ្ទាំងកែប្រែទំនិញ' : 'Stock decreased via product edit modal'),
+              createdAt: new Date().toISOString(),
+            });
+          } catch {}
+        }
         toast.success(isKhmer ? 'បានកែប្រែទំនិញជោគជ័យ' : 'Product updated');
       } else {
-        await productApi.create(data);
+        const res = await productApi.create(data);
+        const createdProd = res?.data?.data;
+        if (Number(form.stock) > 0 && createdProd?.id) {
+          const unitCost = form.costPrice !== '' ? Number(form.costPrice) : 0;
+          const unitPrice = Number(form.price);
+          try {
+            saveStockAdjustment({
+              id: 'adj_' + Date.now(),
+              productId: createdProd.id,
+              productName: form.name,
+              diff: Number(form.stock),
+              finalStock: Number(form.stock),
+              reason: 'shipment',
+              costPrice: unitCost,
+              sellingPrice: unitPrice,
+              capitalLoss: 0,
+              revenueLoss: 0,
+              notes: isKhmer ? 'បញ្ចូលស្តុកដំបូងពេលបង្កើតមុខទំនិញថ្មី' : 'Initial stock on product creation',
+              createdAt: new Date().toISOString(),
+            });
+          } catch {}
+        }
         toast.success(isKhmer ? 'បានបន្ថែមទំនិញថ្មីជោគជ័យ' : 'Product created');
       }
 
@@ -1790,6 +1848,64 @@ export default function AdminProductsPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Transaction Date & Time Picker */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                      {isKhmer ? 'កាលបរិច្ឆេទ & ម៉ោងកត់ត្រា' : 'Date & Time'}:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        const pad = (n: number) => String(n).padStart(2, '0');
+                        setRestockDateTime(
+                          `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+                        );
+                      }}
+                      className="text-[11px] font-semibold text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                    >
+                      {isKhmer ? 'កំណត់ពេលឥឡូវនេះ (Now)' : 'Set to Now'}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Calendar className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      type="datetime-local"
+                      value={restockDateTime}
+                      onChange={(e) => setRestockDateTime(e.target.value)}
+                      className="w-full h-10 pl-9 pr-3 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Custom Notes / Description Field */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                      {isKhmer ? 'ចំណាំ / ការពិពណ៌នាលម្អិត (ស្រេចចិត្ត)' : 'Notes / Description (Optional)'}:
+                    </label>
+                    <span className="text-[10px] text-slate-400">
+                      {isKhmer ? 'កត់ត្រាទុកក្នុងសវនកម្មស្តុក' : 'Saved to audit trail'}
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={restockNotes}
+                    onChange={(e) => setRestockNotes(e.target.value)}
+                    placeholder={
+                      calculatedStock.diff < 0 || restockReason === 'damaged'
+                        ? (isKhmer
+                            ? 'ឧ. ទំនិញបែកបាក់ពេលដឹកជញ្ជូន, រាប់ស្តុកបាត់ ១ គ្រឿង...'
+                            : 'e.g. Damaged in transit, missing 1 unit during stock count...')
+                        : (isKhmer
+                            ? 'ឧ. នាំចូលបន្ថែមពីក្រុមហ៊ុនផ្គត់ផ្គង់ កញ្ចប់ Batch #..., ស្តុកទំនិញថ្មី...'
+                            : 'e.g. Inbound shipment from supplier batch #..., new restock...')
+                    }
+                    className="w-full p-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition resize-none"
+                  />
                 </div>
 
                 {/* Modal Footer Actions */}
