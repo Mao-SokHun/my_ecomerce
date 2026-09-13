@@ -29,6 +29,7 @@ import {
   BellRing,
   FileSpreadsheet,
 } from 'lucide-react';
+import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
 
@@ -509,7 +510,14 @@ export default function AdminDashboard() {
             {data?.recentOrders.map((order) => (
               <div key={order.id} className="flex items-center gap-2.5 p-2 sm:p-2.5 bg-gray-50/80 dark:bg-surface-800/80 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-mono font-semibold text-gray-900 dark:text-white">{order.orderNumber}</p>
+                  <div className="mb-0.5">
+                    <CopyableOrderCode
+                      code={order.orderNumber}
+                      size="xs"
+                      variant="ghost"
+                      showCopyAlways={true}
+                    />
+                  </div>
                   <p className="text-[11px] text-gray-500 truncate">{order.user.name} · {formatDate(order.createdAt)}</p>
                 </div>
                 <div className="text-right shrink-0">

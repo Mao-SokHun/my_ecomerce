@@ -31,6 +31,7 @@ import { formatPrice, formatDate, getOrderStatusColor, getPaymentStatusColor, cn
 import toast from 'react-hot-toast';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { useConfirm } from '@/components/ui/ConfirmModal';
+import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -439,21 +440,12 @@ export default function OrdersPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white tracking-wide">
-                          {order.orderNumber}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => handleCopyOrderNumber(order.orderNumber, e)}
-                          title="Copy order number"
-                          className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-surface-700 transition"
-                        >
-                          {copiedId === order.orderNumber ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
+                        <CopyableOrderCode
+                          code={order.orderNumber}
+                          size="sm"
+                          variant="badge"
+                          showCopyAlways={true}
+                        />
                       </div>
 
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium sm:border-l sm:border-slate-200 sm:dark:border-surface-750 sm:pl-2.5">

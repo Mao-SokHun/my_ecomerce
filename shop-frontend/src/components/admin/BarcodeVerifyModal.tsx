@@ -23,6 +23,7 @@ import {
 import { BrowserMultiFormatReader } from '@zxing/library';
 import { orderApi } from '@/lib/api';
 import { Order } from '@/types';
+import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 import { formatPrice, formatKhrPrice, getOrderStatusColor, getPaymentStatusColor } from '@/lib/utils';
 import { printThermalReceipt } from '@/components/admin/ThermalReceiptPrinter';
 import toast from 'react-hot-toast';
@@ -368,9 +369,17 @@ export function BarcodeVerifyModal({
                     <h4 className="text-xs font-black text-emerald-800 dark:text-emerald-300">
                       {isKhmer ? 'វិក្កយបត្រត្រឹមត្រូវស្របច្បាប់ (100% Authentic Order Found)' : '100% Verified Authentic Order'}
                     </h4>
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
-                      {matchedOrder.orderNumber} • {new Date(matchedOrder.createdAt).toLocaleString(isKhmer ? 'km-KH' : 'en-US')}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <CopyableOrderCode
+                        code={matchedOrder.orderNumber}
+                        size="xs"
+                        variant="badge"
+                        showCopyAlways={true}
+                      />
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">
+                        • {new Date(matchedOrder.createdAt).toLocaleString(isKhmer ? 'km-KH' : 'en-US')}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

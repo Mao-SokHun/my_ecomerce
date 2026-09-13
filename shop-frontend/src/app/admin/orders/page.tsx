@@ -14,6 +14,7 @@ import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { ExcelExportModal } from '@/components/admin/ExcelExportModal';
 import { BarcodeVerifyModal } from '@/components/admin/BarcodeVerifyModal';
+import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 
 export default function AdminOrdersPage() {
   const { language } = useAdminLanguageStore();
@@ -581,14 +582,13 @@ export default function AdminOrdersPage() {
                       {idx + 1}
                     </td>
                     <td className="py-3 px-4">
-                      <button
-                        type="button"
+                      <CopyableOrderCode
+                        code={order.orderNumber}
                         onClick={() => setSelectedOrder(order)}
-                        className="font-mono font-bold text-primary-600 dark:text-primary-400 text-xs hover:underline flex items-center gap-1 text-left"
-                        title={isKhmer ? 'ចុចដើម្បីមើលលម្អិត' : 'Click to view details'}
-                      >
-                        <span>{order.orderNumber}</span>
-                      </button>
+                        size="xs"
+                        variant="badge"
+                        showCopyAlways={true}
+                      />
                     </td>
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900 dark:text-white">{order.user?.name || 'Customer'}</p>
@@ -664,9 +664,12 @@ export default function AdminOrdersPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white font-mono">
-                      {selectedOrder.orderNumber}
-                    </h2>
+                    <CopyableOrderCode
+                      code={selectedOrder.orderNumber}
+                      size="md"
+                      variant="badge"
+                      showCopyAlways={true}
+                    />
                     <span className={`badge text-[11px] ${getOrderStatusColor(selectedOrder.status)}`}>
                       {selectedOrder.status}
                     </span>

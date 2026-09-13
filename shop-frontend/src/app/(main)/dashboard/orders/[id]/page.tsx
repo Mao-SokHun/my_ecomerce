@@ -19,6 +19,7 @@ import { shopReceiptMetaFromFooterInfo, type ShopReceiptMeta } from '@/lib/shopC
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 import { generateBarcodeSvg } from '@/lib/barcodeGenerator';
+import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 
 export default function OrderDetailsPage() {
   const params = useParams<{ id: string }>();
@@ -885,11 +886,14 @@ export default function OrderDetailsPage() {
       <div className="card overflow-hidden p-0 shadow-sm border-gray-100 dark:border-gray-800">
         <div className="p-4 sm:p-5 space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white font-mono tracking-tight break-all">
-              {order.orderNumber}
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <div className="min-w-0 space-y-1">
+            <CopyableOrderCode
+              code={order.orderNumber}
+              size="lg"
+              variant="badge"
+              showCopyAlways={true}
+            />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {t(language, 'placedOn').replace('{date}', formatDate(order.createdAt, language))}
             </p>
           </div>
