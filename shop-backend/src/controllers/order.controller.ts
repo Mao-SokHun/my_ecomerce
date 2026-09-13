@@ -587,7 +587,7 @@ export const getOrderInvoice = async (req: AuthRequest, res: Response, next: Nex
     const id = String(req.params.id);
 
     const order = await prisma.order.findFirst({
-      where: req.user!.role === 'ADMIN' ? { id } : { id, userId: req.user!.id },
+      where: req.user!.role !== 'USER' ? { id } : { id, userId: req.user!.id },
       select: { id: true },
     });
 

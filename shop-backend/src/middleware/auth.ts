@@ -55,12 +55,14 @@ export const authenticate = async (
   }
 };
 
+export const STAFF_ROLES = ['ADMIN', 'SUPER_ADMIN', 'CASHIER', 'WAREHOUSE'];
+
 export const requireAdmin = (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ): void => {
-  if (req.user?.role !== 'ADMIN') {
+  if (!req.user || !STAFF_ROLES.includes(req.user.role)) {
     res.status(403).json({ success: false, message: 'Admin access required' });
     return;
   }

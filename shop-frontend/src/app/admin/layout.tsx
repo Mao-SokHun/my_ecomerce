@@ -26,6 +26,7 @@ import {
   setActiveStaffRole,
   canAccessNav,
   logAuditEvent,
+  isStaffRole,
 } from '@/lib/rbac';
 import toast from 'react-hot-toast';
 
@@ -52,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isDirectAdmin = user?.role === 'ADMIN';
+  const isDirectAdmin = isStaffRole(user?.role);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -121,7 +122,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const raw = localStorage.getItem('auth-storage');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed?.state?.user?.role === 'ADMIN') {
+        if (isStaffRole(parsed?.state?.user?.role)) {
           setAdminUser(parsed.state.user);
           setIsCheckingAccess(false);
         }
@@ -140,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
-    if (user && user.role !== 'ADMIN') {
+    if (user && !isStaffRole(user.role)) {
       router.push('/');
       setIsCheckingAccess(false);
       return;
@@ -152,7 +153,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then(({ data }) => {
         if (!isSubscribed) return;
         const me = data.data as { name: string; role: string };
-        if (me?.role !== 'ADMIN') {
+        if (!isStaffRole(me?.role)) {
           router.push('/');
           return;
         }
@@ -160,7 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       })
       .catch(() => {
         if (!isSubscribed) return;
-        if (!user || user.role !== 'ADMIN') {
+        if (!user || !isStaffRole(user.role)) {
           router.push('/login');
         }
       })
@@ -321,7 +322,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setCompactSidebar((prev) => !prev);
   };
 
-  const hasAdminAccess = user?.role === 'ADMIN' || adminUser?.role === 'ADMIN';
+  const hasAdminAccess = isStaffRole(user?.role) || isStaffRole(adminUser?.role);
 
   if (!mounted || (!hasAdminAccess && (!isAuthChecked || isCheckingAccess))) {
     return (

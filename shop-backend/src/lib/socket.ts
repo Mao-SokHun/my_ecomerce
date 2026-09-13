@@ -57,7 +57,7 @@ export const initSocket = (httpServer: HttpServer): Server => {
     // If authenticated user
     if (socket.user?.id) {
       socket.join(`user:${socket.user.id}`);
-      if (socket.user.role === 'ADMIN') {
+      if (socket.user.role !== 'USER') {
         socket.join('admin');
       }
     }

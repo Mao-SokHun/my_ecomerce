@@ -190,8 +190,8 @@ export default function DashboardPage() {
             <UserAvatar name={user?.name || ''} src={user?.avatar} size="md" className="mx-auto mb-3" />
             <p className="font-bold text-gray-900 dark:text-white">{user?.name}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
-            {user?.role === 'ADMIN' && (
-              <span className="badge bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 mt-2">Admin</span>
+            {user?.role && user.role !== 'USER' && (
+              <span className="badge bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 mt-2">{user.role.replace('_', ' ')}</span>
             )}
           </div>
 

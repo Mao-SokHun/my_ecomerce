@@ -160,7 +160,7 @@ export const getUsers = async (req: AuthRequest, res: Response, next: NextFuncti
         take,
         orderBy: { createdAt: 'desc' },
         select: {
-          id: true, name: true, email: true, role: true, isActive: true,
+          id: true, name: true, email: true, role: true, staffRole: true, isActive: true,
           avatar: true, phone: true, createdAt: true,
           _count: { select: { orders: true } },
         },
@@ -174,9 +174,12 @@ export const getUsers = async (req: AuthRequest, res: Response, next: NextFuncti
   }
 };
 
+const VALID_STAFF_ROLES = ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'] as const;
+type ValidStaffRole = typeof VALID_STAFF_ROLES[number];
+
 export const createUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { name, email, phone, password, role = 'USER' } = req.body;
+    const { name, email, phone, password, role = 'USER', staffRole } = req.body;
 
     if (!name || !password) {
       throw new AppError('Name and password are required', 400);
@@ -196,7 +199,13 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const userRole = role === 'ADMIN' ? 'ADMIN' : 'USER';
+
+    // Store specific role directly: SUPER_ADMIN | ADMIN | CASHIER | WAREHOUSE | USER
+    const validStaffRole: ValidStaffRole | null =
+      staffRole && VALID_STAFF_ROLES.includes(staffRole as ValidStaffRole)
+        ? (staffRole as ValidStaffRole)
+        : null;
+    const dbRole = validStaffRole || (role === 'ADMIN' ? 'ADMIN' : 'USER');
 
     const user = await prisma.user.create({
       data: {
@@ -204,7 +213,8 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
         email: email ? String(email).toLowerCase() : null,
         phone: phone ? String(phone) : null,
         password: hashedPassword,
-        role: userRole,
+        role: dbRole as Parameters<typeof prisma.user.create>[0]['data']['role'],
+        staffRole: validStaffRole ?? undefined,
         isActive: true,
         emailVerified: true,
       },
@@ -214,6 +224,7 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
         email: true,
         phone: true,
         role: true,
+        staffRole: true,
         isActive: true,
         createdAt: true,
       },
@@ -232,16 +243,29 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
 export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const id = String(req.params.id);
-    const { role, isActive } = req.body;
+    const { role, isActive, staffRole } = req.body;
 
     if (id === req.user!.id) {
       throw new AppError('Cannot modify your own admin account', 400);
     }
 
+    const validStaffRole: ValidStaffRole | null =
+      staffRole && VALID_STAFF_ROLES.includes(staffRole as ValidStaffRole)
+        ? (staffRole as ValidStaffRole)
+        : staffRole === null ? null : undefined as unknown as null;
+
+    const updateData: Record<string, unknown> = { isActive };
+    if (role !== undefined) updateData.role = role;
+    if (staffRole !== undefined) {
+      updateData.staffRole = validStaffRole;
+      // Set DB role directly to specific staff role (SUPER_ADMIN, ADMIN, CASHIER, WAREHOUSE)
+      if (validStaffRole) updateData.role = validStaffRole;
+    }
+
     const user = await prisma.user.update({
       where: { id },
-      data: { role, isActive },
-      select: { id: true, name: true, email: true, role: true, isActive: true },
+      data: updateData as Parameters<typeof prisma.user.update>[0]['data'],
+      select: { id: true, name: true, email: true, role: true, staffRole: true, isActive: true },
     });
 
     res.json({ success: true, message: 'User updated', data: user });

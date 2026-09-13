@@ -80,7 +80,7 @@ export const getKhqrStatus = async (req: AuthRequest, res: Response, next: NextF
   try {
     const orderId = String(req.params.orderId);
     const order = await prisma.order.findFirst({
-      where: req.user!.role === 'ADMIN' ? { id: orderId } : { id: orderId, userId: req.user!.id },
+      where: req.user!.role !== 'USER' ? { id: orderId } : { id: orderId, userId: req.user!.id },
       select: {
         id: true,
         orderNumber: true,
@@ -345,7 +345,7 @@ export const checkAbaPaymentStatus = async (req: AuthRequest, res: Response, nex
 
     const orderId = String(req.params.orderId);
     const order = await prisma.order.findFirst({
-      where: req.user!.role === 'ADMIN' ? { id: orderId } : { id: orderId, userId: req.user!.id },
+      where: req.user!.role !== 'USER' ? { id: orderId } : { id: orderId, userId: req.user!.id },
       select: { id: true, orderNumber: true, paymentStatus: true, paymentMethod: true },
     });
 
@@ -393,7 +393,7 @@ export const getBlockchainVerification = async (req: AuthRequest, res: Response,
   try {
     const orderId = String(req.params.orderId);
     const order = await prisma.order.findFirst({
-      where: req.user!.role === 'ADMIN' ? { id: orderId } : { id: orderId, userId: req.user!.id },
+      where: req.user!.role !== 'USER' ? { id: orderId } : { id: orderId, userId: req.user!.id },
     });
 
     if (!order) throw new AppError('Order not found', 404);

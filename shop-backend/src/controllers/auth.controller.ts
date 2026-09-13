@@ -90,7 +90,7 @@ const sanitizeAvatarUrl = (raw: string): string => {
   }
 };
 
-const signAccessToken = (payload: { id: string; email: string; role: string; name: string; tokenVersion: number }) => {
+const signAccessToken = (payload: { id: string; email: string; role: string; staffRole?: string | null; name: string; tokenVersion: number }) => {
   return jwt.sign(payload, process.env.JWT_SECRET!, {
     expiresIn: '15m',
   } as jwt.SignOptions);
@@ -102,8 +102,8 @@ const signRefreshToken = (payload: { id: string; tokenVersion: number }) => {
   } as jwt.SignOptions);
 };
 
-const buildTokenPair = (user: { id: string; email?: string | null; role: string; name: string; tokenVersion: number }) => {
-  const accessToken = signAccessToken({ id: user.id, email: user.email || '', role: user.role, name: user.name, tokenVersion: user.tokenVersion });
+const buildTokenPair = (user: { id: string; email?: string | null; role: string; staffRole?: string | null; name: string; tokenVersion: number }) => {
+  const accessToken = signAccessToken({ id: user.id, email: user.email || '', role: user.role, staffRole: user.staffRole ?? null, name: user.name, tokenVersion: user.tokenVersion });
   const refreshToken = signRefreshToken({ id: user.id, tokenVersion: user.tokenVersion });
   return { token: accessToken, refreshToken };
 };

@@ -15,6 +15,16 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  SUPER_ADMIN
+  CASHIER
+  WAREHOUSE
+}
+
+enum StaffRole {
+  SUPER_ADMIN
+  ADMIN
+  CASHIER
+  WAREHOUSE
 }
 
 enum OrderStatus {
@@ -78,6 +88,7 @@ model User {
   phone         String?      @db.VarChar(20)
   avatar        String?      @db.Text
   role          Role         @default(USER)
+  staffRole     StaffRole?                    // Granular staff role (SUPER_ADMIN | ADMIN | CASHIER | WAREHOUSE)
   provider      AuthProvider @default(LOCAL)
   tokenVersion  Int          @default(0)
   isActive      Boolean      @default(true)

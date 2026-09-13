@@ -144,7 +144,7 @@ export const getSupportMessages = async (req: AuthRequest, res: Response, next: 
       return;
     }
 
-    const isAdmin = adminUser?.role === 'ADMIN';
+    const isAdmin = Boolean(adminUser?.role && adminUser.role !== 'USER');
     const isOwner = inquiry.sessionToken && inquiry.sessionToken === sessionToken;
 
     if (!isAdmin && !isOwner) {
@@ -185,7 +185,7 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
       return;
     }
 
-    const isAdmin = adminUser?.role === 'ADMIN';
+    const isAdmin = Boolean(adminUser?.role && adminUser.role !== 'USER');
     const isOwner = Boolean(inquiry.sessionToken && inquiry.sessionToken === sessionToken);
 
     if (!isAdmin && !isOwner) {
@@ -197,7 +197,7 @@ export const createSupportMessage = async (req: AuthRequest, res: Response, next
     // If sent from the admin inbox (admin credentials without customer sessionToken), it is sent by ADMIN
     const isSendingAsAdmin = isAdmin && !isOwner;
     const sender = isSendingAsAdmin ? 'ADMIN' : 'USER';
-    const senderName = isSendingAsAdmin ? (adminUser.name || 'SH-Shop Admin') : (inquiry.name || 'អតិថិជន');
+    const senderName = isSendingAsAdmin ? (adminUser?.name || 'SH-Shop Admin') : (inquiry.name || 'អតិថិជន');
 
     const message = await prisma.supportMessage.create({
       data: {

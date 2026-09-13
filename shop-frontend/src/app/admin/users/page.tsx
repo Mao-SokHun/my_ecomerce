@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
                         </button>
                         <button
                           onClick={() => handleRoleToggle(user.id, user.role)}
-                          title={user.role === 'ADMIN' ? 'Remove Admin' : 'Make Admin'}
+                          title={user.role !== 'USER' ? 'Remove Staff Access' : 'Make Staff'}
                           className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                         >
                           <ShieldCheck className="w-4 h-4" />
@@ -370,7 +370,7 @@ export default function AdminUsersPage() {
                   <span className="font-semibold text-gray-900 dark:text-white">
                     {selectedUser.role} • {selectedUser.isActive ? 'Active' : 'Disabled'}
                   </span>
-                  {selectedUser.role === 'ADMIN' && (
+                  {selectedUser.role !== 'USER' && (
                     <span className="text-[11px] font-bold text-primary-600 dark:text-primary-400">
                       ({STAFF_ROLES[getUserStaffRole(selectedUser.id, selectedUser.role, selectedUser.email) as StaffRole]?.titleEn})
                     </span>
@@ -386,8 +386,8 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            {/* Staff Role Assignment (When user is Admin) */}
-            {selectedUser.role === 'ADMIN' && (activeStaffRole === 'SUPER_ADMIN' || activeStaffRole === 'ADMIN') && (
+            {/* Staff Role Assignment (When user is Staff) */}
+            {selectedUser.role !== 'USER' && (activeStaffRole === 'SUPER_ADMIN' || activeStaffRole === 'ADMIN') && (
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-surface-800/80 border border-slate-200 dark:border-surface-700 space-y-2">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
                   {isKhmer ? 'កំណត់តួនាទីបុគ្គលិកជាក់លាក់ (Assign Staff Role)៖' : 'Assign Specific Staff Role:'}
@@ -445,7 +445,7 @@ export default function AdminUsersPage() {
                 onClick={() => handleRoleToggle(selectedUser.id, selectedUser.role)}
                 className="btn-secondary text-xs px-3 py-2"
               >
-                {selectedUser.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}
+                {selectedUser.role !== 'USER' ? 'Demote to User' : 'Promote to Staff'}
               </button>
               <button
                 onClick={() => handleToggleActive(selectedUser.id, selectedUser.isActive)}

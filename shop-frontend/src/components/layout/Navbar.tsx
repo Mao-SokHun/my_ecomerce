@@ -436,7 +436,7 @@ export function Navbar() {
                         >
                           <Heart className="w-4 h-4 text-gray-500" /> {t(language, 'wishlist')}
                         </Link>
-                        {user.role === 'ADMIN' && (
+                        {user.role !== 'USER' && (
                           <Link
                             href="/admin"
                             onClick={() => setIsUserMenuOpen(false)}

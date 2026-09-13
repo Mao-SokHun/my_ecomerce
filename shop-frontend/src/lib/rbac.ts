@@ -160,16 +160,26 @@ export function getUserStaffRolesMap(): Record<string, StaffRole> {
   return {};
 }
 
+export function isStaffRole(role?: string | null): boolean {
+  if (!role) return false;
+  return ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'].includes(role);
+}
+
 export function getUserStaffRole(userId: string, defaultDbRole?: string, email?: string | null): StaffRole | 'USER' {
   if (isSuperAdminEmail(email)) {
     return 'SUPER_ADMIN';
   }
-  if (defaultDbRole !== 'ADMIN') return 'USER';
-  const map = getUserStaffRolesMap();
-  if (map[userId] && STAFF_ROLES[map[userId]]) {
-    return map[userId];
+  if (defaultDbRole === 'SUPER_ADMIN') return 'SUPER_ADMIN';
+  if (defaultDbRole === 'CASHIER') return 'CASHIER';
+  if (defaultDbRole === 'WAREHOUSE') return 'WAREHOUSE';
+  if (defaultDbRole === 'ADMIN') {
+    const map = getUserStaffRolesMap();
+    if (map[userId] && STAFF_ROLES[map[userId]]) {
+      return map[userId];
+    }
+    return 'ADMIN';
   }
-  return 'ADMIN'; // Default fallback for ADMIN role in database
+  return 'USER';
 }
 
 export function setUserStaffRole(userId: string, role: StaffRole): void {
