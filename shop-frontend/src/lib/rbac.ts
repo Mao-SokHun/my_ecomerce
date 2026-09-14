@@ -134,13 +134,50 @@ export function isSuperAdminEmail(email?: string | null): boolean {
 const STORAGE_KEY_ACTIVE_ROLE = 'sh_admin_active_role';
 const STORAGE_KEY_USER_STAFF_ROLES = 'sh_user_staff_roles_map';
 
-export function getActiveStaffRole(): StaffRole {
-  if (typeof window === 'undefined') return 'SUPER_ADMIN';
+// Role hierarchy: index = power level (lower index = more power)
+const ROLE_HIERARCHY: StaffRole[] = ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'];
+
+/**
+ * Returns the role ceiling for a user based on their actual DB role.
+ * A user can never switch to a role with MORE permissions than their real role.
+ */
+export function getRoleCeiling(dbRole?: string | null, email?: string | null): StaffRole {
+  if (isSuperAdminEmail(email)) return 'SUPER_ADMIN';
+  if (dbRole === 'SUPER_ADMIN') return 'SUPER_ADMIN';
+  if (dbRole === 'ADMIN') return 'ADMIN';
+  if (dbRole === 'CASHIER') return 'CASHIER';
+  if (dbRole === 'WAREHOUSE') return 'WAREHOUSE';
+  return 'CASHIER'; // safest default for unknown staff
+}
+
+/**
+ * Returns roles that a user is allowed to switch to (for preview/testing).
+ * Users can only switch to roles with EQUAL or LESS power than their ceiling.
+ */
+export function getAllowedRoleSwitches(ceilingRole: StaffRole): StaffRole[] {
+  const ceilingIdx = ROLE_HIERARCHY.indexOf(ceilingRole);
+  // Roles from ceilingIdx onward have equal or lower power
+  return ROLE_HIERARCHY.slice(ceilingIdx);
+}
+
+export function getActiveStaffRole(ceilingRole?: StaffRole): StaffRole {
+  if (typeof window === 'undefined') return ceilingRole || 'SUPER_ADMIN';
   try {
     const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_ROLE) as StaffRole;
-    if (saved && STAFF_ROLES[saved]) return saved;
+    if (saved && STAFF_ROLES[saved]) {
+      // Enforce ceiling: if saved role has more power than ceiling, reset to ceiling
+      if (ceilingRole) {
+        const savedIdx = ROLE_HIERARCHY.indexOf(saved);
+        const ceilingIdx = ROLE_HIERARCHY.indexOf(ceilingRole);
+        if (savedIdx < ceilingIdx) {
+          // saved role has MORE power than allowed ceiling - reset
+          return ceilingRole;
+        }
+      }
+      return saved;
+    }
   } catch {}
-  return 'SUPER_ADMIN';
+  return ceilingRole || 'SUPER_ADMIN';
 }
 
 export function setActiveStaffRole(role: StaffRole): void {

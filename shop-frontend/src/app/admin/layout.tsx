@@ -27,6 +27,8 @@ import {
   canAccessNav,
   logAuditEvent,
   isStaffRole,
+  getRoleCeiling,
+  getAllowedRoleSwitches,
 } from '@/lib/rbac';
 import toast from 'react-hot-toast';
 
@@ -64,6 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [compactSidebar, setCompactSidebar] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeStaffRole, setActiveStaffRoleState] = useState<StaffRole>('SUPER_ADMIN');
+  const [roleCeiling, setRoleCeiling] = useState<StaffRole>('SUPER_ADMIN');
   const [roleSelectorOpen, setRoleSelectorOpen] = useState(false);
   const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
     orders: null,
@@ -82,15 +85,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const unreadPullGenerationRef = useRef(0);
 
   useEffect(() => {
-    setActiveStaffRoleState(getActiveStaffRole());
+    // Determine the user's real role ceiling from DB
+    const dbRole = user?.role || adminUser?.role;
+    const ceiling = getRoleCeiling(dbRole, user?.email);
+    setRoleCeiling(ceiling);
+    // Initialize active role respecting the ceiling
+    const initial = getActiveStaffRole(ceiling);
+    setActiveStaffRoleState(initial);
     const onRoleChange = () => {
-      setActiveStaffRoleState(getActiveStaffRole());
+      setActiveStaffRoleState(getActiveStaffRole(ceiling));
     };
     window.addEventListener('staff_role_changed', onRoleChange);
     return () => window.removeEventListener('staff_role_changed', onRoleChange);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.email, adminUser?.role]);
 
   const handleSwitchRole = (newRole: StaffRole) => {
+    // Security: block elevation above the user's real role ceiling
+    const allowedSwitches = getAllowedRoleSwitches(roleCeiling);
+    if (!allowedSwitches.includes(newRole)) {
+      toast.error(
+        language === 'km'
+          ? `អ្នកមិនមានសិទ្ធិប្ដូរទៅតួនាទី ${STAFF_ROLES[newRole].titleKm} ឡើយ`
+          : `You don't have permission to switch to ${STAFF_ROLES[newRole].titleEn}`,
+        { icon: '🚫' }
+      );
+      return;
+    }
     setActiveStaffRole(newRole);
     setActiveStaffRoleState(newRole);
     setRoleSelectorOpen(false);
@@ -623,7 +644,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     ✕
                   </button>
                 </div>
-                {(Object.keys(STAFF_ROLES) as StaffRole[]).map((r) => {
+                {(Object.keys(STAFF_ROLES) as StaffRole[])
+                  .filter((r) => getAllowedRoleSwitches(roleCeiling).includes(r))
+                  .map((r) => {
                   const cfg = STAFF_ROLES[r];
                   const isSelected = activeStaffRole === r;
                   return (
