@@ -351,7 +351,7 @@ export const getOrder = async (req: AuthRequest, res: Response, next: NextFuncti
     const { id } = req.params;
 
     const where: Record<string, unknown> = { id };
-    if (req.user!.role !== 'ADMIN') {
+    if (req.user!.role === 'USER') {
       where.userId = req.user!.id;
       where.isArchivedByUser = false;
     }

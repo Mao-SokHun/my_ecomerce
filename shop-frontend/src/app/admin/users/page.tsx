@@ -627,8 +627,8 @@ export default function AdminUsersPage() {
                             <span>{isKhmer ? 'ព័ត៌មាន' : 'View'}</span>
                           </button>
 
-                          {/* Staff Role Toggle Button (Only Super Admin & Admin) */}
-                          {(activeStaffRole === 'SUPER_ADMIN' || activeStaffRole === 'ADMIN') && (
+                          {/* Staff Role Toggle Button (Only Super Admin) */}
+                          {activeStaffRole === 'SUPER_ADMIN' && (
                             <button
                               type="button"
                               onClick={() => handleRoleToggle(u.id, u.role)}

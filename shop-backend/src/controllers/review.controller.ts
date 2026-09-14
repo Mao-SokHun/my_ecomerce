@@ -146,9 +146,15 @@ export const updateReview = async (req: AuthRequest, res: Response, next: NextFu
 export const deleteReview = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const reviewId = String(req.params.reviewId);
+    const isStaff = req.user!.role === 'ADMIN' || req.user!.role === 'SUPER_ADMIN';
 
-    const where: Record<string, unknown> = { id: reviewId };
-    if (req.user!.role !== 'ADMIN') where.userId = req.user!.id;
+    const existing = await prisma.review.findFirst({
+      where: isStaff ? { id: reviewId } : { id: reviewId, userId: req.user!.id },
+    });
+
+    if (!existing) {
+      throw new AppError('Review not found or unauthorized', 404);
+    }
 
     await prisma.review.delete({ where: { id: reviewId } });
 

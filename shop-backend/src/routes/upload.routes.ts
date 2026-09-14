@@ -60,7 +60,7 @@ router.post(
 
       const folder = String(req.body.folder || 'shop').replace(/[^a-zA-Z0-9_-]/g, '') || 'shop';
       const isAvatarUpload = folder === 'avatars';
-      if (!isAvatarUpload && req.user?.role !== 'ADMIN') {
+      if (!isAvatarUpload && req.user?.role !== 'ADMIN' && req.user?.role !== 'SUPER_ADMIN') {
         throw new AppError('Admin access required for this upload folder', 403);
       }
 
