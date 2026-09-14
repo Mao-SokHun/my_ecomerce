@@ -60,7 +60,6 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
     descriptionKm: 'គ្រប់គ្រងការលក់ ស្តុក អតិថិជន និងបង្កើតបានតែគណនី Cashier/POS និង Warehouse ប៉ុណ្ណោះ (មិនអាចបង្កើត Super Admin ឬ Admin ឡើយ)',
     allowedNavHrefs: [
       '/admin',
-      '/admin/analytics',
       '/admin/orders',
       '/admin/inventory',
       '/admin/products',
@@ -71,7 +70,7 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
       '/admin/audit',
     ],
     canCreateRoles: ['CASHIER', 'WAREHOUSE'],
-    canViewFinancials: true,
+    canViewFinancials: false,
     canEditProducts: true,
     canManageUsers: true, // Can access users page to manage Cashier/Warehouse
     canManageSettings: false,
@@ -108,7 +107,6 @@ export const STAFF_ROLES: Record<StaffRole, RolePermissionConfig> = {
     descriptionKm: 'កត់ត្រានាំចូលស្តុក កាត់ស្តុកខូច រាប់ស្តុក និងព្រីនផ្លាកដឹកជញ្ជូន',
     allowedNavHrefs: [
       '/admin/inventory',
-      '/admin/orders',
       '/admin/products',
     ],
     canCreateRoles: [],

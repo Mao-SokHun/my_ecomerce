@@ -80,6 +80,10 @@ export function CreateStaffModal({
       toast.error(isKhmer ? 'សូមបញ្ចូលអ៊ីមែល ឬលេខទូរស័ព្ទ' : 'Please enter email or phone');
       return;
     }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error(isKhmer ? 'ទម្រង់អ៊ីមែលមិនត្រឹមត្រូវទេ' : 'Invalid email format');
+      return;
+    }
     if (!password || password.length < 6) {
       toast.error(isKhmer ? 'ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច 6 ខ្ទង់' : 'Password must be at least 6 chars');
       return;
@@ -275,7 +279,11 @@ export function CreateStaffModal({
                 <input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    // Allow only numbers, plus, space, and dashes
+                    const val = e.target.value.replace(/[^0-9+\s-]/g, '');
+                    setPhone(val);
+                  }}
                   placeholder="012 345 678"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30"
                 />

@@ -185,7 +185,8 @@ export function Navbar() {
   ];
 
   return (
-    <header
+    <>
+      <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-smooth-out ${
         isScrolled
           ? 'bg-white/95 dark:bg-surface-950/95 shadow-md border-b border-gray-200/80 dark:border-surface-800/80 backdrop-blur-xl'
@@ -493,161 +494,165 @@ export function Navbar() {
 
         <NavbarSearchMobile />
 
-        {/* Mobile menu */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <>
-              {/* Backdrop overlay */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="lg:hidden fixed inset-0 top-[7.25rem] md:top-16 bg-black/40 backdrop-blur-sm z-40"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <motion.div
-                initial={{ opacity: 0, x: '100%' }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: '100%' }}
-                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                className="lg:hidden fixed inset-y-0 right-0 w-[min(100%,20rem)] bg-white dark:bg-surface-900 shadow-2xl z-50 flex flex-col safe-top safe-bottom"
-              >
-                <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-800">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t(language, 'navShop')}</p>
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-surface-800"
-                    aria-label="Close menu"
-                  >
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
-                    >
-                      {t(language, 'navHome')}
-                    </Link>
-                    <Link
-                      href="/products?featured=true"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
-                    >
-                      {t(language, 'navDeals')}
-                    </Link>
-                  </div>
-
-                  {extraNavLinks.length > 0 && (
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      {extraNavLinks.map((item) => (
-                        <Link
-                          key={`mobile-extra-${item.href}-${item.label}`}
-                          href={String(item.href)}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          className="px-3.5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-xl transition-colors"
-                        >
-                          {String(item.label)}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                        {t(language, 'shopByCategory')}
-                      </h3>
-                      <Link
-                        href="/products"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-xs font-medium text-primary-600 dark:text-primary-400"
-                      >
-                        {t(language, 'viewAll')}
-                      </Link>
-                    </div>
-                    <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-1">
-                      <Link
-                        href="/products"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold text-sm"
-                      >
-                        <Package className="w-4 h-4 shrink-0" />
-                        {t(language, 'allProducts')}
-                      </Link>
-                      {shopNavCategories.map((cat) => {
-                        const href = `/products?category=${encodeURIComponent(cat.slug)}`;
-                        return (
-                          <Link
-                            key={cat.slug}
-                            href={href}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 text-sm font-medium leading-snug"
-                          >
-                            <span className="text-lg w-7 text-center shrink-0" aria-hidden>
-                              {shopCategoryIcon(cat.slug)}
-                            </span>
-                            <span className="flex-1 min-w-0">
-                              {shopCategoryLabel(language, cat.slug, cat.name)}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
-                      {language === 'km' ? 'ភាសា' : language === 'zh' ? '语言' : 'Language'}
-                    </p>
-                    <div className="flex gap-2">
-                      {languageOptions.map((option) => (
-                        <button
-                          key={`mobile-lang-${option.value}`}
-                          type="button"
-                          onClick={() => setLanguage(option.value)}
-                          className={`flex-1 py-2.5 text-sm font-medium rounded-xl text-center min-h-[44px] transition-all duration-200 ${
-                            language === option.value
-                              ? 'bg-primary-600 text-white shadow-sm'
-                              : 'bg-gray-50 dark:bg-surface-800 text-gray-600 dark:text-gray-300'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {!isAuthenticated && (
-                  <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-                    <Link
-                      href="/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="btn-primary w-full py-3 rounded-xl text-center font-semibold block"
-                    >
-                      {t(language, 'signIn')}
-                    </Link>
-                    <Link
-                      href="/register"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="btn-secondary w-full py-3 rounded-xl text-center font-semibold block"
-                    >
-                      {t(language, 'signUp')}
-                    </Link>
-                  </div>
-                )}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
         </NavbarSearchProvider>
       </nav>
     </header>
+
+    {/* Mobile menu */}
+    <AnimatePresence>
+      {isMobileMenuOpen && (
+        <>
+          {/* Backdrop overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:hidden fixed inset-y-0 right-0 w-[min(100%,20rem)] bg-white dark:bg-surface-900 shadow-2xl z-50 flex flex-col safe-top safe-bottom"
+          >
+            <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{t(language, 'navShop')}</p>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-surface-800"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
+                >
+                  {t(language, 'navHome')}
+                </Link>
+                <Link
+                  href="/products?featured=true"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-center px-3 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-surface-800 rounded-xl"
+                >
+                  {t(language, 'navDeals')}
+                </Link>
+              </div>
+
+              {extraNavLinks.length > 0 && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  {extraNavLinks.map((item) => (
+                    <Link
+                      key={`mobile-extra-${item.href}-${item.label}`}
+                      href={String(item.href)}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="px-3.5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-surface-800 rounded-xl transition-colors"
+                    >
+                      {String(item.label)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    {t(language, 'shopByCategory')}
+                  </h3>
+                  <Link
+                    href="/products"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-xs font-medium text-primary-600 dark:text-primary-400"
+                  >
+                    {t(language, 'viewAll')}
+                  </Link>
+                </div>
+                <div className="space-y-1.5 max-h-[40vh] overflow-y-auto pr-1">
+                  <Link
+                    href="/products"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold text-sm"
+                  >
+                    <Package className="w-4 h-4 shrink-0" />
+                    {t(language, 'allProducts')}
+                  </Link>
+                  {shopNavCategories.map((cat) => {
+                    const href = `/products?category=${encodeURIComponent(cat.slug)}`;
+                    return (
+                      <Link
+                        key={cat.slug}
+                        href={href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-surface-800 text-sm font-medium leading-snug"
+                      >
+                        <span className="text-lg w-7 text-center shrink-0" aria-hidden>
+                          {shopCategoryIcon(cat.slug)}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          {shopCategoryLabel(language, cat.slug, cat.name)}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                  {language === 'km' ? 'ភាសា' : language === 'zh' ? '语言' : 'Language'}
+                </p>
+                <div className="flex gap-2">
+                  {languageOptions.map((option) => (
+                    <button
+                      key={`mobile-lang-${option.value}`}
+                      type="button"
+                      onClick={() => setLanguage(option.value)}
+                      className={`flex-1 py-2.5 text-sm font-medium rounded-xl text-center min-h-[44px] transition-all duration-200 ${
+                        language === option.value
+                          ? 'bg-primary-600 text-white shadow-sm'
+                          : 'bg-gray-50 dark:bg-surface-800 text-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {!isAuthenticated && (
+              <div className="px-4 py-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="btn-primary w-full py-3 rounded-xl text-center font-semibold block"
+                >
+                  {t(language, 'signIn')}
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="btn-secondary w-full py-3 rounded-xl text-center font-semibold block"
+                >
+                  {t(language, 'signUp')}
+                </Link>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+      </nav>
+    </header>
+    </>
   );
 }

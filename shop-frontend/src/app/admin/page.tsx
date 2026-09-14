@@ -32,6 +32,8 @@ import {
 import { CopyableOrderCode } from '@/components/ui/CopyableOrderCode';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
 import { adminT } from '@/lib/admin-i18n';
+import { useAuthStore } from '@/store/authStore';
+import { getEffectiveStaffRole, STAFF_ROLES } from '@/lib/rbac';
 
 interface DashboardData {
   overview: {
@@ -104,6 +106,13 @@ function HubLinkCard({
 export default function AdminDashboard() {
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const { user: authUser } = useAuthStore();
+  const activeStaffRole = getEffectiveStaffRole(authUser);
+  const staffConfig = STAFF_ROLES[activeStaffRole] || STAFF_ROLES.CASHIER;
+  
+  const canManageSettings = staffConfig.canManageSettings;
+  const canViewFinancials = staffConfig.canViewFinancials;
+  const allowedNavHrefs = staffConfig.allowedNavHrefs;
   const [data, setData] = useState<DashboardData | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -342,48 +351,56 @@ export default function AdminDashboard() {
               <p className="text-[11px] text-slate-500 dark:text-slate-400">{adminT(language, 'dashboardOverview')}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                href="/admin/analytics"
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all"
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
-                <span>{isKhmer ? 'របាយការណ៍ Excel' : 'Excel Reports'}</span>
-              </Link>
-              <Link
-                href="/admin/settings"
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-primary-700"
-              >
-                {adminT(language, 'dashboardOpenSettings')}
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </Link>
+              {canViewFinancials && (
+                <Link
+                  href="/admin/analytics"
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>{isKhmer ? 'របាយការណ៍ Excel' : 'Excel Reports'}</span>
+                </Link>
+              )}
+              {canManageSettings && (
+                <Link
+                  href="/admin/settings"
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-primary-700"
+                >
+                  {adminT(language, 'dashboardOpenSettings')}
+                  <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                </Link>
+              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-3.5 p-3.5 sm:p-4">
-          <section aria-labelledby="hub-settings-heading">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div>
-                <p id="hub-settings-heading" className="text-[11px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-                  {adminT(language, 'dashboardSettingsGroup')}
-                </p>
-              </div>
-              <Link
-                href="/admin/settings"
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-              >
-                {adminT(language, 'dashboardAllSettings')}
-                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              {settingsHubItems.map((item) => (
-                <HubLinkCard key={item.href} href={item.href} icon={item.icon} title={item.title} description={item.desc} />
-              ))}
-            </div>
-          </section>
+          {canManageSettings && (
+            <>
+              <section aria-labelledby="hub-settings-heading">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p id="hub-settings-heading" className="text-[11px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                      {adminT(language, 'dashboardSettingsGroup')}
+                    </p>
+                  </div>
+                  <Link
+                    href="/admin/settings"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                  >
+                    {adminT(language, 'dashboardAllSettings')}
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  {settingsHubItems.map((item) => (
+                    <HubLinkCard key={item.href} href={item.href} icon={item.icon} title={item.title} description={item.desc} />
+                  ))}
+                </div>
+              </section>
 
-          <div className="h-px bg-gray-100 dark:bg-gray-800" aria-hidden />
+              <div className="h-px bg-gray-100 dark:bg-gray-800" aria-hidden />
+            </>
+          )}
 
           <section aria-labelledby="hub-business-heading">
             <div className="mb-2">
@@ -392,7 +409,7 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-              {businessHubItems.map((item) => (
+              {businessHubItems.filter(item => allowedNavHrefs.includes(item.href)).map((item) => (
                 <HubLinkCard key={item.href} href={item.href} icon={item.icon} title={item.title} description={item.desc} />
               ))}
             </div>
@@ -431,38 +448,42 @@ export default function AdminDashboard() {
                 <span className="text-[10px] text-gray-500">{adminT(language, 'orders')}: </span>
                 <span className="font-bold text-gray-900 dark:text-white">{periodOrders}</span>
               </div>
-              <div>
-                <span className="text-[10px] text-gray-500">{adminT(language, 'revenue')}: </span>
-                <span className="font-bold text-emerald-600">{formatPrice(periodRevenue)}</span>
-              </div>
+              {canViewFinancials && (
+                <div>
+                  <span className="text-[10px] text-gray-500">{adminT(language, 'revenue')}: </span>
+                  <span className="font-bold text-emerald-600">{formatPrice(periodRevenue)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div className="grid md:grid-cols-2 gap-2.5">
+        <div className={`grid ${canViewFinancials ? 'md:grid-cols-2' : 'grid-cols-1'} gap-2.5`}>
           <div className="rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-surface-800/60 p-2.5 sm:p-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">Orders Trend</p>
               <span className="text-[10px] text-indigo-500 font-mono font-bold">{periodOrders} orders</span>
             </div>
-            <svg viewBox="0 0 280 50" className="w-full h-12 sm:h-14">
-              <path d={ordersPath} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" />
+            <svg viewBox={`0 0 ${canViewFinancials ? 280 : 560} 50`} className="w-full h-12 sm:h-14">
+              <path d={makePath(trendBuckets.map((b) => b.orders), canViewFinancials ? 280 : 560, 50)} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-surface-800/60 p-2.5 sm:p-3">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">Revenue Trend</p>
-              <span className="text-[10px] text-emerald-500 font-mono font-bold">{formatPrice(periodRevenue)}</span>
+          {canViewFinancials && (
+            <div className="rounded-xl border border-gray-100 dark:border-gray-700/80 bg-gray-50/60 dark:bg-surface-800/60 p-2.5 sm:p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] font-semibold text-gray-600 dark:text-gray-400">Revenue Trend</p>
+                <span className="text-[10px] text-emerald-500 font-mono font-bold">{formatPrice(periodRevenue)}</span>
+              </div>
+              <svg viewBox="0 0 280 50" className="w-full h-12 sm:h-14">
+                <path d={revenuePath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
             </div>
-            <svg viewBox="0 0 280 50" className="w-full h-12 sm:h-14">
-              <path d={revenuePath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Main Stats (4 overview cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        {stats.map(({ icon: Icon, label, value, growth, format, color }) => (
+      <div className={`grid ${canViewFinancials ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'} gap-2.5 sm:gap-3`}>
+        {stats.filter(s => canViewFinancials || s.label !== adminT(language, 'revenueThisMonth')).map(({ icon: Icon, label, value, growth, format, color }) => (
           <div key={label} className={`${panelCls} p-3 sm:p-3.5`}>
             <div className="flex items-center justify-between mb-1.5">
               <div className={`w-8 h-8 ${color} rounded-lg flex items-center justify-center`}>
@@ -482,7 +503,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Inventory & Profit KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+      <div className={`grid ${canViewFinancials ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'} gap-2.5 sm:gap-3`}>
         <div className={`${panelCls} p-3 sm:p-3.5`}>
           <p className="text-[11px] text-gray-500">{adminT(language, 'lowStockProducts')}</p>
           <p className="text-lg sm:text-xl font-bold text-red-600 mt-0.5">{data?.overview.stock?.lowStockCount || 0}</p>
@@ -490,15 +511,17 @@ export default function AdminDashboard() {
         <div className={`${panelCls} p-3 sm:p-3.5`}>
           <p className="text-[11px] text-gray-500">{adminT(language, 'inventoryValue')}</p>
           <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-0.5">
-            {formatPrice(data?.overview.stock?.inventoryValue || 0)}
+            {canViewFinancials ? formatPrice(data?.overview.stock?.inventoryValue || 0) : '***'}
           </p>
         </div>
-        <div className={`${panelCls} p-3 sm:p-3.5`}>
-          <p className="text-[11px] text-gray-500">{adminT(language, 'estimatedGrossProfit')}</p>
-          <p className="text-lg sm:text-xl font-bold text-emerald-600 mt-0.5">
-            {formatPrice(data?.overview.profit?.realizedGrossProfit || 0)}
-          </p>
-        </div>
+        {canViewFinancials && (
+          <div className={`${panelCls} p-3 sm:p-3.5`}>
+            <p className="text-[11px] text-gray-500">{adminT(language, 'estimatedGrossProfit')}</p>
+            <p className="text-lg sm:text-xl font-bold text-emerald-600 mt-0.5">
+              {formatPrice(data?.overview.profit?.realizedGrossProfit || 0)}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Recent orders & Top products */}

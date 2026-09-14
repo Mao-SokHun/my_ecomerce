@@ -54,6 +54,8 @@ export default function FinancialAccountingPage() {
   const isKhmer = language === 'km';
   const { confirm } = useConfirm();
   const [excelModalOpen, setExcelModalOpen] = useState(false);
+  const [isCalculatorModalOpen, setIsCalculatorModalOpen] = useState(false);
+
 
   const [products, setProducts] = useState<Product[]>(() => {
     if (typeof window !== 'undefined') {
@@ -896,8 +898,8 @@ export default function FinancialAccountingPage() {
         </div>
       )}
 
-      {/* 5 Main Financial KPI Cards (Including Stock Loss & Damage) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5 w-full min-w-0">
+      {/* 6 Main Financial KPI Cards (Including Stock Loss & Damage and Net Profit) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-3 sm:gap-3.5 w-full min-w-0">
         {/* 1. Total Cost */}
         <div className="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200/80 dark:border-slate-800 shadow-xs relative overflow-hidden min-w-0 flex flex-col justify-between">
           <div>
@@ -1007,6 +1009,29 @@ export default function FinancialAccountingPage() {
             >
               {isKhmer ? 'មើលតារាង' : 'Table'} ›
             </a>
+          </div>
+        </div>
+
+        {/* 6. Net Profit (Actual Profit - Losses) */}
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-white dark:to-surface-900 border border-violet-500/30 shadow-xs relative overflow-hidden min-w-0 group flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5 min-w-0">
+              <span className="text-[11px] sm:text-xs font-black text-violet-800 dark:text-violet-300 uppercase tracking-wider truncate" title={isKhmer ? 'ចំណេញសុទ្ធចុងក្រោយ' : 'Final Net Profit'}>
+                {isKhmer ? 'ចំណេញសុទ្ធចុងក្រោយ' : 'Final Net Profit'}
+              </span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-violet-500/20 text-violet-600 dark:text-violet-400 flex items-center justify-center font-black shrink-0">
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+            </div>
+            <div className="text-lg sm:text-xl xl:text-2xl font-black text-violet-600 dark:text-violet-400 tabular-nums truncate" title={`${financials.realizedProfit - lossSummary.totalCapitalLoss > 0 ? '+' : ''}${formatPrice(financials.realizedProfit - lossSummary.totalCapitalLoss, language)}`}>
+              {financials.realizedProfit - lossSummary.totalCapitalLoss > 0 ? '+' : ''}{formatPrice(financials.realizedProfit - lossSummary.totalCapitalLoss, language)}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-1.5 mt-2 text-[10px] sm:text-[11px] min-w-0 text-slate-500 dark:text-slate-400">
+             <span className="truncate" title={`ចំណេញ: +${formatPrice(financials.realizedProfit, language)} | ខាតបង់: -${formatPrice(lossSummary.totalCapitalLoss, language)}`}>
+               {isKhmer ? 'ចំណេញដុល' : 'Gross'}: <strong className="text-indigo-600 dark:text-indigo-400">+{formatPrice(financials.realizedProfit, language)}</strong> <br/>
+               {isKhmer ? 'កាត់ខាតបង់' : 'Loss'}: <strong className="text-rose-600 dark:text-rose-400">-{formatPrice(lossSummary.totalCapitalLoss, language)}</strong>
+             </span>
           </div>
         </div>
       </div>
@@ -1240,9 +1265,17 @@ export default function FinancialAccountingPage() {
         </div>
       </div>
 
-      {/* General Purpose Calculator Card */}
-      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-surface-850">
+      {/* General Purpose Calculator Modal */}
+      {isCalculatorModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-surface-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl overflow-hidden w-full max-w-4xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setIsCalculatorModalOpen(false)}
+              className="absolute top-3 right-3 p-2 rounded-xl bg-slate-100 dark:bg-surface-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-surface-850">
           <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm font-bold">
             <Calculator className="w-4 h-4" />
           </div>
@@ -1552,6 +1585,8 @@ export default function FinancialAccountingPage() {
           </div>
         </div>
       </div>
+      )}
+
 
       {/* ========================================================================= */}
       {/* STOCK LOSS & DAMAGED INVENTORY AUDIT SECTION */}
@@ -2465,6 +2500,15 @@ export default function FinancialAccountingPage() {
         categories={categories}
         language={language}
       />
+
+      {/* Floating Calculator Button (Message-like design) */}
+      <button
+        onClick={() => setIsCalculatorModalOpen(true)}
+        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[90] w-[60px] h-[60px] rounded-[24px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 group"
+        title={isKhmer ? 'ម៉ាស៊ីនគណនា' : 'Calculator'}
+      >
+        <Calculator className="w-7 h-7 text-white" />
+      </button>
     </div>
   );
 }

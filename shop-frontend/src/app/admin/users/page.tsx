@@ -452,7 +452,7 @@ export default function AdminUsersPage() {
                 <th className="py-3 px-4 w-[14%] min-w-[140px]">{adminT(language, 'roleCol')}</th>
                 <th className="py-3 px-4 text-center w-[9%] min-w-[90px]">{adminT(language, 'statusCol')}</th>
                 <th className="py-3 px-3 text-center w-[7%] min-w-[70px]">{adminT(language, 'ordersCol')}</th>
-                <th className="py-3 px-4 text-right w-[10%] min-w-[100px]">{adminT(language, 'actionsCol')}</th>
+                <th className="py-3 px-4 text-right w-[20%] min-w-[250px]">{adminT(language, 'actionsCol')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
@@ -616,15 +616,15 @@ export default function AdminUsersPage() {
 
                       {/* 9. Actions */}
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-2">
                           {/* 360° Profile Button */}
                           <button
                             type="button"
                             onClick={() => setSelectedUser(u)}
-                            title={isKhmer ? 'មើលប្រវត្តិ 360° Profile' : 'View 360° Profile'}
-                            className="p-1.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/50 transition-all shadow-sm"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{isKhmer ? 'ព័ត៌មាន' : 'View'}</span>
                           </button>
 
                           {/* Staff Role Toggle Button (Only Super Admin & Admin) */}
@@ -632,14 +632,14 @@ export default function AdminUsersPage() {
                             <button
                               type="button"
                               onClick={() => handleRoleToggle(u.id, u.role)}
-                              title={
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
                                 u.role !== 'USER'
-                                  ? isKhmer ? 'ដកសិទ្ធិបុគ្គលិក (Make Customer)' : 'Remove Staff Access'
-                                  : isKhmer ? 'ផ្តល់សិទ្ធិបុគ្គលិក (Make Staff)' : 'Promote to Staff'
-                              }
-                              className="p-1.5 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition"
+                                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200/80 dark:border-amber-800/50'
+                                  : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/50'
+                              }`}
                             >
-                              <ShieldCheck className="w-4 h-4" />
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>{u.role !== 'USER' ? (isKhmer ? 'ដកសិទ្ធិ' : 'Demote') : (isKhmer ? 'ផ្តល់សិទ្ធិ' : 'Promote')}</span>
                             </button>
                           )}
 
@@ -648,14 +648,14 @@ export default function AdminUsersPage() {
                             <button
                               type="button"
                               onClick={() => handleToggleActive(u.id, u.isActive)}
-                              title={
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
                                 u.isActive ?? true
-                                  ? isKhmer ? 'ផ្អាកគណនី (Deactivate)' : 'Deactivate'
-                                  : isKhmer ? 'បើកដំណើរការ (Activate)' : 'Activate'
-                              }
-                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+                                  ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200/80 dark:border-rose-800/50'
+                                  : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/50'
+                              }`}
                             >
-                              <UserX className="w-4 h-4" />
+                              {u.isActive ?? true ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
+                              <span>{u.isActive ?? true ? (isKhmer ? 'ផ្អាក' : 'Ban') : (isKhmer ? 'បើកវិញ' : 'Unban')}</span>
                             </button>
                           )}
                         </div>

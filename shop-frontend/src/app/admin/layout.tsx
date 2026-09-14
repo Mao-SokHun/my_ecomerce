@@ -36,7 +36,6 @@ const navItems = [
   { href: '/admin', icon: LayoutDashboard, key: 'navDashboard' },
   { href: '/admin/products', icon: Package, key: 'navProducts' },
   { href: '/admin/inventory', icon: Boxes, key: 'navInventory' },
-  { href: '/admin/categories', icon: FolderTree, key: 'navCategories' },
   { href: '/admin/orders', icon: ShoppingCart, key: 'navOrders' },
   { href: '/admin/analytics', icon: CircleDollarSign, key: 'navAnalytics' },
   { href: '/admin/users', icon: Users, key: 'navUsers' },
@@ -59,6 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminUser, setAdminUser] = useState<{ name: string; role: string; email?: string | null } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [productsOpen, setProductsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [verifyReceiptOpen, setVerifyReceiptOpen] = useState(false);
@@ -71,7 +71,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const activeUser = user || adminUser;
   const hasAdminAccess = isStaffRole(user?.role) || isStaffRole(adminUser?.role);
   const allowedRoleSwitches = getAllowedRoleSwitches(roleCeiling);
-  const canSwitchRoles = allowedRoleSwitches.length > 1;
+  const canSwitchRoles = roleCeiling === 'SUPER_ADMIN' && allowedRoleSwitches.length > 1;
+
 
   const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
     orders: null,
@@ -481,6 +482,108 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 (href === '/admin/users' && badgeFlash.users) ||
                 (href === '/admin/leads' && badgeFlash.leads) ||
                 (href === '/admin/support-inbox' && badgeFlash.support);
+
+              if (href === '/admin/products') {
+                const productsActive = pathname.startsWith('/admin/products') || pathname.startsWith('/admin/categories');
+                const productsSubmenu = [
+                  { href: '/admin/categories', key: 'navCategories', Icon: FolderTree },
+                ];
+
+                if (compactSidebar) {
+                  return (
+                    <Link
+                      key={href}
+                      href="/admin/products"
+                      onClick={() => setSidebarOpen(false)}
+                      title={label}
+                      className={`group relative flex items-center justify-center h-12 rounded-2xl text-sm font-semibold transition-all ${
+                        productsActive
+                          ? 'bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-primary-500/25'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <span
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                          productsActive
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100/90 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.05]'
+                        }`}
+                      >
+                        <Icon className="w-[18px] h-[18px]" />
+                      </span>
+                      <span className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition shadow-lg z-50">
+                        {label}
+                      </span>
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={href} className="space-y-1">
+                    <div
+                      className={`flex items-center justify-between rounded-2xl transition-all ${
+                        productsActive && !productsOpen
+                          ? 'bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 text-white shadow-md shadow-primary-500/25'
+                          : productsActive
+                            ? 'bg-primary-50 dark:bg-primary-950/40 text-primary-700 dark:text-primary-300 border border-primary-200/80 dark:border-primary-800/40'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Link
+                        href="/admin/products"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex-1 h-11 flex items-center gap-3 px-2.5 text-[13.5px] font-semibold"
+                      >
+                        <span
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                            productsActive && !productsOpen
+                              ? 'bg-white/20 text-white'
+                              : productsActive
+                                ? 'bg-primary-500/20 text-primary-600 dark:text-primary-400'
+                                : 'bg-slate-100/90 dark:bg-white/[0.05] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.05]'
+                          }`}
+                        >
+                          <Icon className="w-[18px] h-[18px]" />
+                        </span>
+                        <span className="truncate">{label}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setProductsOpen((v) => !v)}
+                        className={`p-2 mr-1.5 rounded-xl transition-all ${
+                          productsActive && !productsOpen
+                            ? 'text-white/80 hover:text-white hover:bg-white/10'
+                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-white/[0.08]'
+                        }`}
+                        title={productsOpen ? 'Collapse' : 'Expand'}
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Submenu */}
+                    {productsOpen && (
+                      <div className="ml-5 pl-3 border-l-2 border-primary-300 dark:border-primary-700/60 space-y-0.5 py-1">
+                        {productsSubmenu.map(({ href: subHref, key: subKey, Icon: SubIcon }) => (
+                          <Link
+                            key={subHref}
+                            href={subHref}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                              pathname === subHref
+                                ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-primary-50 dark:hover:bg-primary-950/50 hover:text-primary-600 dark:hover:text-primary-400'
+                            }`}
+                          >
+                            <SubIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                            <span>{adminT(language, subKey)}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               if (href === '/admin/settings') {
                 const settingsSubmenu = [
@@ -983,26 +1086,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/" className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 bg-white dark:bg-surface-800 border border-slate-200 dark:border-gray-700 px-3 py-1.5 rounded-xl transition">← {adminT(language, 'backToStore')}</Link>
         </header>
 
-        {/* Staff Role Simulation Alert Banner */}
-        {activeStaffRole !== 'SUPER_ADMIN' && (
-          <div className="bg-amber-500/10 dark:bg-amber-500/15 border-b border-amber-300/80 dark:border-amber-800/60 px-5 py-2.5 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
-            <div className="flex items-center gap-2 min-w-0">
-              <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="truncate">
-                {isKhmer
-                  ? `របៀបសាកល្បងសិទ្ធិបុគ្គលិក៖ ${STAFF_ROLES[activeStaffRole].titleKm} — ${STAFF_ROLES[activeStaffRole].descriptionKm}`
-                  : `Active Role Simulation: ${STAFF_ROLES[activeStaffRole].titleEn} — ${STAFF_ROLES[activeStaffRole].descriptionKm}`}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleSwitchRole('SUPER_ADMIN')}
-              className="shrink-0 px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold transition shadow-sm"
-            >
-              {isKhmer ? 'ប្តូរទៅ Super Admin វិញ' : 'Reset to Super Admin'}
-            </button>
-          </div>
-        )}
+
 
         <main className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 w-full max-w-full overflow-x-hidden">{children}</main>
       </div>

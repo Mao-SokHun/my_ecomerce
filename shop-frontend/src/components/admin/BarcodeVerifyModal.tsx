@@ -423,30 +423,30 @@ export function BarcodeVerifyModal({
           {matchedOrder ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
               {/* Authentic Verified Banner */}
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-2">
+                <div className="flex items-start sm:items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-black text-emerald-800 dark:text-emerald-300 truncate">
                       {isKhmer ? 'វិក្កយបត្រត្រឹមត្រូវស្របច្បាប់ (100% Authentic Order Found)' : '100% Verified Authentic Order'}
                     </h4>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5">
                       <CopyableOrderCode
                         code={matchedOrder.orderNumber}
                         size="xs"
                         variant="badge"
                         showCopyAlways={true}
                       />
-                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono">
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-mono shrink-0">
                         • {new Date(matchedOrder.createdAt).toLocaleString(isKhmer ? 'km-KH' : 'en-US')}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${getOrderStatusColor(matchedOrder.status)}`}>
                     {matchedOrder.status}
                   </span>
