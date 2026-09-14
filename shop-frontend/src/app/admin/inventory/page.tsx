@@ -635,10 +635,10 @@ export default function AdminInventoryPage() {
               setPoPrefillProduct(null);
               setPoModalOpen(true);
             }}
-            className="btn-secondary text-xs px-3.5 py-1.5 font-bold text-white border-white/20 hover:bg-white/10 self-start sm:self-auto inline-flex items-center gap-1.5"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-slate-800/90 hover:bg-slate-700/90 active:bg-slate-600/90 border border-white/20 shadow-xs active:scale-95 transition-all self-start sm:self-auto cursor-pointer"
           >
-            <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
-            {isKhmer ? 'គ្រប់គ្រង PO & អ្នកផ្គត់ផ្គង់' : 'Manage POs & Suppliers'}
+            <ShoppingCart className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{isKhmer ? 'គ្រប់គ្រង PO & អ្នកផ្គត់ផ្គង់' : 'Manage POs & Suppliers'}</span>
           </button>
         </div>
 
