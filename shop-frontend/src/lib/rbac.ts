@@ -134,50 +134,69 @@ export function isSuperAdminEmail(email?: string | null): boolean {
 const STORAGE_KEY_ACTIVE_ROLE = 'sh_admin_active_role';
 const STORAGE_KEY_USER_STAFF_ROLES = 'sh_user_staff_roles_map';
 
-// Role hierarchy: index = power level (lower index = more power)
-const ROLE_HIERARCHY: StaffRole[] = ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'];
-
-/**
- * Returns the role ceiling for a user based on their actual DB role.
- * A user can never switch to a role with MORE permissions than their real role.
- */
-export function getRoleCeiling(dbRole?: string | null, email?: string | null): StaffRole {
-  if (isSuperAdminEmail(email)) return 'SUPER_ADMIN';
-  if (dbRole === 'SUPER_ADMIN') return 'SUPER_ADMIN';
-  if (dbRole === 'ADMIN') return 'ADMIN';
-  if (dbRole === 'CASHIER') return 'CASHIER';
-  if (dbRole === 'WAREHOUSE') return 'WAREHOUSE';
-  return 'CASHIER'; // safest default for unknown staff
+export function getRoleCeiling(role?: string | null, email?: string | null): StaffRole {
+  if (isSuperAdminEmail(email) || role === 'SUPER_ADMIN') {
+    return 'SUPER_ADMIN';
+  }
+  if (role === 'ADMIN') return 'ADMIN';
+  if (role === 'WAREHOUSE') return 'WAREHOUSE';
+  if (role === 'CASHIER') return 'CASHIER';
+  return 'CASHIER';
 }
 
-/**
- * Returns roles that a user is allowed to switch to (for preview/testing).
- * Users can only switch to roles with EQUAL or LESS power than their ceiling.
- */
-export function getAllowedRoleSwitches(ceilingRole: StaffRole): StaffRole[] {
-  const ceilingIdx = ROLE_HIERARCHY.indexOf(ceilingRole);
-  // Roles from ceilingIdx onward have equal or lower power
-  return ROLE_HIERARCHY.slice(ceilingIdx);
+export function getAllowedRoleSwitches(ceiling: StaffRole): StaffRole[] {
+  if (ceiling === 'SUPER_ADMIN') {
+    return ['SUPER_ADMIN', 'ADMIN', 'CASHIER', 'WAREHOUSE'];
+  }
+  if (ceiling === 'ADMIN') {
+    return ['ADMIN', 'CASHIER', 'WAREHOUSE'];
+  }
+  // Cashier and Warehouse roles cannot switch
+  return [ceiling];
 }
 
-export function getActiveStaffRole(ceilingRole?: StaffRole): StaffRole {
-  if (typeof window === 'undefined') return ceilingRole || 'SUPER_ADMIN';
+export function getEffectiveStaffRole(user?: { id?: string; role?: string; email?: string | null } | null): StaffRole {
+  if (!user) return 'CASHIER';
+
+  // 1. Super Admin email or role SUPER_ADMIN
+  if (isSuperAdminEmail(user.email) || user.role === 'SUPER_ADMIN') {
+    return 'SUPER_ADMIN';
+  }
+
+  // 2. Strict Database Role Binding (Admin, Cashier, Warehouse)
+  if (user.role === 'ADMIN') return 'ADMIN';
+  if (user.role === 'WAREHOUSE') return 'WAREHOUSE';
+  if (user.role === 'CASHIER') return 'CASHIER';
+
+  return 'CASHIER';
+}
+
+export function getActiveStaffRole(ceilingOrUser?: StaffRole | { id?: string; role?: string; email?: string | null } | null): StaffRole {
+  if (typeof window === 'undefined') return 'SUPER_ADMIN';
+
+  let ceiling: StaffRole = 'CASHIER';
+  if (typeof ceilingOrUser === 'string') {
+    ceiling = ceilingOrUser as StaffRole;
+  } else if (ceilingOrUser && typeof ceilingOrUser === 'object') {
+    ceiling = getRoleCeiling(ceilingOrUser.role, ceilingOrUser.email);
+  }
+
+  // Cashier and Warehouse can never switch roles
+  if (ceiling === 'CASHIER' || ceiling === 'WAREHOUSE') {
+    return ceiling;
+  }
+
   try {
-    const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_ROLE) as StaffRole;
+    const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_ROLE) as StaffRole | null;
     if (saved && STAFF_ROLES[saved]) {
-      // Enforce ceiling: if saved role has more power than ceiling, reset to ceiling
-      if (ceilingRole) {
-        const savedIdx = ROLE_HIERARCHY.indexOf(saved);
-        const ceilingIdx = ROLE_HIERARCHY.indexOf(ceilingRole);
-        if (savedIdx < ceilingIdx) {
-          // saved role has MORE power than allowed ceiling - reset
-          return ceilingRole;
-        }
+      const allowed = getAllowedRoleSwitches(ceiling);
+      if (allowed.includes(saved)) {
+        return saved;
       }
-      return saved;
     }
   } catch {}
-  return ceilingRole || 'SUPER_ADMIN';
+
+  return ceiling;
 }
 
 export function setActiveStaffRole(role: StaffRole): void {
@@ -239,12 +258,41 @@ export function getCreatableRoles(actorRole: StaffRole): StaffRole[] {
   return cfg.canCreateRoles;
 }
 
+export function canViewFinancials(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canViewFinancials ?? false;
+}
+
+export function canEditProducts(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canEditProducts ?? false;
+}
+
+export function canManageUsers(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canManageUsers ?? false;
+}
+
+export function canManageSettings(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canManageSettings ?? false;
+}
+
+export function canManageInventory(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canManageInventory ?? false;
+}
+
+export function canProcessOrders(role: StaffRole): boolean {
+  return STAFF_ROLES[role]?.canProcessOrders ?? false;
+}
+
 export function canAccessNav(role: StaffRole, href: string): boolean {
   const cfg = STAFF_ROLES[role] || STAFF_ROLES.SUPER_ADMIN;
-  if (href === '/admin' && (role === 'CASHIER' || role === 'WAREHOUSE')) {
-    return false;
+  if (href === '/admin') {
+    return cfg.allowedNavHrefs.includes('/admin');
   }
-  return cfg.allowedNavHrefs.some((allowed) => href === allowed || href.startsWith(`${allowed}/`));
+  return cfg.allowedNavHrefs.some((allowed) => {
+    if (allowed === '/admin') {
+      return href === '/admin';
+    }
+    return href === allowed || href.startsWith(`${allowed}/`) || href.startsWith(`${allowed}?`);
+  });
 }
 
 // ==========================================

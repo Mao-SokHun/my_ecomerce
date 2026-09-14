@@ -7,6 +7,8 @@ import { formatPrice, formatKhrPrice, formatDate, getOrderStatusColor, getPaymen
 import { Search, RefreshCw, Printer, Volume2, VolumeX, Eye, X, MapPin, Phone, Mail, User, Package, CreditCard, Truck, Receipt, CheckCircle, Clock, Tag, Filter, FileSpreadsheet, Scan } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { useAuthStore } from '@/store/authStore';
+import { StaffRole, getEffectiveStaffRole, canViewFinancials } from '@/lib/rbac';
 import { adminT } from '@/lib/admin-i18n';
 import { playNewOrderChime, printThermalReceipt } from '@/components/admin/ThermalReceiptPrinter';
 import Image from 'next/image';
@@ -18,6 +20,10 @@ import { printThermalShippingLabel, getCarrierInfo, getCarrierTrackingUrl } from
 import { ExternalLink } from 'lucide-react';
 
 export default function AdminOrdersPage() {
+  const { user: authUser } = useAuthStore();
+  const staffRole: StaffRole = useMemo(() => getEffectiveStaffRole(authUser), [authUser]);
+  const hasFinancialAccess = canViewFinancials(staffRole);
+
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
   const [orders, setOrders] = useState<Order[]>(() => {
@@ -356,16 +362,18 @@ export default function AdminOrdersPage() {
             <Volume2 className="w-4 h-4 text-amber-500" />
           </button>
 
-          {/* Export Excel Button */}
-          <button
-            type="button"
-            onClick={() => setExcelModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95 cursor-pointer"
-            title={isKhmer ? 'ទាញយករបាយការណ៍ Excel' : 'Export Excel'}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-100" />
-            <span>{isKhmer ? 'ទាញយក Excel' : 'Export Excel'}</span>
-          </button>
+          {/* Export Excel Button (Financial Roles only) */}
+          {hasFinancialAccess && (
+            <button
+              type="button"
+              onClick={() => setExcelModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs shadow-emerald-500/20 transition active:scale-95 cursor-pointer"
+              title={isKhmer ? 'ទាញយករបាយការណ៍ Excel' : 'Export Excel'}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-100" />
+              <span>{isKhmer ? 'ទាញយក Excel' : 'Export Excel'}</span>
+            </button>
+          )}
 
           {/* Refresh Button */}
           <button

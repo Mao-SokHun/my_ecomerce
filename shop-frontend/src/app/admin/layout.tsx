@@ -55,9 +55,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isDirectAdmin = isStaffRole(user?.role);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-  const [adminUser, setAdminUser] = useState<{ name: string; role: string } | null>(null);
+  const [adminUser, setAdminUser] = useState<{ name: string; role: string; email?: string | null } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -68,6 +67,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [activeStaffRole, setActiveStaffRoleState] = useState<StaffRole>('SUPER_ADMIN');
   const [roleCeiling, setRoleCeiling] = useState<StaffRole>('SUPER_ADMIN');
   const [roleSelectorOpen, setRoleSelectorOpen] = useState(false);
+
+  const activeUser = user || adminUser;
+  const hasAdminAccess = isStaffRole(user?.role) || isStaffRole(adminUser?.role);
+  const allowedRoleSwitches = getAllowedRoleSwitches(roleCeiling);
+  const canSwitchRoles = allowedRoleSwitches.length > 1;
+
   const [liveCounts, setLiveCounts] = useState<{ orders: number | null; users: number | null; leads: number | null; lowStock: number | null; support: number | null }>({
     orders: null,
     users: null,
@@ -87,7 +92,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     // Determine the user's real role ceiling from DB
     const dbRole = user?.role || adminUser?.role;
-    const ceiling = getRoleCeiling(dbRole, user?.email);
+    const dbEmail = user?.email || adminUser?.email;
+    const ceiling = getRoleCeiling(dbRole, dbEmail);
     setRoleCeiling(ceiling);
     // Initialize active role respecting the ceiling
     const initial = getActiveStaffRole(ceiling);
@@ -98,12 +104,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     window.addEventListener('staff_role_changed', onRoleChange);
     return () => window.removeEventListener('staff_role_changed', onRoleChange);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.role, user?.email, adminUser?.role]);
+  }, [user?.role, user?.email, adminUser?.role, adminUser?.email]);
 
   const handleSwitchRole = (newRole: StaffRole) => {
     // Security: block elevation above the user's real role ceiling
-    const allowedSwitches = getAllowedRoleSwitches(roleCeiling);
-    if (!allowedSwitches.includes(newRole)) {
+    if (!allowedRoleSwitches.includes(newRole)) {
       toast.error(
         language === 'km'
           ? `អ្នកមិនមានសិទ្ធិប្ដូរទៅតួនាទី ${STAFF_ROLES[newRole].titleKm} ឡើយ`
@@ -195,12 +200,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [mounted, isAuthChecked, user, adminUser, router]);
 
+  // RBAC Route Authorization Guard: automatically kick unauthorized roles to their allowed landing page
+  useEffect(() => {
+    if (!mounted || !isAuthChecked || isCheckingAccess) return;
+    if (!hasAdminAccess) return;
+
+    if (!canAccessNav(activeStaffRole, pathname)) {
+      const fallback = STAFF_ROLES[activeStaffRole]?.allowedNavHrefs[0] || '/admin/orders';
+      toast.error(
+        language === 'km'
+          ? `គណនីរបស់អ្នក (${STAFF_ROLES[activeStaffRole]?.titleKm}) មិនមានសិទ្ធិចូលទំព័រនេះទេ`
+          : `Your role (${STAFF_ROLES[activeStaffRole]?.titleEn}) is not authorized to access this page`,
+        { icon: '🚫', id: 'rbac-route-denied' }
+      );
+      router.replace(fallback);
+    }
+  }, [mounted, isAuthChecked, isCheckingAccess, hasAdminAccess, activeStaffRole, pathname, router, language]);
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
   useEffect(() => {
-    if (!isAuthChecked || (!adminUser && user?.role !== 'ADMIN')) return;
+    if (!isAuthChecked || !hasAdminAccess) return;
     let mounted = true;
     let prevLeads = -1;
     let prevOrders = -1;
@@ -266,7 +288,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       mounted = false;
       clearInterval(timer);
     };
-  }, [isAuthChecked, adminUser, user?.role, language]);
+  }, [isAuthChecked, hasAdminAccess, language]);
 
 
   const { socket } = useRealtime();
@@ -295,7 +317,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [socket, pathname]);
 
   useEffect(() => {
-    if (!isAuthChecked || (!adminUser && user?.role !== 'ADMIN')) return;
+    if (!isAuthChecked || !hasAdminAccess) return;
     const type =
       pathname === '/admin/orders' || pathname.startsWith('/admin/orders/')
         ? 'orders'
@@ -330,7 +352,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => {
       cancelled = true;
     };
-  }, [pathname, isAuthChecked, adminUser, user?.role]);
+  }, [pathname, isAuthChecked, hasAdminAccess]);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -342,8 +364,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const toggleCompactSidebar = () => {
     setCompactSidebar((prev) => !prev);
   };
-
-  const hasAdminAccess = isStaffRole(user?.role) || isStaffRole(adminUser?.role);
 
   if (!mounted || (!hasAdminAccess && (!isAuthChecked || isCheckingAccess))) {
     return (
@@ -361,7 +381,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   if (!hasAdminAccess) return null;
-  const activeUser = user || adminUser;
   const langLabel = language === 'km' ? 'ខ្មែរ' : language === 'zh' ? '中文' : 'English';
   const settingsActive = pathname.startsWith('/admin/settings');
   const isKhmer = language === 'km';
@@ -684,9 +703,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div
               className={`flex items-center ${
                 compactSidebar ? 'justify-center p-1.5' : 'gap-3 p-2'
-              } rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06] shadow-sm cursor-pointer hover:border-primary-300 dark:hover:border-primary-700 transition`}
-              onClick={() => setRoleSelectorOpen((v) => !v)}
-              title={isKhmer ? 'ចុចដើម្បីប្តូរសិទ្ធិបុគ្គលិក' : 'Click to switch staff role'}
+              } rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200/60 dark:border-white/[0.06] shadow-sm ${
+                canSwitchRoles ? 'cursor-pointer hover:border-primary-300 dark:hover:border-primary-700' : 'cursor-default'
+              } transition`}
+              onClick={() => {
+                if (canSwitchRoles) {
+                  setRoleSelectorOpen((v) => !v);
+                }
+              }}
+              title={
+                canSwitchRoles
+                  ? (isKhmer ? 'ចុចដើម្បីប្តូរសិទ្ធិបុគ្គលិក' : 'Click to switch staff role')
+                  : (isKhmer ? 'តួនាទីបុគ្គលិកត្រូវបានកំណត់ដោយប្រព័ន្ធ' : 'Assigned Staff Role')
+              }
             >
               <div className="relative shrink-0">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-indigo-600 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-sm">
@@ -700,7 +729,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <p className="text-[13px] font-bold text-slate-800 dark:text-white truncate leading-tight">
                       {activeUser?.name || 'Admin'}
                     </p>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    {canSwitchRoles && <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
                   </div>
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className={`inline-flex items-center text-[10px] font-bold px-1.5 py-0.2 rounded-md border ${STAFF_ROLES[activeStaffRole].badgeBg} ${STAFF_ROLES[activeStaffRole].badgeText} ${STAFF_ROLES[activeStaffRole].badgeBorder}`}>

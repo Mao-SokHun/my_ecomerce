@@ -147,3 +147,10 @@ export function normalizeDisplayName(raw: string): string {
     .trim()
     .replace(/\s+/g, ' ');
 }
+
+const KHMER_DIGITS = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+
+export function toKhmerNum(num: number | string): string {
+  return String(num).replace(/[0-9]/g, (digit) => KHMER_DIGITS[parseInt(digit, 10)] || digit);
+}
+

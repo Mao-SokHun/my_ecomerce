@@ -48,12 +48,26 @@ import { formatPrice, normalizeImageListToFullUrls, resolveToFullImageUrl } from
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useAdminLanguageStore } from '@/store/adminLanguageStore';
+import { useAuthStore } from '@/store/authStore';
+import {
+  StaffRole,
+  getEffectiveStaffRole,
+  canViewFinancials,
+  canEditProducts,
+  canManageInventory,
+} from '@/lib/rbac';
 import { CustomDropdown, DropdownOption } from '@/components/ui/CustomDropdown';
 import { useRealtime } from '@/providers/RealtimeProvider';
 import { saveStockAdjustment } from '@/lib/stockLossStorage';
 import { useConfirm } from '@/components/ui/ConfirmModal';
 
 export default function AdminProductsPage() {
+  const { user: authUser } = useAuthStore();
+  const staffRole: StaffRole = useMemo(() => getEffectiveStaffRole(authUser), [authUser]);
+  const hasFinancialAccess = canViewFinancials(staffRole);
+  const hasProductEditAccess = canEditProducts(staffRole);
+  const hasInventoryAccess = canManageInventory(staffRole);
+
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
   const { confirm } = useConfirm();
@@ -871,51 +885,53 @@ export default function AdminProductsPage() {
         </button>
       </div>
 
-      {/* Financial & Inventory Valuation Accounting Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-indigo-950/95 text-white shadow-sm border border-slate-700/60">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
-            <DollarSign className="w-4 h-4" />
+      {/* Financial & Inventory Valuation Accounting Bar (Super Admin & Store Admin only) */}
+      {hasFinancialAccess && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-indigo-950/95 text-white shadow-sm border border-slate-700/60">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+              <DollarSign className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (Inventory Cost)' : 'Total Inventory Cost'}
+              </p>
+              <p className="text-base sm:text-lg font-black font-mono text-amber-300">
+                {formatPrice(totalCostValue, language)}
+                <span className="text-xs font-normal text-slate-400 ml-1.5">({totalStockUnits} {isKhmer ? 'គ្រឿង' : 'units'})</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              {isKhmer ? 'ដើមទុនក្នុងស្តុកសរុប (Inventory Cost)' : 'Total Inventory Cost'}
-            </p>
-            <p className="text-base sm:text-lg font-black font-mono text-amber-300">
-              {formatPrice(totalCostValue, language)}
-              <span className="text-xs font-normal text-slate-400 ml-1.5">({totalStockUnits} {isKhmer ? 'គ្រឿង' : 'units'})</span>
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
-          <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center shrink-0 text-sky-400">
-            <TrendingUp className="w-4 h-4" />
+          <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center shrink-0 text-sky-400">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន (Retail Valuation)' : 'Estimated Retail Value'}
+              </p>
+              <p className="text-base sm:text-lg font-black font-mono text-sky-300">
+                {formatPrice(totalRetailValue, language)}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              {isKhmer ? 'ចំណូលលក់ប៉ាន់ស្មាន (Retail Valuation)' : 'Estimated Retail Value'}
-            </p>
-            <p className="text-base sm:text-lg font-black font-mono text-sky-300">
-              {formatPrice(totalRetailValue, language)}
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-          <div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              {isKhmer ? 'ប្រាក់ចំណេញប៉ាន់ស្មាន (Est. Gross Profit)' : 'Estimated Gross Profit'}
-            </p>
-            <p className="text-base sm:text-lg font-black font-mono text-emerald-400">
-              +{formatPrice(totalEstimatedProfit, language)}
-            </p>
+          <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/10 pt-2 sm:pt-0 sm:pl-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 font-medium">
+                {isKhmer ? 'ប្រាក់ចំណេញប៉ាន់ស្មាន (Est. Gross Profit)' : 'Estimated Gross Profit'}
+              </p>
+              <p className="text-base sm:text-lg font-black font-mono text-emerald-400">
+                +{formatPrice(totalEstimatedProfit, language)}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MAIN SEARCH & FILTERS TOOLBAR (COMPACT & SLEEK) */}
@@ -958,14 +974,16 @@ export default function AdminProductsPage() {
               />
             )}
 
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 h-10 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add Product'}</span>
-            </button>
+            {hasProductEditAccess && (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 h-10 rounded-xl bg-gradient-to-r from-primary-600 via-indigo-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 text-white font-bold text-xs sm:text-sm shadow-sm shadow-primary-500/25 transition-all duration-200 active:scale-95 whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>{isKhmer ? 'បន្ថែមទំនិញថ្មី' : 'Add Product'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1203,14 +1221,17 @@ export default function AdminProductsPage() {
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={(e) => openRestock(product, e)}
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums border transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-2xs ${isOut
+                            onClick={(e) => hasInventoryAccess && openRestock(product, e)}
+                            disabled={!hasInventoryAccess}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold tabular-nums border transition-all ${
+                              hasInventoryAccess ? 'hover:scale-105 active:scale-95 cursor-pointer' : 'cursor-default'
+                            } shadow-2xs ${isOut
                                 ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/60'
                                 : isLow
                                   ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/60 animate-pulse'
                                   : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/60'
                               }`}
-                            title={isKhmer ? 'ចុចដើម្បីកែប្រែ ឬបំពេញស្តុក' : 'Click to adjust or restock inventory'}
+                            title={hasInventoryAccess ? (isKhmer ? 'ចុចដើម្បីកែប្រែ ឬបំពេញស្តុក' : 'Click to adjust or restock inventory') : undefined}
                           >
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${isOut ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'
@@ -1219,31 +1240,38 @@ export default function AdminProductsPage() {
                             <span>{product.stock}</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => openRestock(product, e)}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95"
-                            title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
-                          </button>
+                          {hasInventoryAccess && (
+                            <button
+                              type="button"
+                              onClick={(e) => openRestock(product, e)}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold rounded bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 dark:hover:bg-primary-900/60 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800/60 transition shadow-2xs active:scale-95 cursor-pointer"
+                              title={isKhmer ? 'បំពេញស្តុកលឿន' : 'Quick restock'}
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>{isKhmer ? 'ស្តុក' : 'Stock'}</span>
+                            </button>
+                          )}
                         </div>
                       </td>
 
-                      {/* Featured (1-Click Interactive Star Toggle) */}
+                      {/* Featured (Interactive Toggle if permitted) */}
                       <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
-                          onClick={(e) => handleToggleFeatured(product, e)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${product.isFeatured
+                          onClick={(e) => hasProductEditAccess && handleToggleFeatured(product, e)}
+                          disabled={!hasProductEditAccess}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                            hasProductEditAccess ? 'cursor-pointer' : 'cursor-default opacity-80'
+                          } ${product.isFeatured
                               ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-700/80 shadow-2xs hover:bg-amber-100'
                               : 'bg-slate-100/60 dark:bg-surface-800/60 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 border border-transparent hover:border-amber-200'
                             }`}
                           title={
-                            product.isFeatured
-                              ? (isKhmer ? 'ចុចដើម្បីបិទ Featured' : 'Click to remove from Featured')
-                              : (isKhmer ? 'ចុចដើម្បីបើក Featured លើ Homepage' : 'Click to make Featured on Homepage')
+                            hasProductEditAccess
+                              ? product.isFeatured
+                                ? (isKhmer ? 'ចុចដើម្បីបិទ Featured' : 'Click to remove from Featured')
+                                : (isKhmer ? 'ចុចដើម្បីបើក Featured លើ Homepage' : 'Click to make Featured on Homepage')
+                              : undefined
                           }
                         >
                           <Star
@@ -1254,19 +1282,24 @@ export default function AdminProductsPage() {
                         </button>
                       </td>
 
-                      {/* Status (1-Click Interactive Active Toggle) */}
+                      {/* Status (Interactive Toggle if permitted) */}
                       <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
-                          onClick={(e) => handleToggleActive(product, e)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${product.isActive
+                          onClick={(e) => hasProductEditAccess && handleToggleActive(product, e)}
+                          disabled={!hasProductEditAccess}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                            hasProductEditAccess ? 'cursor-pointer' : 'cursor-default opacity-80'
+                          } ${product.isActive
                               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80 shadow-2xs'
                               : 'bg-slate-100 dark:bg-surface-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                             }`}
                           title={
-                            product.isActive
-                              ? (isKhmer ? 'ចុចដើម្បីបិទលក់ (Draft)' : 'Click to set Inactive')
-                              : (isKhmer ? 'ចុចដើម្បីបើកលក់ (Active)' : 'Click to set Active')
+                            hasProductEditAccess
+                              ? product.isActive
+                                ? (isKhmer ? 'ចុចដើម្បីបិទលក់ (Draft)' : 'Click to set Inactive')
+                                : (isKhmer ? 'ចុចដើម្បីបើកលក់ (Active)' : 'Click to set Active')
+                              : undefined
                           }
                         >
                           <span
@@ -1288,22 +1321,26 @@ export default function AdminProductsPage() {
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
-                          <button
-                            type="button"
-                            onClick={(e) => openEdit(product, e)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition"
-                            title={isKhmer ? 'កែប្រែ' : 'Edit'}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDelete(product.id, product.name, e)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-                            title={isKhmer ? 'លុប' : 'Delete'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {hasProductEditAccess && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => openEdit(product, e)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-surface-800 transition cursor-pointer"
+                                title={isKhmer ? 'កែប្រែ' : 'Edit'}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDelete(product.id, product.name, e)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                                title={isKhmer ? 'លុប' : 'Delete'}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1617,44 +1654,46 @@ export default function AdminProductsPage() {
                   </div>
                 </div>
 
-                {/* Import Cost Price per Unit Field */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                      {isKhmer ? 'ថ្លៃដើមនាំចូលក្នុង ១ គ្រឿង ($ Cost / Unit)' : 'Import Cost Price ($ / Unit)'}
-                    </label>
-                    <span className="text-[10px] text-slate-400">
-                      {isKhmer ? 'សម្រាប់គណនាចំណេញ/ខាតស្វ័យប្រវត្តិ' : 'For auto profit & loss calculation'}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={restockCostPrice}
-                      onChange={(e) => setRestockCostPrice(e.target.value)}
-                      placeholder={restockingProduct.costPrice ? String(restockingProduct.costPrice) : '0.00'}
-                      className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
-                    />
-                  </div>
-                  {restockCostPrice !== '' && Number(restockCostPrice) > 0 && (
-                    <div className="flex items-center justify-between text-xs pt-1 text-slate-600 dark:text-slate-400">
-                      <span>{isKhmer ? 'ចំណេញ/ខាតក្នុង ១ គ្រឿង:' : 'Unit Profit/Loss:'}</span>
-                      {((restockingProduct.price || 0) - Number(restockCostPrice)) >= 0 ? (
-                        <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                          +{formatPrice((restockingProduct.price || 0) - Number(restockCostPrice), language)}
-                          {' '}({Math.round((((restockingProduct.price || 0) - Number(restockCostPrice)) / (restockingProduct.price || 1)) * 100)}%)
-                        </strong>
-                      ) : (
-                        <strong className="font-mono font-bold text-rose-600 dark:text-rose-400">
-                          -{formatPrice(Math.abs((restockingProduct.price || 0) - Number(restockCostPrice)), language)}
-                          {' '}({isKhmer ? 'ខាត' : 'Loss'})
-                        </strong>
-                      )}
+                {/* Import Cost Price per Unit Field (Super Admin & Admin only) */}
+                {hasFinancialAccess && (
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-surface-850 border border-slate-200/80 dark:border-surface-800 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                        {isKhmer ? 'ថ្លៃដើមនាំចូលក្នុង ១ គ្រឿង ($ Cost / Unit)' : 'Import Cost Price ($ / Unit)'}
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        {isKhmer ? 'សម្រាប់គណនាចំណេញ/ខាតស្វ័យប្រវត្តិ' : 'For auto profit & loss calculation'}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={restockCostPrice}
+                        onChange={(e) => setRestockCostPrice(e.target.value)}
+                        placeholder={restockingProduct.costPrice ? String(restockingProduct.costPrice) : '0.00'}
+                        className="w-full h-10 pl-8 pr-3 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-800 border border-slate-200 dark:border-surface-700 font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                      />
+                    </div>
+                    {restockCostPrice !== '' && Number(restockCostPrice) > 0 && (
+                      <div className="flex items-center justify-between text-xs pt-1 text-slate-600 dark:text-slate-400">
+                        <span>{isKhmer ? 'ចំណេញ/ខាតក្នុង ១ គ្រឿង:' : 'Unit Profit/Loss:'}</span>
+                        {((restockingProduct.price || 0) - Number(restockCostPrice)) >= 0 ? (
+                          <strong className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            +{formatPrice((restockingProduct.price || 0) - Number(restockCostPrice), language)}
+                            {' '}({Math.round((((restockingProduct.price || 0) - Number(restockCostPrice)) / (restockingProduct.price || 1)) * 100)}%)
+                          </strong>
+                        ) : (
+                          <strong className="font-mono font-bold text-rose-600 dark:text-rose-400">
+                            -{formatPrice(Math.abs((restockingProduct.price || 0) - Number(restockCostPrice)), language)}
+                            {' '}({isKhmer ? 'ខាត' : 'Loss'})
+                          </strong>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Live Real-time Stock & Financial Accounting Preview */}
                 {(() => {
@@ -1679,8 +1718,8 @@ export default function AdminProductsPage() {
                           )}
                           <span>
                             {isLossAdjustment && lossUnits > 0
-                              ? (isKhmer ? 'ការគណនាផលខាតដើមទុន & បាត់បង់ចំណូល' : 'Capital Loss & Revenue Impact')
-                              : (isKhmer ? 'លទ្ធផលស្តុក & គណនេយ្យជាក់ស្តែង' : 'Live Stock & Financial Impact')}
+                              ? (isKhmer ? 'ការគណនាផលខាត & បំលាស់ប្តូរស្តុក' : 'Stock Adjustment & Impact')
+                              : (isKhmer ? 'លទ្ធផលស្តុកជាក់ស្តែង' : 'Live Stock Summary')}
                           </span>
                         </span>
                         <span className="text-[11px] text-slate-400">
@@ -1713,21 +1752,15 @@ export default function AdminProductsPage() {
                                   : 'text-slate-400'
                               }`}
                           >
-                            {calculatedStock.diff > 0 ? (
-                              <span>+{calculatedStock.diff}</span>
-                            ) : calculatedStock.diff < 0 ? (
-                              <span>{calculatedStock.diff}</span>
-                            ) : (
-                              <span>0</span>
-                            )}
+                            {calculatedStock.diff > 0 ? `+${calculatedStock.diff}` : calculatedStock.diff}
                           </div>
                         </div>
 
-                        {/* New Total */}
+                        {/* New Final Stock */}
                         <div
                           className={`p-2.5 rounded-xl border ${calculatedStock.diff < 0
-                              ? 'bg-rose-500/10 border-rose-500/30'
-                              : 'bg-gradient-to-tr from-primary-500/10 via-indigo-500/10 to-violet-500/10 border-primary-500/30'
+                              ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
+                              : 'bg-primary-50/80 dark:bg-primary-950/40 border-primary-200 dark:border-primary-800'
                             }`}
                         >
                           <div
@@ -1749,75 +1782,8 @@ export default function AdminProductsPage() {
                         </div>
                       </div>
 
-                      {/* Loss Breakdown vs Standard Breakdown */}
-                      {isLossAdjustment && lossUnits > 0 ? (
-                        <div className="space-y-2.5 pt-1">
-                          {/* Alert Notice Banner */}
-                          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-900 dark:text-rose-200">
-                            <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                            <div className="min-w-0">
-                              <span className="font-bold">
-                                {isKhmer
-                                  ? `ការកាត់ចេញ ${lossUnits} គ្រឿង នាំឱ្យមានការខាតបង់ដើមទុនផ្ទាល់ និងបាត់បង់ឱកាសចំណូល៖`
-                                  : `Deducting ${lossUnits} units incurs direct cost loss and lost retail sales:`}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* 3 Dedicated Loss KPI Cards in Red/Rose/Amber */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                            {/* 1. Direct Cost Loss */}
-                            <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-950 dark:text-rose-200">
-                              <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold uppercase block tracking-wider">
-                                {isKhmer ? 'ខាតបង់ថ្លៃដើមផ្ទាល់' : 'Capital Loss'}
-                              </span>
-                              <strong className="font-mono font-black text-sm text-rose-600 dark:text-rose-400 block mt-0.5">
-                                -{formatPrice(directCostLoss, language)}
-                              </strong>
-                              <span className="text-[10px] text-rose-600/80 dark:text-rose-400/80 block mt-0.5">
-                                {lossUnits} × ${unitCostVal.toFixed(2)} ({isKhmer ? 'ទុនបាត់បង់' : 'Cost loss'})
-                              </span>
-                            </div>
-
-                            {/* 2. Lost Sales Revenue */}
-                            <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-950 dark:text-red-200">
-                              <span className="text-[10px] text-red-700 dark:text-red-400 font-bold uppercase block tracking-wider">
-                                {isKhmer ? 'បាត់បង់ចំណូលលក់' : 'Lost Sales Revenue'}
-                              </span>
-                              <strong className="font-mono font-black text-sm text-red-600 dark:text-red-400 block mt-0.5">
-                                -{formatPrice(revenueLoss, language)}
-                              </strong>
-                              <span className="text-[10px] text-red-600/80 dark:text-red-400/80 block mt-0.5">
-                                {lossUnits} × ${unitPriceVal.toFixed(2)} ({isKhmer ? 'លក់រាយ' : 'Retail'})
-                              </span>
-                            </div>
-
-                            {/* 3. Lost Net Profit */}
-                            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-amber-950 dark:text-amber-200">
-                              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold uppercase block tracking-wider">
-                                {isKhmer ? 'បាត់បង់ប្រាក់ចំណេញ' : 'Lost Net Profit'}
-                              </span>
-                              <strong className="font-mono font-black text-sm text-amber-600 dark:text-amber-400 block mt-0.5">
-                                -{formatPrice(lostProfitVal, language)}
-                              </strong>
-                              <span className="text-[10px] text-amber-700/80 dark:text-amber-400/80 block mt-0.5">
-                                {isKhmer ? 'ចំណេញរំពឹងទុក' : 'Lost margin'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Remaining Stock Value */}
-                          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-surface-800/80 border border-slate-200/80 dark:border-surface-700 flex items-center justify-between text-xs">
-                            <span className="text-slate-500 dark:text-slate-400 font-medium">
-                              {isKhmer ? 'តម្លៃដើមទុនស្តុកនៅសល់:' : 'Remaining Inventory Cost Value:'}
-                            </span>
-                            <strong className="font-mono font-bold text-slate-800 dark:text-slate-200">
-                              {formatPrice(remainingStockValue, language)} ({calculatedStock.finalStock} {isKhmer ? 'គ្រឿង' : 'pcs'})
-                            </strong>
-                          </div>
-                        </div>
-                      ) : (
-                        /* Standard Restock Financial Breakdown Grid */
+                      {/* Financial Breakdown Grid (Only for Super Admin & Admin with Financial Access) */}
+                      {hasFinancialAccess && (
                         <div className="pt-2 border-t border-slate-200/60 dark:border-surface-750 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                           <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200">
                             <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold block">
@@ -2135,19 +2101,21 @@ export default function AdminProductsPage() {
                       placeholder="999.00"
                     />
                   </div>
-                  <div>
-                    <label className={modalLabelCls}>
-                      {isKhmer ? 'ថ្លៃដើមនាំចូល ($ Cost Price)' : 'Import Cost Price ($)'}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={form.costPrice}
-                      onChange={(e) => setForm((p) => ({ ...p, costPrice: e.target.value }))}
-                      className={modalInputCls}
-                      placeholder="650.00"
-                    />
-                  </div>
+                  {hasFinancialAccess && (
+                    <div>
+                      <label className={modalLabelCls}>
+                        {isKhmer ? 'ថ្លៃដើមនាំចូល ($ Cost Price)' : 'Import Cost Price ($)'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={form.costPrice}
+                        onChange={(e) => setForm((p) => ({ ...p, costPrice: e.target.value }))}
+                        className={modalInputCls}
+                        placeholder="650.00"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className={modalLabelCls}>
                       {isKhmer ? 'តម្លៃដើមមុនបញ្ចុះ ($ Compare Price)' : 'Compare At Price ($)'}
