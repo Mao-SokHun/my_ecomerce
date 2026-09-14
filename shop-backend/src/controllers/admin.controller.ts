@@ -94,21 +94,29 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
       0
     );
 
+    const actorRole = req.user?.role;
+    const canSeeFinancials = actorRole === 'SUPER_ADMIN';
+    const canSeeOrders = actorRole !== 'WAREHOUSE';
+
     res.json({
       success: true,
       data: {
         overview: {
-          orders: {
-            value: totalOrders,
-            growth: monthGrowth(totalOrders, totalOrdersLastMonth),
-          },
-          revenue: {
-            value: totalRevenue._sum.total || 0,
-            growth: monthGrowth(
-              totalRevenue._sum.total || 0,
-              totalRevenueLastMonth._sum.total || 0
-            ),
-          },
+          orders: canSeeOrders
+            ? {
+                value: totalOrders,
+                growth: monthGrowth(totalOrders, totalOrdersLastMonth),
+              }
+            : { value: 0, growth: 0 },
+          revenue: canSeeFinancials
+            ? {
+                value: totalRevenue._sum.total || 0,
+                growth: monthGrowth(
+                  totalRevenue._sum.total || 0,
+                  totalRevenueLastMonth._sum.total || 0
+                ),
+              }
+            : { value: 0, growth: 0 },
           users: {
             value: totalUsers,
             growth: monthGrowth(totalUsers, totalUsersLastMonth),
@@ -117,21 +125,23 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
           stock: {
             lowStockCount,
             totalUnits: stockValueAgg._sum.stock || 0,
-            inventoryValue,
-            estimatedRevenueIfSold,
+            inventoryValue: canSeeFinancials ? inventoryValue : 0,
+            estimatedRevenueIfSold: canSeeFinancials ? estimatedRevenueIfSold : 0,
           },
           profit: {
-            realizedGrossProfit,
+            realizedGrossProfit: canSeeFinancials ? realizedGrossProfit : 0,
           },
         },
-        recentOrders,
+        recentOrders: canSeeOrders ? recentOrders : [],
         topProducts,
         lowStockProducts,
-        ordersByStatus: ordersByStatus.map((s) => ({
-          status: s.status,
-          count: s._count.status,
-        })),
-        revenueByDay,
+        ordersByStatus: canSeeOrders
+          ? ordersByStatus.map((s) => ({
+              status: s.status,
+              count: s._count.status,
+            }))
+          : [],
+        revenueByDay: canSeeFinancials ? revenueByDay : [],
       },
     });
   } catch (error) {

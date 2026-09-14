@@ -69,6 +69,43 @@ export const requireAdmin = (
   next();
 };
 
+export const requireSuperAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user || req.user.role !== 'SUPER_ADMIN') {
+    res.status(403).json({ success: false, message: 'Super Admin access required' });
+    return;
+  }
+  next();
+};
+
+export const requireStoreAdminOrSuper = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user || (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN')) {
+    res.status(403).json({ success: false, message: 'Store Admin or Super Admin access required' });
+    return;
+  }
+  next();
+};
+
+export const requireOrderAccess = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const allowed = ['SUPER_ADMIN', 'ADMIN', 'CASHIER'];
+  if (!req.user || !allowed.includes(req.user.role)) {
+    res.status(403).json({ success: false, message: 'Warehouse staff is not authorized to access orders' });
+    return;
+  }
+  next();
+};
+
 export const optionalAuth = async (
   req: AuthRequest,
   res: Response,

@@ -272,6 +272,11 @@ export const createProduct = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const actorRole = req.user?.role;
+    if (actorRole !== 'SUPER_ADMIN' && actorRole !== 'ADMIN') {
+      throw new AppError('Only Store Admin or Super Admin can create products', 403);
+    }
+
     const {
       name,
       description,
@@ -385,6 +390,17 @@ export const updateProduct = async (
       Object.entries(req.body).filter(([k]) => PRODUCT_SCALAR_UPDATE_KEYS.has(k))
     ) as Record<string, unknown>;
 
+    const actorRole = req.user?.role;
+    if (actorRole === 'CASHIER') {
+      throw new AppError('Cashier is not authorized to modify products', 403);
+    }
+    if (actorRole === 'WAREHOUSE') {
+      const nonStockUpdates = Object.keys(updates).filter((k) => k !== 'stock');
+      if (nonStockUpdates.length > 0 || variants !== undefined) {
+        throw new AppError('Warehouse Keeper is only authorized to adjust stock levels', 403);
+      }
+    }
+
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) throw new AppError('Product not found', 404);
 
@@ -452,6 +468,11 @@ export const deleteProduct = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const actorRole = req.user?.role;
+    if (actorRole !== 'SUPER_ADMIN' && actorRole !== 'ADMIN') {
+      throw new AppError('Only Store Admin or Super Admin can deactivate products', 403);
+    }
+
     const id = String(req.params.id);
 
     await prisma.product.update({

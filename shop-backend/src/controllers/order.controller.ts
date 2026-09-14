@@ -127,49 +127,86 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
 
     const orderNumber = generateOrderNumber();
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        userId: req.user!.id,
-        addressId,
-        subtotal,
-        discount,
-        shippingCost,
-        tax,
-        total,
-        notes,
-        shippingCarrier,
-        shippingAddress: shippingAddress ?? undefined,
-        paymentMethod: method,
-        couponCode: orderCouponCode,
-        couponDiscountType: orderCouponDiscountType,
-        couponDiscountValue: orderCouponDiscountValue,
-        items: {
-          create: cart.items.map((item) => ({
-            productId: item.productId,
-            name: item.product.name,
-            image: item.product.thumbnail,
-            price: item.product.price,
-            quantity: item.quantity,
-          })),
-        },
-      },
-      include: { items: true, address: true },
-    });
-
-    // Deduct stock and check remaining stock
-    const updatedProducts = await Promise.all(
-      cart.items.map((item) =>
-        prisma.product.update({
+    const { order, updatedProducts } = await prisma.$transaction(async (tx) => {
+      // 1. Concurrency check: verify live stock within transaction
+      for (const item of cart.items) {
+        const liveProd = await tx.product.findUnique({
           where: { id: item.productId },
-          data: {
-            stock: { decrement: item.quantity },
-            soldCount: { increment: item.quantity },
+          select: { id: true, name: true, stock: true, isActive: true },
+        });
+        if (!liveProd || !liveProd.isActive) {
+          throw new AppError(`Product "${item.product.name}" is no longer available`, 400);
+        }
+        if (liveProd.stock < item.quantity) {
+          throw new AppError(`Insufficient stock for "${item.product.name}" (only ${liveProd.stock} available)`, 400);
+        }
+      }
+
+      // 2. Create the Order
+      const newOrder = await tx.order.create({
+        data: {
+          orderNumber,
+          userId: req.user!.id,
+          addressId,
+          subtotal,
+          discount,
+          shippingCost,
+          tax,
+          total,
+          notes,
+          shippingCarrier,
+          shippingAddress: shippingAddress ?? undefined,
+          paymentMethod: method,
+          couponCode: orderCouponCode,
+          couponDiscountType: orderCouponDiscountType,
+          couponDiscountValue: orderCouponDiscountValue,
+          items: {
+            create: cart.items.map((item) => ({
+              productId: item.productId,
+              name: item.product.name,
+              image: item.product.thumbnail,
+              price: item.product.price,
+              quantity: item.quantity,
+            })),
           },
-          select: { id: true, name: true, stock: true, price: true },
-        })
-      )
-    );
+        },
+        include: { items: true, address: true },
+      });
+
+      // 3. Atomically decrement stock
+      const prods = await Promise.all(
+        cart.items.map((item) =>
+          tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { decrement: item.quantity },
+              soldCount: { increment: item.quantity },
+            },
+            select: { id: true, name: true, stock: true, price: true },
+          })
+        )
+      );
+
+      // 4. Clear cart within transaction
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      // 5. Record per-user coupon usage within transaction
+      if (orderCouponCode) {
+        const usedCoupon = await tx.coupon.findFirst({
+          where: { code: orderCouponCode },
+          select: { id: true },
+        });
+        if (usedCoupon) {
+          await tx.couponUsage.upsert({
+            where: { userId_couponId: { userId: req.user!.id, couponId: usedCoupon.id } },
+            create: { userId: req.user!.id, couponId: usedCoupon.id, orderId: newOrder.id },
+            update: { usedAt: new Date(), orderId: newOrder.id },
+          });
+        }
+      }
+
+      return { order: newOrder, updatedProducts: prods };
+    });
 
     // Send Telegram alert if any product stock becomes low (<= 5) or out of stock (<= 0)
     const lowStockProducts = updatedProducts.filter((p) => p.stock <= 5);
@@ -177,24 +214,6 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       notifyAdminLowStockAlert(lowStockProducts).catch((err) => {
         console.error('[Admin Notify] Low stock notification failed:', err);
       });
-    }
-
-    // Clear cart
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-
-    // Record per-user coupon usage so it cannot be reused
-    if (orderCouponCode) {
-      const usedCoupon = await prisma.coupon.findFirst({
-        where: { code: orderCouponCode },
-        select: { id: true },
-      });
-      if (usedCoupon) {
-        await prisma.couponUsage.upsert({
-          where: { userId_couponId: { userId: req.user!.id, couponId: usedCoupon.id } },
-          create: { userId: req.user!.id, couponId: usedCoupon.id, orderId: order.id },
-          update: { usedAt: new Date(), orderId: order.id },
-        });
-      }
     }
 
     // Create Stripe PaymentIntent for card checkout (optional — skipped if Stripe key not configured)

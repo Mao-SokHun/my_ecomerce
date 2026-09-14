@@ -9,7 +9,7 @@ import {
   getFeaturedProducts,
   getRelatedProducts,
 } from '../controllers/product.controller';
-import { authenticate, requireAdmin } from '../middleware/auth';
+import { authenticate, requireAdmin, requireStoreAdminOrSuper } from '../middleware/auth';
 
 const router = Router();
 
@@ -19,8 +19,8 @@ router.get('/suggestions', getProductSuggestions);
 router.get('/:slug', getProduct);
 router.get('/:slug/related', getRelatedProducts);
 
-router.post('/', authenticate, requireAdmin, createProduct);
+router.post('/', authenticate, requireStoreAdminOrSuper, createProduct);
 router.put('/:id', authenticate, requireAdmin, updateProduct);
-router.delete('/:id', authenticate, requireAdmin, deleteProduct);
+router.delete('/:id', authenticate, requireStoreAdminOrSuper, deleteProduct);
 
 export default router;

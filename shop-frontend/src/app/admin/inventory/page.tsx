@@ -47,10 +47,13 @@ import {
 } from '@/lib/stockLossStorage';
 import { calculateStockForecasting, ProductStockForecast } from '@/lib/stockForecasting';
 import { PurchaseOrderModal } from '@/components/admin/PurchaseOrderModal';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminInventoryPage() {
+  const { user: authUser } = useAuthStore();
   const { language } = useAdminLanguageStore();
   const isKhmer = language === 'km';
+  const currentOperator = authUser?.name ? `${authUser.name} (${authUser.role || 'Staff'})` : 'Admin';
 
   // Products, orders and movement logs
   const [products, setProducts] = useState<Product[]>(() => {
@@ -239,7 +242,7 @@ export default function AdminInventoryPage() {
         revenueLoss: 0,
         referenceNo: ref,
         supplier: formSupplier.trim() || undefined,
-        operatorName: 'Mao Sokhun (Admin)',
+        operatorName: currentOperator,
         notes: formNotes.trim() || (isKhmer ? 'នាំចូលស្តុកបន្ថែមថ្មី' : 'Inbound batch restock'),
         createdAt: new Date().toISOString(),
       });
@@ -307,7 +310,7 @@ export default function AdminInventoryPage() {
         capitalLoss: formQty * unitCost,
         revenueLoss: formQty * unitPrice,
         referenceNo: ref,
-        operatorName: 'Mao Sokhun (Admin)',
+        operatorName: currentOperator,
         notes: formNotes.trim() || (isKhmer ? 'កាត់ស្តុកខូចខាតចេញពីឃ្លាំង' : 'Damaged stock write-off'),
         createdAt: new Date().toISOString(),
       });
@@ -377,7 +380,7 @@ export default function AdminInventoryPage() {
         customerName: formCustomerName.trim() || undefined,
         customerPhone: formCustomerPhone.trim() || undefined,
         orderNumber: formOrderNumber.trim() || undefined,
-        operatorName: 'Mao Sokhun (Admin)',
+        operatorName: currentOperator,
         notes: formNotes.trim() || (isKhmer ? 'ដូរទំនិញថ្មីជូនអតិថិជនក្រោមកាតព្វកិច្ចធានា' : 'Customer replacement under warranty'),
         createdAt: new Date().toISOString(),
       });
@@ -442,7 +445,7 @@ export default function AdminInventoryPage() {
         capitalLoss: variance < 0 ? Math.abs(variance) * unitCost : 0,
         revenueLoss: variance < 0 ? Math.abs(variance) * unitPrice : 0,
         referenceNo: ref,
-        operatorName: 'Mao Sokhun (Admin)',
+        operatorName: currentOperator,
         notes: formNotes.trim() || (isKhmer ? `រាប់ស្តុកកែតម្រូវចុងខែ (គម្លាត: ${variance > 0 ? `+${variance}` : variance})` : `Physical cycle count reconciliation (variance: ${variance})`),
         createdAt: new Date().toISOString(),
       });
