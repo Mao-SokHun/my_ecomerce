@@ -179,6 +179,11 @@ type ValidStaffRole = typeof VALID_STAFF_ROLES[number];
 
 export const createUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const actorRole = req.user?.role;
+    if (actorRole === 'CASHIER' || actorRole === 'WAREHOUSE') {
+      throw new AppError('Cashier and Warehouse staff cannot create accounts', 403);
+    }
+
     const { name, email, phone, password, role = 'USER', staffRole } = req.body;
 
     if (!name || !password) {
@@ -198,14 +203,18 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
       if (existingPhone) throw new AppError('Phone number already registered', 400);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Store specific role directly: SUPER_ADMIN | ADMIN | CASHIER | WAREHOUSE | USER
+    // Validate staff role assignment hierarchy
     const validStaffRole: ValidStaffRole | null =
       staffRole && VALID_STAFF_ROLES.includes(staffRole as ValidStaffRole)
         ? (staffRole as ValidStaffRole)
         : null;
     const dbRole = validStaffRole || (role === 'ADMIN' ? 'ADMIN' : 'USER');
+
+    if (actorRole === 'ADMIN' && (dbRole === 'SUPER_ADMIN' || dbRole === 'ADMIN')) {
+      throw new AppError('Store Admin can only create Cashier or Warehouse accounts', 403);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
       data: {
@@ -242,11 +251,34 @@ export const createUser = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const actorRole = req.user?.role;
+    if (actorRole === 'CASHIER' || actorRole === 'WAREHOUSE') {
+      throw new AppError('Cashier and Warehouse staff cannot modify accounts', 403);
+    }
+
     const id = String(req.params.id);
     const { role, isActive, staffRole } = req.body;
 
     if (id === req.user!.id) {
       throw new AppError('Cannot modify your own admin account', 400);
+    }
+
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (!target) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (target.role === 'SUPER_ADMIN' && actorRole !== 'SUPER_ADMIN') {
+      throw new AppError('Only Super Admin can modify Super Admin accounts', 403);
+    }
+
+    if (actorRole === 'ADMIN') {
+      if (target.role === 'ADMIN') {
+        throw new AppError('Store Admin cannot modify other Admin accounts', 403);
+      }
+      if (role === 'SUPER_ADMIN' || role === 'ADMIN' || staffRole === 'SUPER_ADMIN' || staffRole === 'ADMIN') {
+        throw new AppError('Store Admin cannot assign Super Admin or Admin permissions', 403);
+      }
     }
 
     const validStaffRole: ValidStaffRole | null =
@@ -276,9 +308,24 @@ export const updateUser = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const actorRole = req.user?.role;
+    if (actorRole === 'CASHIER' || actorRole === 'WAREHOUSE') {
+      throw new AppError('Cashier and Warehouse staff cannot deactivate accounts', 403);
+    }
+
     const id = String(req.params.id);
 
     if (id === req.user!.id) throw new AppError('Cannot delete your own account', 400);
+
+    const target = await prisma.user.findUnique({ where: { id } });
+    if (!target) throw new AppError('User not found', 404);
+
+    if (target.role === 'SUPER_ADMIN') {
+      throw new AppError('Super Admin accounts cannot be deactivated', 403);
+    }
+    if (target.role === 'ADMIN' && actorRole !== 'SUPER_ADMIN') {
+      throw new AppError('Only Super Admin can deactivate Store Admin accounts', 403);
+    }
 
     await prisma.user.update({ where: { id }, data: { isActive: false } });
     res.json({ success: true, message: 'User deactivated' });
