@@ -8,7 +8,7 @@ import {
   LogOut, Menu, X, Store, Settings, FolderTree, Sun, Moon, ChevronDown, Globe, PanelLeftClose,
   Mail, MessageSquare, Sliders, Phone, Compass, Image as ImageIcon, FileText, Receipt,
   Bell, AlertTriangle, Flame, ArrowRight, CheckCircle2, BellRing, CircleDollarSign, TrendingUp,
-  Scan, ShieldCheck, ShieldAlert, UserCog,
+  Scan, ShieldCheck, UserCog,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useThemeStore } from '@/store/themeStore';
